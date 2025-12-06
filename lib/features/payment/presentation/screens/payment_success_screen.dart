@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/theme/app_colors.dart';
+
+class PaymentSuccessScreen extends StatelessWidget {
+  final Map<String, dynamic> args;
+
+  const PaymentSuccessScreen({super.key, required this.args});
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = args['amount'] as double;
+    final timestamp = DateTime.parse(args['timestamp']);
+    final sourceType = args['source_type'] == 'CASH' ? 'เงินสด (Cash)' : 'วงเงินกู้ (Credit)';
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_rounded, size: 60, color: Colors.green),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'ชำระเงินสำเร็จ',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  DateFormat('d MMM yyyy, HH:mm').format(timestamp),
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 40),
+                Text(
+                  '- ฿${NumberFormat('#,##0.00').format(amount)}',
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                Text('ชำระด้วย $sourceType', style: const TextStyle(color: AppColors.textSecondary)),
+                
+                const SizedBox(height: 60),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () => context.go('/home'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text('เสร็จสิ้น', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,341 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../domain/loan_application_model.dart';
+import '../../../auth/domain/user_role.dart';
+
+class OfficerLoanDetailScreen extends StatefulWidget {
+  final LoanApplication application;
+
+  const OfficerLoanDetailScreen({
+    super.key,
+    required this.application,
+  });
+
+  @override
+  State<OfficerLoanDetailScreen> createState() => _OfficerLoanDetailScreenState();
+}
+
+class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
+  final TextEditingController _commentController = TextEditingController();
+  late LoanApplicationStatus _currentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = widget.application.status;
+    if (widget.application.officerNote != null) {
+      _commentController.text = widget.application.officerNote!;
+    }
+  }
+
+  void _updateStatus(LoanApplicationStatus newStatus) {
+    // In a real app, call API here
+    setState(() {
+      _currentStatus = newStatus;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          newStatus == LoanApplicationStatus.approved 
+              ? 'อนุมัติสินเชื่อเรียบร้อยแล้ว' 
+              : 'ปฏิเสธสินเชื่อเรียบร้อยแล้ว'
+        ),
+        backgroundColor: newStatus == LoanApplicationStatus.approved 
+            ? AppColors.success 
+            : AppColors.error,
+      ),
+    );
+    
+    // Delay slightly before going back
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) context.pop(true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!CurrentUser.isOfficerOrApprover) {
+      return const Scaffold(body: Center(child: Text('Unauthorized')));
+    }
+
+    final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 0);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('รายละเอียดคำขอสินเชื่อ'),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStatusHeader(),
+            const SizedBox(height: 20),
+            _buildApplicantInfo(),
+            const SizedBox(height: 20),
+            _buildFinancialInfo(currencyFormat),
+            const SizedBox(height: 20),
+            if (_currentStatus == LoanApplicationStatus.pending && CurrentUser.isApprover)
+               _buildActionSection(),
+            if (_currentStatus != LoanApplicationStatus.pending)
+               _buildResultSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusHeader() {
+    Color statusColor;
+    String statusText;
+    IconData statusIcon;
+
+    switch (_currentStatus) {
+      case LoanApplicationStatus.approved:
+        statusColor = AppColors.success;
+        statusText = 'อนุมัติแล้ว';
+        statusIcon = LucideIcons.checkCircle;
+        break;
+      case LoanApplicationStatus.rejected:
+        statusColor = AppColors.error;
+        statusText = 'ปฏิเสธแล้ว';
+        statusIcon = LucideIcons.xCircle;
+        break;
+      default:
+        statusColor = AppColors.warning;
+        statusText = 'รอการพิจารณา';
+        statusIcon = LucideIcons.clock;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(statusIcon, color: statusColor, size: 48),
+          const SizedBox(height: 8),
+          Text(
+            statusText,
+            style: TextStyle(
+              color: statusColor,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            'เลขอ้างอิง: ${widget.application.id}',
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApplicantInfo() {
+    return _buildCard(
+      title: 'ข้อมูลสมาชิก',
+      icon: LucideIcons.user,
+      children: [
+        _buildInfoRow('ชื่อ-นามสกุล', widget.application.applicantName),
+        _buildInfoRow('รหัสสมาชิก', widget.application.memberId),
+        _buildInfoRow('เลขบัตรประชาชน', widget.application.applicantId),
+      ],
+    );
+  }
+
+  Widget _buildFinancialInfo(NumberFormat format) {
+    return _buildCard(
+      title: 'ข้อมูลสินเชื่อและการเงิน',
+      icon: LucideIcons.banknote,
+      children: [
+        _buildInfoRow('ประเภทสินเชื่อ', widget.application.productName),
+        _buildInfoRow('วงเงินที่ขอ', format.format(widget.application.amount), isHighlight: true),
+        _buildInfoRow('ระยะเวลาผ่อน', '${widget.application.requestTerm} งวด'),
+        const Divider(),
+        _buildInfoRow('เงินเดือน', format.format(widget.application.monthlySalary)),
+        _buildInfoRow('หนี้สินปัจจุบัน', format.format(widget.application.currentDebt)),
+        _buildInfoRow('ภาระหนี้ต่อรายได้', '${((widget.application.currentDebt / widget.application.monthlySalary) * 100).toStringAsFixed(1)}%'),
+      ],
+    );
+  }
+
+  Widget _buildActionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'การพิจารณา',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _commentController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'ความเห็นเจ้าหน้าที่ (ถ้ามี)',
+            border: OutlineInputBorder(),
+            hintText: 'ระบุเหตุผล หรือเงื่อนไขเพิ่มเติม...',
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _showConfirmationDialog(LoanApplicationStatus.rejected),
+                icon: const Icon(LucideIcons.x),
+                label: const Text('ปฏิเสธ'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _showConfirmationDialog(LoanApplicationStatus.approved),
+                icon: const Icon(LucideIcons.check),
+                label: const Text('อนุมัติ'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildResultSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'ความเห็นเจ้าหน้าที่',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Text(
+            _commentController.text.isEmpty ? '-' : _commentController.text,
+            style: const TextStyle(fontSize: 16),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCard({required String title, required IconData icon, required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {bool isHighlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Colors.grey),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
+              color: isHighlight ? AppColors.primary : AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showConfirmationDialog(LoanApplicationStatus status) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(status == LoanApplicationStatus.approved ? 'ยืนยันการอนุมัติ?' : 'ยืนยันการปฏิเสธ?'),
+        content: Text(
+          status == LoanApplicationStatus.approved 
+              ? 'คุณต้องการอนุมัติวงเงินสินเชื่อนี้ใช่หรือไม่?'
+              : 'คุณต้องการปฏิเสธคำขอนี้ใช่หรือไม่?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateStatus(status);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: status == LoanApplicationStatus.approved ? AppColors.success : AppColors.error,
+            ),
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+  }
+}

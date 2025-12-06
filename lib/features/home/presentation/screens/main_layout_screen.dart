@@ -16,6 +16,8 @@ class MainLayoutScreen extends StatelessWidget {
     return Scaffold(
       body: navigationShell,
       floatingActionButton: Container(
+        height: 72, 
+        width: 72,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
@@ -33,65 +35,75 @@ class MainLayoutScreen extends StatelessWidget {
         ),
         child: FloatingActionButton(
           onPressed: () {
-            // Scan QR action
+            context.push('/scan');
           },
           backgroundColor: Colors.transparent,
           elevation: 0,
-          child: const Icon(LucideIcons.scanLine, color: Colors.white, size: 28),
+          child: const Icon(LucideIcons.scanLine, color: Colors.white, size: 32),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        color: Colors.white,
+        elevation: 10,
+        height: 70,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Left Button: Account Book
+            Expanded(
+              child: _buildBottomBarItem(
+                context,
+                index: 0,
+                icon: LucideIcons.book,
+                label: 'สมุดบัญชี',
+              ),
+            ),
+            // Middle Spacer for FAB
+            const SizedBox(width: 80),
+            // Right Button: iLife (Home)
+            Expanded(
+              child: _buildBottomBarItem(
+                context,
+                index: 1,
+                icon: LucideIcons.layoutGrid,
+                label: 'iLife',
+              ),
             ),
           ],
         ),
-        child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: (index) {
-            navigationShell.goBranch(
-              index,
-              initialLocation: index == navigationShell.currentIndex,
-            );
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          indicatorColor: AppColors.primary.withOpacity(0.1),
-          height: 70,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(LucideIcons.home),
-              selectedIcon: Icon(LucideIcons.home, color: AppColors.primary),
-              label: 'หน้าแรก',
+      ),
+    );
+  }
+
+  Widget _buildBottomBarItem(BuildContext context, {
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = navigationShell.currentIndex == index;
+    final color = isSelected ? AppColors.primary : Colors.grey;
+
+    return InkWell(
+      onTap: () => navigationShell.goBranch(index),
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
-            NavigationDestination(
-              icon: Icon(LucideIcons.wallet),
-              selectedIcon: Icon(LucideIcons.wallet, color: AppColors.primary),
-              label: 'กระเป๋า',
-            ),
-            NavigationDestination(
-              icon: SizedBox(width: 40), // Spacer for FAB
-              label: '',
-              enabled: false,
-            ),
-            NavigationDestination(
-              icon: Icon(LucideIcons.history),
-              selectedIcon: Icon(LucideIcons.history, color: AppColors.primary),
-              label: 'ประวัติ',
-            ),
-            NavigationDestination(
-              icon: Icon(LucideIcons.user),
-              selectedIcon: Icon(LucideIcons.user, color: AppColors.primary),
-              label: 'โปรไฟล์',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

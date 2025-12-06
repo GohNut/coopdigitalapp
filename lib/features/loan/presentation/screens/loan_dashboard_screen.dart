@@ -13,13 +13,13 @@ class LoanDashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('สินเชื่อของฉัน'),
+        title: const Text('สินเชื่อของฉัน', style: TextStyle(color: Colors.white)),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(LucideIcons.home),
+          icon: const Icon(LucideIcons.home, color: Colors.white),
           onPressed: () => context.go('/home'),
         ),
       ),

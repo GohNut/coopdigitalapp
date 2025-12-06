@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class WalletCard extends StatefulWidget {
@@ -125,7 +126,7 @@ class _WalletCardState extends State<WalletCard> {
           ),
           if(!isPrimary)
              ElevatedButton(
-                onPressed: () {},
+                onPressed: () => context.push('/wallet/topup'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
