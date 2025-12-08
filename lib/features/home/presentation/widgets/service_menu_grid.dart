@@ -37,7 +37,7 @@ class ServiceMenuGrid extends StatelessWidget {
                   context,
                   icon: LucideIcons.trendingUp,
                   label: 'หุ้นสหกรณ์',
-                  subtitle: 'ซื้อ-ขายหุ้น ปันผล',
+                  subtitle: 'ซื้อ-โอนหุ้น ปันผล',
                   color: const Color(0xFF2563EB), // Deep Blue
                   onTap: () => context.push('/share'),
                 ),

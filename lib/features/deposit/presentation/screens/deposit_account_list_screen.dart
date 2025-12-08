@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../deposit/data/deposit_providers.dart';
-import '../../../deposit/domain/deposit_account.dart';
+import '../../data/deposit_providers.dart';
+import '../../domain/deposit_account.dart';
 
-class AccountBookScreen extends ConsumerWidget {
-  const AccountBookScreen({super.key});
+class DepositAccountListScreen extends ConsumerWidget {
+  const DepositAccountListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,34 +20,9 @@ class AccountBookScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          // Header
+          // Custom Header with Total Wealth
           SliverToBoxAdapter(
-            child: _buildHeader(context, totalBalance, accounts.length, currencyFormat),
-          ),
-          // Menu Grid
-          SliverToBoxAdapter(
-            child: _buildMenuGrid(context),
-          ),
-          // My Accounts Section
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'บัญชีของฉัน',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.push('/deposit'),
-                    child: const Text('ดูทั้งหมด'),
-                  ),
-                ],
-              ),
-            ),
+            child: _buildHeader(context, totalBalance, currencyFormat),
           ),
           // Account Cards
           SliverPadding(
@@ -74,7 +49,7 @@ class AccountBookScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, double totalBalance, int accountCount, NumberFormat currencyFormat) {
+  Widget _buildHeader(BuildContext context, double totalBalance, NumberFormat currencyFormat) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -93,12 +68,12 @@ class AccountBookScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => context.go('/home'),
+                    onPressed: () => context.pop(),
                     icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
                   ),
                   Expanded(
                     child: Text(
-                      'สมุดบัญชี',
+                      'เงินฝากของฉัน',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: Colors.white,
@@ -106,19 +81,14 @@ class AccountBookScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      // TODO: Notifications
-                    },
-                    icon: const Icon(LucideIcons.bell, color: Colors.white),
-                  ),
+                  const SizedBox(width: 48), // Balance the back button
                 ],
               ),
             ),
             // Total Wealth Section
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
               child: Column(
                 children: [
                   Text(
@@ -138,7 +108,7 @@ class AccountBookScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'รวม $accountCount บัญชี',
+                    'รวม ${3} บัญชี',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white60,
                     ),
@@ -151,96 +121,9 @@ class AccountBookScreen extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _buildMenuGrid(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _MenuButton(
-              icon: LucideIcons.piggyBank,
-              label: 'เงินฝาก',
-              color: AppColors.primary,
-              onTap: () => context.push('/deposit'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _MenuButton(
-              icon: LucideIcons.trendingUp,
-              label: 'หุ้น',
-              color: const Color(0xFF2563EB),
-              onTap: () => context.push('/share'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _MenuButton(
-              icon: LucideIcons.banknote,
-              label: 'สินเชื่อ',
-              color: const Color(0xFF10B981),
-              onTap: () => context.push('/loan'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-/// Menu Button Widget
-class _MenuButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _MenuButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: 2,
-      shadowColor: color.withOpacity(0.2),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Account Card Widget
+/// Widget สำหรับการ์ดบัญชี แยกสีตามประเภท
 class _AccountCard extends StatelessWidget {
   final DepositAccount account;
   final NumberFormat currencyFormat;
@@ -297,20 +180,24 @@ class _AccountCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Account Type Badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: cardColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        account.accountType.displayName,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: cardColor,
-                          fontWeight: FontWeight.bold,
+                    // Account Type Badge + Name
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: cardColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            account.accountType.displayName,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: cardColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     // Account Name

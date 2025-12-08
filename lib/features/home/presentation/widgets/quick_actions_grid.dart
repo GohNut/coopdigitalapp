@@ -9,7 +9,7 @@ class QuickActionsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 56),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -40,7 +40,7 @@ class QuickActionsGrid extends StatelessWidget {
               'โอน', 
               () => context.push('/transfer'),
             ),
-            _buildActionItem(context, LucideIcons.wallet, 'จ่าย', () => context.push('/scan')),
+            _buildActionItem(context, LucideIcons.scanLine, 'จ่าย', () => context.push('/scan')),
           ],
         ),
       ),
@@ -58,17 +58,17 @@ class QuickActionsGrid extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.white),
+            child: Icon(icon, color: Colors.white, size: 22),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),

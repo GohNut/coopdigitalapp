@@ -26,7 +26,7 @@ class SellShareSuccessScreen extends StatelessWidget {
                ),
                const SizedBox(height: 32),
                const Text(
-                 'ขายหุ้นสำเร็จแล้ว',
+                 'โอนหุ้นสำเร็จแล้ว',
                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
                ),
                const SizedBox(height: 16),

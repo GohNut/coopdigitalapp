@@ -17,7 +17,7 @@ class _WalletCardState extends State<WalletCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -47,7 +47,7 @@ class _WalletCardState extends State<WalletCard> {
           children: [
             _buildBalanceRow(
               context,
-              title: 'กระเป๋าเงิน',
+              title: 'บัญชีออมทรัพย์',
               amount: '฿ 10,000.00',
               isVisible: _isVisible,
               isPrimary: true,
@@ -58,8 +58,8 @@ class _WalletCardState extends State<WalletCard> {
             ),
             _buildBalanceRow(
               context,
-              title: 'วงเงินคงเหลือ',
-              amount: '฿ 750.00',
+              title: 'วงเงินฉุกเฉิน',
+              amount: '฿ 7,500.00',
               isVisible: _isVisible,
               isPrimary: false,
             ),

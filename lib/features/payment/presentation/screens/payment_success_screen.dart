@@ -43,7 +43,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  '- ฿${NumberFormat('#,##0.00').format(amount)}',
+                  '฿${NumberFormat('#,##0.00').format(amount)}',
                   style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.red),
                 ),
                 const SizedBox(height: 8),

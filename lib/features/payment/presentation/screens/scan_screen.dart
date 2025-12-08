@@ -13,15 +13,26 @@ class ScanScreen extends StatefulWidget {
 
 class _ScanScreenState extends State<ScanScreen> {
   // Mock Scanner UI
+  bool _isProcessing = false;
 
   void _onQrFound(String code) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    
     try {
       final merchant = await paymentServiceProvider.resolveQr(code);
       if (mounted) {
-        context.push('/payment/input', extra: merchant);
+        await context.push('/payment/input', extra: merchant);
+        // Reset processing state when returning from payment screen
+        if (mounted) setState(() => _isProcessing = false);
       }
     } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('QR Code ไม่ถูกต้อง: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('QR Code ไม่ถูกต้อง: $e')),
+        );
+        setState(() => _isProcessing = false);
+      }
     }
   }
 
@@ -74,9 +85,15 @@ class _ScanScreenState extends State<ScanScreen> {
                 Padding(
                   padding: const EdgeInsets.all(24),
                   child: ElevatedButton(
-                    onPressed: () => _onQrFound('mock-qr-data'),
+                    onPressed: _isProcessing ? null : () => _onQrFound('mock-qr-data'),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
-                    child: const Text('จำลองการสแกนสำเร็จ'),
+                    child: _isProcessing 
+                      ? const SizedBox(
+                          width: 20, 
+                          height: 20, 
+                          child: CircularProgressIndicator(strokeWidth: 2)
+                        )
+                      : const Text('จำลองการสแกนสำเร็จ'),
                   ),
                 )
               ],

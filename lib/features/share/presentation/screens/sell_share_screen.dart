@@ -72,7 +72,7 @@ class _SellShareScreenState extends State<SellShareScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('ขายหุ้น'),
+        title: const Text('โอนหุ้น'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -101,7 +101,7 @@ class _SellShareScreenState extends State<SellShareScreen> {
                    Column(
                      crossAxisAlignment: CrossAxisAlignment.start,
                      children: [
-                       const Text('หุ้นที่สามารถขายได้', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                       const Text('หุ้นที่สามารถโอนได้', style: TextStyle(color: Colors.grey, fontSize: 12)),
                        Text('$_maxSellableUnits หุ้น', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                      ],
                    )
@@ -110,7 +110,7 @@ class _SellShareScreenState extends State<SellShareScreen> {
             ),
             const SizedBox(height: 24),
 
-            const Text("ระบุจำนวนหุ้นที่ต้องการขาย", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            const Text("ระบุจำนวนหุ้นที่ต้องการโอน", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _unitsController,
@@ -131,7 +131,7 @@ class _SellShareScreenState extends State<SellShareScreen> {
              if (_units > _maxSellableUnits)
                const Padding(
                  padding: EdgeInsets.only(top: 8, left: 8),
-                 child: Text("เกินจำนวนที่สามารถขายได้", style: TextStyle(color: Colors.red, fontSize: 12)),
+                 child: Text("เกินจำนวนที่สามารถโอนได้", style: TextStyle(color: Colors.red, fontSize: 12)),
                ),
 
             const SizedBox(height: 24),
@@ -191,8 +191,8 @@ class _SellShareScreenState extends State<SellShareScreen> {
                    showDialog(
                      context: context,
                      builder: (ctx) => AlertDialog(
-                       title: const Text('ยืนยันการขายหุ้น'),
-                       content: Text('คุณต้องการขายหุ้นจำนวน $_units หุ้น \nได้รับเงินสุทธิ ${currencyFormat.format(netAmount)} บาท?'),
+                       title: const Text('ยืนยันการโอนหุ้น'),
+                       content: Text('คุณต้องการโอนหุ้นจำนวน $_units หุ้น \nได้รับเงินสุทธิ ${currencyFormat.format(netAmount)} บาท?'),
                        actions: [
                          TextButton(onPressed: () => ctx.pop(), child: const Text('ยกเลิก')),
                          TextButton(onPressed: () {
@@ -210,7 +210,7 @@ class _SellShareScreenState extends State<SellShareScreen> {
                 ),
                 child: _isLoading 
                     ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('แจ้งขายหุ้น', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                    : const Text('แจ้งโอนหุ้น', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

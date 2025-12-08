@@ -1,0 +1,66 @@
+/// ประเภทรายการเดินบัญชี
+enum TransactionType {
+  deposit,      // ฝากเงิน
+  withdrawal,   // ถอนเงิน
+  transferIn,   // รับโอน
+  transferOut,  // โอนออก
+  interest,     // ดอกเบี้ย
+  fee,          // ค่าธรรมเนียม
+}
+
+/// Extension สำหรับ TransactionType
+extension TransactionTypeExtension on TransactionType {
+  String get displayName {
+    switch (this) {
+      case TransactionType.deposit:
+        return 'ฝากเงิน';
+      case TransactionType.withdrawal:
+        return 'ถอนเงิน';
+      case TransactionType.transferIn:
+        return 'รับโอน';
+      case TransactionType.transferOut:
+        return 'โอนออก';
+      case TransactionType.interest:
+        return 'ดอกเบี้ย';
+      case TransactionType.fee:
+        return 'ค่าธรรมเนียม';
+    }
+  }
+
+  /// รายการนี้เป็นรายรับหรือไม่
+  bool get isCredit {
+    switch (this) {
+      case TransactionType.deposit:
+      case TransactionType.transferIn:
+      case TransactionType.interest:
+        return true;
+      case TransactionType.withdrawal:
+      case TransactionType.transferOut:
+      case TransactionType.fee:
+        return false;
+    }
+  }
+}
+
+/// Model สำหรับรายการเดินบัญชี
+class DepositTransaction {
+  final String id;
+  final String accountId;
+  final TransactionType type;
+  final double amount;
+  final double balanceAfter; // ยอดคงเหลือหลังทำรายการ
+  final DateTime dateTime;
+  final String? description;
+  final String? referenceNo;
+
+  const DepositTransaction({
+    required this.id,
+    required this.accountId,
+    required this.type,
+    required this.amount,
+    required this.balanceAfter,
+    required this.dateTime,
+    this.description,
+    this.referenceNo,
+  });
+}

@@ -317,7 +317,7 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
          Expanded(
             child: ElevatedButton.icon(
              icon: const Icon(LucideIcons.minusCircle, color: Colors.black),
-             label: const Text('ขายหุ้น', style: TextStyle(color: Colors.black)),
+             label: const Text('โอนหุ้น', style: TextStyle(color: Colors.black)),
              onPressed: () async {
                 final eligible = await _repository.checkSellEligibility();
                 if (eligible) {
@@ -326,7 +326,7 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                        const SnackBar(
-                         content: Text('คุณไม่สามารถขายหุ้นได้ในขณะนี้ (ต้องถือครองขั้นต่ำ 100 หุ้น)'),
+                         content: Text('คุณไม่สามารถโอนหุ้นได้ในขณะนี้ (ต้องถือครองขั้นต่ำ 100 หุ้น)'),
                          backgroundColor: Colors.red,
                        )
                     );

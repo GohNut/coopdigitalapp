@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/screens/main_layout_screen.dart';
 import '../../features/wallet/presentation/screens/account_book_screen.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
-import '../../features/home/presentation/screens/main_layout_screen.dart';
+import '../../features/deposit/presentation/screens/deposit_account_list_screen.dart';
+import '../../features/deposit/presentation/screens/deposit_account_detail_screen.dart';
 import '../../features/loan/presentation/screens/loan_products_screen.dart';
 import '../../features/loan/presentation/screens/loan_application_screen.dart';
 import '../../features/wallet/presentation/screens/top_up_amount_screen.dart';
@@ -68,6 +68,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const HomeScreen(),
               ),
             ],
+          ),
+        ],
+      ),
+      // Deposit (เงินฝาก) Routes
+      GoRoute(
+        path: '/deposit',
+        builder: (context, state) => const DepositAccountListScreen(),
+        routes: [
+          GoRoute(
+            path: ':accountId',
+            builder: (context, state) {
+              final accountId = state.pathParameters['accountId'] ?? '';
+              return DepositAccountDetailScreen(accountId: accountId);
+            },
           ),
         ],
       ),
@@ -136,7 +150,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/payment',
-        redirect: (context, state) => '/scan',
+        redirect: (context, state) {
+          // Only redirect if accessing /payment directly, not sub-routes
+          final path = state.uri.path;
+          if (path == '/payment' || path == '/payment/') {
+            return '/scan';
+          }
+          return null; // Allow sub-routes to proceed
+        },
         routes: [
            GoRoute(
             path: 'input',
