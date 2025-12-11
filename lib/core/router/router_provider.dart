@@ -20,6 +20,8 @@ import '../../features/payment/presentation/screens/payment_input_screen.dart';
 import '../../features/payment/presentation/screens/payment_success_screen.dart';
 import '../../features/loan/presentation/screens/loan_dashboard_screen.dart';
 import '../../features/loan/presentation/screens/loan_calculator_screen.dart';
+import '../../features/loan/presentation/screens/loan_info_screen.dart';
+import '../../features/loan/presentation/screens/loan_document_screen.dart';
 import '../../features/loan/presentation/screens/loan_review_screen.dart';
 import '../../features/auth/presentation/screens/pin_verification_screen.dart';
 import '../../features/loan/presentation/screens/loan_success_screen.dart';
@@ -192,6 +194,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final productId = state.pathParameters['productId'] ?? '';
               return LoanCalculatorScreen(productId: productId);
+            },
+          ),
+          GoRoute(
+            path: 'info',
+            builder: (context, state) {
+              final args = state.extra as LoanRequestArgs;
+              return LoanInfoScreen(args: args);
+            },
+          ),
+          GoRoute(
+            path: 'document',
+            builder: (context, state) {
+              final args = state.extra as LoanRequestArgs;
+              return LoanDocumentScreen(args: args);
             },
           ),
           GoRoute(

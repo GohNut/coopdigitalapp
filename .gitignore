@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+
+# Guidelines for ignoring files can be found at
+สรุปการใช้งานระบบและข้อกำหนด_MongoDB_Updated.md
+สรุปการใช้งานระบบและข้อกำหนด_MongoDB.md
+สรุป_ระบบสินเชื่อ.md

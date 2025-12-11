@@ -216,7 +216,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                context.push('/loan/review', extra: LoanRequestArgs(
+                context.push('/loan/info', extra: LoanRequestArgs(
                   product: product,
                   amount: _amount,
                   months: _months,

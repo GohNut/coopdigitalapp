@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_product_model.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/providers/repository_providers.dart';
+import 'package:file_picker/file_picker.dart';
 
 class LoanApplicationScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -21,6 +22,13 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   
   // Controller สำหรับ TextField
   late TextEditingController _amountController;
+  final TextEditingController _objectiveController = TextEditingController();
+  final TextEditingController _guarantorController = TextEditingController();
+
+  // Documents
+  PlatformFile? _idCardFile;
+  PlatformFile? _salarySlipFile;
+  PlatformFile? _otherFile;
 
   // Mock finding product
   LoanProduct get product => LoanProduct.mockProducts.firstWhere(
@@ -36,8 +44,11 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   }
 
   @override
+  @override
   void dispose() {
     _amountController.dispose();
+    _objectiveController.dispose();
+    _guarantorController.dispose();
     super.dispose();
   }
 
@@ -68,15 +79,24 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
     }
   }
 
+  Future<void> _pickFile(Function(PlatformFile) onFilePicked) async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      setState(() {
+        onFilePicked(result.files.first);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('ยื่นกู้${product.name}')),
       body: Stepper(
-        type: StepperType.horizontal,
+        type: StepperType.vertical,
         currentStep: _currentStep,
         onStepContinue: () {
-          if (_currentStep < 2) {
+          if (_currentStep < 3) {
             setState(() => _currentStep++);
           } else {
              // Submit
@@ -94,7 +114,7 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
              padding: const EdgeInsets.only(top: 24),
              child: Row(
                children: [
-                 Expanded(child: ElevatedButton(onPressed: details.onStepContinue, child: Text(_currentStep == 2 ? 'ยืนยันการกู้' : 'ถัดไป'))),
+                 Expanded(child: ElevatedButton(onPressed: details.onStepContinue, child: Text(_currentStep == 3 ? 'ยืนยันการกู้' : 'ถัดไป'))),
                  if (_currentStep > 0) ...[
                    const SizedBox(width: 16),
                    Expanded(child: OutlinedButton(onPressed: details.onStepCancel, child: const Text('ย้อนกลับ'))),
@@ -115,9 +135,14 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
             isActive: _currentStep >= 1,
           ),
           Step(
+            title: const Text('เอกสาร'),
+            content: _buildDocumentStep(),
+            isActive: _currentStep >= 2,
+          ),
+          Step(
             title: const Text('ยืนยัน'),
             content: _buildReviewStep(),
-            isActive: _currentStep >= 2,
+            isActive: _currentStep >= 3,
           ),
         ],
       ),
@@ -136,51 +161,44 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
         Text('วงเงินที่ต้องการขอกู้', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 16),
         
-        // TextField + Slider แบบ Two-way binding
-        Row(
-          children: [
-            // ส่วนของ Slider
-            Expanded(
-              child: Slider(
-                value: _requestAmount,
-                min: 5000,
-                max: product.maxAmount,
-                divisions: ((product.maxAmount - 5000) / 1000).round(),
-                label: _requestAmount.round().toString(),
-                onChanged: _updateSlider,
-              ),
+        // ช่องกรอกตัวเลข (แยกออกมาก่อน เพื่อป้องกัน overflow)
+        SizedBox(
+          width: double.infinity,
+          child: TextField(
+            controller: _amountController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
             ),
-            
-            const SizedBox(width: 16),
-
-            // ส่วนของช่องกรอกตัวเลข
-            SizedBox(
-              width: 140, // เพิ่มความกว้างนิดหน่อย
-              child: TextField(
-                controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9]')), // อนุญาตเฉพาะตัวเลข 0-9
-                ],
-                decoration: InputDecoration(
-                  prefixText: '฿ ',
-                  prefixStyle: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                  isDense: true,
-                ),
-                onChanged: _updateText,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9]')), // อนุญาตเฉพาะตัวเลข 0-9
+            ],
+            decoration: InputDecoration(
+              prefixText: '฿ ',
+              prefixStyle: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
               ),
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              isDense: true,
             ),
-          ],
+            onChanged: _updateText,
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Slider อยู่ด้านล่าง
+        Slider(
+          value: _requestAmount,
+          min: 5000,
+          max: product.maxAmount,
+          divisions: ((product.maxAmount - 5000) / 1000).round(),
+          label: _requestAmount.round().toString(),
+          onChanged: _updateSlider,
         ),
         
         // Min/Max labels
@@ -190,7 +208,13 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('฿5,000', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              Text('฿${NumberFormat("#,##0").format(product.maxAmount)}', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Flexible(
+                child: Text(
+                  '฿${NumberFormat("#,##0").format(product.maxAmount)}', 
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         ),
@@ -210,13 +234,17 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
         
         const SizedBox(height: 24),
         Text('จำนวนงวดผ่อนชำระ', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [12, 24, 36, 48, 60, 72, 84, 120, 180, 240, 300, 360]
               .where((m) => m <= product.maxMonths)
               .map((m) => ChoiceChip(
-                    label: Text(m >= 12 ? '${m ~/ 12} ปี${m % 12 > 0 ? ' ${m % 12} เดือน' : ''}' : '$m งวด'),
+                    label: Text(
+                      m >= 12 ? '${m ~/ 12} ปี${m % 12 > 0 ? ' ${m % 12} ด.' : ''}' : '$m งวด',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     selected: _months == m,
                     onSelected: (selected) {
                       if (selected) setState(() => _months = m);
@@ -228,10 +256,11 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('ผ่อนชำระงวดละ (ประมาณ)'),
+              const SizedBox(height: 8),
               Text(
                 '฿ ${NumberFormat("#,##0.00").format(installment)}',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
@@ -247,12 +276,13 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
     return Column(
       children: [
         TextFormField(
-          initialValue: 'วัตถุประสงค์การกู้',
+          controller: _objectiveController,
           decoration: const InputDecoration(labelText: 'วัตถุประสงค์'),
         ),
         const SizedBox(height: 16),
         if (product.requireGuarantor)
            TextFormField(
+            controller: _guarantorController,
             decoration: const InputDecoration(
               labelText: 'ระบุเลขสมาชิกผู้ค้ำประกัน',
               suffixIcon: Icon(Icons.search),
@@ -264,17 +294,117 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
     );
   }
 
-  Widget _buildReviewStep() {
+  Widget _buildDocumentStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('กรุณาแนบเอกสารดังต่อไปนี้ (ถ้ามี)'),
+        const SizedBox(height: 16),
+        _buildFilePickerItem(
+          label: 'สำเนาบัตรประชาชน',
+          file: _idCardFile,
+          onPick: () => _pickFile((f) => _idCardFile = f),
+          onRemove: () => setState(() => _idCardFile = null),
+        ),
+        _buildFilePickerItem(
+          label: 'สลิปเงินเดือน (3 เดือนล่าสุด)',
+          file: _salarySlipFile,
+          onPick: () => _pickFile((f) => _salarySlipFile = f),
+          onRemove: () => setState(() => _salarySlipFile = null),
+        ),
+        _buildFilePickerItem(
+          label: 'เอกสารอื่นๆ',
+          file: _otherFile,
+          onPick: () => _pickFile((f) => _otherFile = f),
+          onRemove: () => setState(() => _otherFile = null),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilePickerItem({
+    required String label,
+    required PlatformFile? file,
+    required VoidCallback onPick,
+    required VoidCallback onRemove,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: file != null 
+          ? Text('แนบแล้ว: ${file.name}', style: const TextStyle(color: Colors.green))
+          : const Text('ยังไม่ได้แนบเอกสาร', style: TextStyle(color: Colors.grey)),
+        trailing: file != null
+          ? IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: onRemove)
+          : IconButton(icon: const Icon(Icons.upload_file, color: Colors.blue), onPressed: onPick),
+        onTap: file == null ? onPick : null,
+      ),
+    );
+  }
+
+   Widget _buildReviewStep() {
      return Card(
        child: Padding(
          padding: const EdgeInsets.all(16.0),
          child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
            children: [
-             ListTile(title: const Text('ประเภทเงินกู้'), trailing: Text(product.name)),
-             ListTile(title: const Text('ยอดขอกู้'), trailing: Text('${NumberFormat("#,##0").format(_requestAmount)} บ.')),
-             ListTile(title: const Text('จำนวนงวด'), trailing: Text('$_months งวด')),
-             const Divider(),
-             const Text('กรุณาตรวจสอบข้อมูลก่อนกดยืนยัน'),
+             ListTile(
+               contentPadding: EdgeInsets.zero,
+               title: const Text('ประเภทเงินกู้'),
+               trailing: Flexible(child: Text(product.name, overflow: TextOverflow.ellipsis)),
+             ),
+             ListTile(
+               contentPadding: EdgeInsets.zero,
+               title: const Text('ยอดขอกู้'),
+               trailing: Text('${NumberFormat("#,##0").format(_requestAmount)} บ.'),
+             ),
+             ListTile(
+               contentPadding: EdgeInsets.zero,
+               title: const Text('จำนวนงวด'),
+               trailing: Text('$_months งวด'),
+             ),
+              const Divider(),
+              const Text('เอกสารแนบ', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              if (_idCardFile != null) 
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check, color: Colors.green, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_idCardFile!.name, overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                ),
+              if (_salarySlipFile != null) 
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check, color: Colors.green, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_salarySlipFile!.name, overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                ),
+              if (_otherFile != null) 
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check, color: Colors.green, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_otherFile!.name, overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                ),
+              if (_idCardFile == null && _salarySlipFile == null && _otherFile == null)
+                const Padding(padding: EdgeInsets.all(8.0), child: Text('- ไม่มีเอกสารแนบ -', style: TextStyle(color: Colors.grey))),
+              const Divider(),
+              const Text('กรุณาตรวจสอบข้อมูลก่อนกดยืนยัน'),
            ],
          ),
        ),
@@ -299,8 +429,21 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
         amount: _requestAmount,
         months: _months,
         // TODO: Get actual input values
-        objective: 'เพื่อการใช้จ่าย', 
+        objective: _objectiveController.text.isEmpty ? 'เพื่อการใช้จ่าย' : _objectiveController.text, 
       );
+      
+      // Print attached files for debug
+      print('Loan Application Data:');
+      print('- Product: ${product.name}');
+      print('- Amount: $_requestAmount');
+      print('- Months: $_months');
+      print('- Objective: ${_objectiveController.text}');
+      if (product.requireGuarantor) print('- Guarantor: ${_guarantorController.text}');
+      print('Attached Files:');
+      if (_idCardFile != null) print('- ID Card: ${_idCardFile!.name} (${_idCardFile!.size} bytes)');
+      if (_salarySlipFile != null) print('- Salary Slip: ${_salarySlipFile!.name} (${_salarySlipFile!.size} bytes)');
+      if (_otherFile != null) print('- Other: ${_otherFile!.name} (${_otherFile!.size} bytes)');
+      
       
       if (!mounted) return;
       

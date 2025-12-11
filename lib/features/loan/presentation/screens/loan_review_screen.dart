@@ -25,90 +25,118 @@ class LoanReviewScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Summary Card
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+            // Progress indicator
+            Row(
+              children: [
+                _buildStepIndicator(1, 'วงเงิน', true),
+                _buildStepLine(true),
+                _buildStepIndicator(2, 'ข้อมูล', true),
+                _buildStepLine(true),
+                _buildStepIndicator(3, 'เอกสาร', true),
+                _buildStepLine(true),
+                _buildStepIndicator(4, 'ยืนยัน', true),
+              ],
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Summary Card - Loan Details
+            _buildSectionCard(
+              context,
+              title: 'รายละเอียดสินเชื่อ',
+              icon: Icons.account_balance,
+              children: [
+                _buildSummaryRow(context, 'ประเภทสินเชื่อ', args.product.name),
+                _buildSummaryRow(context, 'วงเงินขอกู้', NumberFormat.currency(symbol: '฿').format(args.amount), isHighlight: true),
+                _buildSummaryRow(context, 'ระยะเวลาผ่อน', '${args.months} งวด'),
+                _buildSummaryRow(context, 'อัตราดอกเบี้ย', '${args.product.interestRate}% ต่อปี'),
+                _buildSummaryRow(context, 'ผ่อนชำระต่องวด', NumberFormat.currency(symbol: '฿').format(args.monthlyPayment), isHighlight: true),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Objective & Guarantor
+            _buildSectionCard(
+              context,
+              title: 'ข้อมูลการกู้',
+              icon: Icons.description,
+              children: [
+                _buildSummaryRow(context, 'วัตถุประสงค์', args.objective ?? 'ไม่ได้ระบุ'),
+                if (args.product.requireGuarantor)
+                  _buildSummaryRow(context, 'ผู้ค้ำประกัน', args.guarantorMemberId ?? 'ไม่ได้ระบุ')
+                else
+                  _buildSummaryRow(context, 'ผู้ค้ำประกัน', 'ไม่ต้องใช้'),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Documents
+            _buildSectionCard(
+              context,
+              title: 'เอกสารแนบ',
+              icon: Icons.folder,
+              children: [
+                if (args.idCardFileName != null)
+                  _buildDocumentRow(context, 'สำเนาบัตรประชาชน', args.idCardFileName!),
+                if (args.salarySlipFileName != null)
+                  _buildDocumentRow(context, 'สลิปเงินเดือน', args.salarySlipFileName!),
+                if (args.otherFileName != null)
+                  _buildDocumentRow(context, 'เอกสารอื่นๆ', args.otherFileName!),
+                if (args.idCardFileName == null && args.salarySlipFileName == null && args.otherFileName == null)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'ไม่มีเอกสารแนบ',
+                      style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                    ),
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _buildReviewRow(context, 'ประเภทสินเชื่อ', args.product.name),
-                  const Divider(height: 24),
-                  _buildReviewRow(context, 'วงเงินขอกู้', NumberFormat.currency(symbol: '฿').format(args.amount), isValueBold: true),
-                  const Divider(height: 24),
-                  _buildReviewRow(context, 'ระยะเวลาผ่อน', '${args.months} งวด'),
-                  const Divider(height: 24),
-                  _buildReviewRow(context, 'อัตราดอกเบี้ย', '${args.product.interestRate}% ต่อปี'),
-                  const Divider(height: 24),
-                  _buildReviewRow(context, 'ผ่อนชำระต่องวด', NumberFormat.currency(symbol: '฿').format(args.monthlyPayment), isValueColor: AppColors.primary),
-                ],
-              ),
+              ],
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             
-            // Objective Input
-            Text(
-              'วัตถุประสงค์การกู้ (โปรดระบุ)',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'เช่น เพื่อการศึกษา, เพื่อซ่อมแซมที่อยู่อาศัย',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-            
-             // Bank Account Info (Pre-filled mock)
-            Text(
-              'รับเงินกู้เข้าบัญชี',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-             Container(
+            // Bank Account
+            Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 40, height: 40,
-                    decoration: const BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
-                    child: const Icon(Icons.account_balance, color: Colors.white, size: 20),
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Colors.purple,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.account_balance, color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('บัญชีออมทรัพย์ (Payroll)', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      Text('xxx-x-xx456-7', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'บัญชีรับเงินกู้',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'บัญชีออมทรัพย์ xxx-x-xx456-7',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 32),
+            
+            const SizedBox(height: 24),
             
             // SLA Warning
             Container(
@@ -131,7 +159,8 @@ class LoanReviewScreen extends StatelessWidget {
                 ],
               ),
             ),
-             const SizedBox(height: 100),
+            
+            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -142,8 +171,11 @@ class LoanReviewScreen extends StatelessWidget {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                context.push('/loan/pin');
+              onPressed: () async {
+                final result = await context.push<bool>('/loan/pin');
+                if (result == true && context.mounted) {
+                  context.go('/loan/success');
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -163,22 +195,124 @@ class LoanReviewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReviewRow(BuildContext context, String label, String value, {bool isValueBold = false, Color? isValueColor}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-        ),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: isValueBold ? FontWeight.bold : FontWeight.normal,
-            color: isValueColor ?? AppColors.textPrimary,
+  Widget _buildSectionCard(BuildContext context, {
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
-        ),
-      ],
+          const Divider(height: 24),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(BuildContext context, String label, String value, {bool isHighlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
+                color: isHighlight ? AppColors.primary : AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentRow(BuildContext context, String label, String fileName) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Colors.green, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(fileName, style: const TextStyle(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepIndicator(int step, String label, bool isActive) {
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.primary : Colors.grey.shade300,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$step',
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.grey,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: isActive ? AppColors.textPrimary : Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepLine(bool isActive) {
+    return Expanded(
+      child: Container(
+        height: 2,
+        color: isActive ? AppColors.primary : Colors.grey.shade300,
+      ),
     );
   }
 }
