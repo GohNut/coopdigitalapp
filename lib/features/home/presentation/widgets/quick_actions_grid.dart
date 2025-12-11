@@ -9,7 +9,7 @@ class QuickActionsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 56),
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 40),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

@@ -22,11 +22,11 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
             Transform.translate(
-              offset: const Offset(0, -40),
+              offset: const Offset(0, -30),
               child: const WalletCard(),
             ),
              Transform.translate(
-              offset: const Offset(0, -40),
+              offset: const Offset(0, -30),
               child: const ServiceMenuGrid(),
             ),
           ],

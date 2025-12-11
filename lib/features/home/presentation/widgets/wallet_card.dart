@@ -42,26 +42,53 @@ class _WalletCardState extends State<WalletCard> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildBalanceRow(
+            _buildCompactBalanceRow(
               context,
+              icon: LucideIcons.wallet,
+              iconColor: AppColors.secondary,
               title: 'บัญชีออมทรัพย์',
-              amount: '฿ 10,000.00',
+              amount: '฿ 750,000.00',
               isVisible: _isVisible,
-              isPrimary: true,
+              showVisibilityToggle: true,
             ),
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: 10),
               child: Divider(height: 1, color: AppColors.divider),
             ),
-            _buildBalanceRow(
-              context,
-              title: 'วงเงินฉุกเฉิน',
-              amount: '฿ 7,500.00',
-              isVisible: _isVisible,
-              isPrimary: false,
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCompactBalanceRow(
+                    context,
+                    icon: LucideIcons.pieChart,
+                    iconColor: AppColors.success,
+                    title: 'มูลค่าหุ้นรวม',
+                    amount: '฿ 125,000.00',
+                    isVisible: _isVisible,
+                    showVisibilityToggle: false,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: AppColors.divider,
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                Expanded(
+                  child: _buildCompactBalanceRow(
+                    context,
+                    icon: LucideIcons.creditCard,
+                    iconColor: AppColors.warning,
+                    title: 'วงเงินกู้คงเหลือ',
+                    amount: '฿ 350,000.00',
+                    isVisible: _isVisible,
+                    showVisibilityToggle: false,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -69,50 +96,61 @@ class _WalletCardState extends State<WalletCard> {
     );
   }
 
-  Widget _buildBalanceRow(
+  Widget _buildCompactBalanceRow(
     BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
     required String title,
     required String amount,
     required bool isVisible,
-    required bool isPrimary,
+    required bool showVisibilityToggle,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isPrimary ? LucideIcons.wallet : LucideIcons.creditCard,
-                  size: 16,
-                  color: isPrimary ? AppColors.secondary : AppColors.warning,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isVisible ? amount : '••••••',
-              style: isPrimary
-                  ? Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 28,
-                        color: AppColors.primary,
-                      )
-                  : Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppColors.textPrimary,
-                      ),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 14,
+                    color: iconColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isVisible ? amount : '••••••',
+                style: showVisibilityToggle
+                    ? Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        )
+                    : Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+              ),
+            ],
+          ),
         ),
-        if (isPrimary)
+        if (showVisibilityToggle)
           IconButton(
             onPressed: () {
               setState(() {
@@ -121,20 +159,12 @@ class _WalletCardState extends State<WalletCard> {
             },
             icon: Icon(
               isVisible ? LucideIcons.eye : LucideIcons.eyeOff,
-              color: AppColors.textSecondary,
+              color: AppColors.secondary,
+              size: 20,
             ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          if(!isPrimary)
-             ElevatedButton(
-                onPressed: () => context.push('/wallet/topup'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('เติมเงิน', style: TextStyle(fontSize: 12)),
-             )
       ],
     );
   }
