@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_application_model.dart';
+import '../../data/loan_repository_impl.dart';
 import '../../../auth/domain/user_role.dart';
 import 'officer_loan_detail_screen.dart';
 
@@ -87,9 +88,24 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
   }
 
   Widget _buildLoanList(LoanApplicationStatus status) {
-    final applications = LoanApplication.mockApplications
-        .where((app) => app.status == status)
-        .toList();
+    // Ideally use a provider or service locator, but instantiating directly for now as per minimal setup
+    final repository = LoanRepositoryImpl();
+    
+    return FutureBuilder<List<LoanApplication>>(
+      future: repository.getLoanApplications(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+           return const Center(child: CircularProgressIndicator());
+        }
+        
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final allApplications = snapshot.data ?? [];
+        final applications = allApplications
+            .where((app) => app.status == status)
+            .toList();
 
     if (applications.isEmpty) {
       return Center(
@@ -180,6 +196,8 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
             ),
           ),
         );
+      },
+    );
       },
     );
   }

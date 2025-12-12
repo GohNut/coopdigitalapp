@@ -1,0 +1,271 @@
+[
+    {
+        "applicationId": "REQ-2024-001",
+        "requestDate": "2024-12-11T09:30:00Z",
+        "status": "pending",
+        "applicant": {
+            "memberId": "M00123",
+            "prefix": "นาย",
+            "firstName": "สมชาย",
+            "lastName": "ใจดี",
+            "idCard": "1100020003000",
+            "dateOfBirth": "1985-05-15",
+            "address": "123/45 หมู่ 6 ต.ในเมือง อ.เมือง จ.ขอนแก่น 40000",
+            "mobile": "0812345678",
+            "email": "somchai@email.com",
+            "salary": 35000,
+            "otherIncome": 5000,
+            "currentDebt": 5000
+        },
+        "loanDetails": {
+            "productId": "ordinary",
+            "productName": "เงินกู้สามัญ",
+            "requestAmount": 100000,
+            "approvedAmount": null,
+            "requestTerm": 24,
+            "interestRate": 5.75,
+            "purpose": "ค่าใช้จ่ายทั่วไป",
+            "installmentAmount": 4432.68,
+            "totalPayment": 106384.32,
+            "paidAmount": 0,
+            "remainingAmount": 100000,
+            "paidInstallments": 0,
+            "nextPaymentDate": null
+        },
+        "security": {
+            "collaterals": [],
+            "guarantors": [
+                {
+                    "memberId": "M00888",
+                    "name": "นางสาวมานี มีแชร์",
+                    "relationship": "เพื่อนร่วมงาน",
+                    "salary": 40000
+                }
+            ]
+        },
+        "documents": [
+            {
+                "type": "salary_slip",
+                "name": "สลิปเงินเดือน (ล่าสุด)",
+                "status": "uploaded",
+                "url": "https://example.com/docs/slip_m00123_202411.pdf"
+            },
+            {
+                "type": "id_card",
+                "name": "สำเนาบัตรประชาชน",
+                "status": "uploaded",
+                "url": "https://example.com/docs/id_m00123.pdf"
+            }
+        ]
+    },
+    {
+        "applicationId": "REQ-2024-002",
+        "requestDate": "2024-12-10T14:15:00Z",
+        "status": "approved",
+        "applicant": {
+            "memberId": "M00124",
+            "prefix": "นาง",
+            "firstName": "วิไล",
+            "lastName": "รักเรียน",
+            "idCard": "3344556677889",
+            "dateOfBirth": "1990-10-20",
+            "mobile": "0898765432",
+            "salary": 60000,
+            "currentDebt": 12000
+        },
+        "loanDetails": {
+            "productId": "housing",
+            "productName": "เงินกู้เพื่อที่อยู่อาศัย",
+            "requestAmount": 2500000,
+            "approvedAmount": 2500000,
+            "requestTerm": 360,
+            "interestRate": 3.50,
+            "purpose": "ซื้อบ้านเดี่ยว",
+            "installmentAmount": 11217.02,
+            "totalPayment": 4038127.20,
+            "paidAmount": 750000,
+            "remainingAmount": 1750000,
+            "paidInstallments": 67,
+            "nextPaymentDate": "2024-12-25T00:00:00Z"
+        },
+        "security": {
+            "collaterals": [
+                {
+                    "type": "deed",
+                    "description": "โฉนดที่ดินเลขที่ 12345",
+                    "value": 3000000,
+                    "owner": "นางวิไล รักเรียน"
+                }
+            ],
+            "guarantors": []
+        },
+        "documents": [
+            {
+                "type": "deed_copy",
+                "name": "สำเนาโฉนดที่ดิน",
+                "status": "verified",
+                "url": "https://example.com/docs/deed_12345.pdf"
+            },
+            {
+                "type": "appraisal",
+                "name": "ใบประเมินราคา",
+                "status": "verified"
+            }
+        ],
+        "paymentHistory": [
+            {
+                "installmentNo": 65,
+                "dueDate": "2024-10-25T00:00:00Z",
+                "paidDate": "2024-10-24T10:30:00Z",
+                "principalAmount": 6944.44,
+                "interestAmount": 4272.58,
+                "totalAmount": 11217.02,
+                "status": "paid",
+                "paymentMethod": "auto_debit",
+                "receiptNo": "RCP-2024-100065"
+            },
+            {
+                "installmentNo": 66,
+                "dueDate": "2024-11-25T00:00:00Z",
+                "paidDate": "2024-11-25T09:15:00Z",
+                "principalAmount": 6944.44,
+                "interestAmount": 4272.58,
+                "totalAmount": 11217.02,
+                "status": "paid",
+                "paymentMethod": "auto_debit",
+                "receiptNo": "RCP-2024-110066"
+            },
+            {
+                "installmentNo": 67,
+                "dueDate": "2024-12-10T00:00:00Z",
+                "paidDate": "2024-12-10T14:45:00Z",
+                "principalAmount": 6944.44,
+                "interestAmount": 4272.58,
+                "totalAmount": 11217.02,
+                "status": "paid",
+                "paymentMethod": "counter",
+                "receiptNo": "RCP-2024-120067"
+            }
+        ]
+    },
+    {
+        "applicationId": "REQ-2024-003",
+        "requestDate": "2024-06-15T10:00:00Z",
+        "status": "approved",
+        "applicant": {
+            "memberId": "M00125",
+            "prefix": "นาย",
+            "firstName": "กล้า",
+            "lastName": "หาญ",
+            "idCard": "1231231231231",
+            "dateOfBirth": "1992-03-20",
+            "address": "99/9 หมู่ 3 ต.ท่าพระ อ.เมือง จ.ขอนแก่น 40000",
+            "mobile": "0891234567",
+            "email": "kla.han@email.com",
+            "salary": 25000,
+            "otherIncome": 0,
+            "currentDebt": 0
+        },
+        "loanDetails": {
+            "productId": "emergency",
+            "productName": "เงินกู้ฉุกเฉิน",
+            "requestAmount": 50000,
+            "approvedAmount": 50000,
+            "requestTerm": 24,
+            "interestRate": 6.00,
+            "purpose": "ค่ารักษาพยาบาลบิดา",
+            "installmentAmount": 2215.86,
+            "totalPayment": 53180.64,
+            "paidAmount": 13295.16,
+            "remainingAmount": 36704.84,
+            "paidInstallments": 6,
+            "nextPaymentDate": "2024-12-25T00:00:00Z"
+        },
+        "security": {
+            "collaterals": [
+                {
+                    "type": "share_capital",
+                    "description": "หุ้นสะสม",
+                    "value": 65000
+                }
+            ],
+            "guarantors": []
+        },
+        "documents": [
+            {
+                "type": "medical_receipt",
+                "name": "ใบเสร็จค่ารักษาพยาบาล",
+                "status": "verified",
+                "url": "https://example.com/docs/medical_m00125.pdf"
+            }
+        ],
+        "paymentHistory": [
+            {
+                "installmentNo": 1,
+                "dueDate": "2024-07-25T00:00:00Z",
+                "paidDate": "2024-07-25T09:30:00Z",
+                "principalAmount": 1965.86,
+                "interestAmount": 250.00,
+                "totalAmount": 2215.86,
+                "status": "paid",
+                "paymentMethod": "auto_debit",
+                "receiptNo": "RCP-2024-070001"
+            },
+            {
+                "installmentNo": 2,
+                "dueDate": "2024-08-25T00:00:00Z",
+                "paidDate": "2024-08-25T10:15:00Z",
+                "principalAmount": 1975.69,
+                "interestAmount": 240.17,
+                "totalAmount": 2215.86,
+                "status": "paid",
+                "paymentMethod": "auto_debit",
+                "receiptNo": "RCP-2024-080002"
+            },
+            {
+                "installmentNo": 3,
+                "dueDate": "2024-09-25T00:00:00Z",
+                "paidDate": "2024-09-24T14:00:00Z",
+                "principalAmount": 1985.57,
+                "interestAmount": 230.29,
+                "totalAmount": 2215.86,
+                "status": "paid",
+                "paymentMethod": "counter",
+                "receiptNo": "RCP-2024-090003"
+            },
+            {
+                "installmentNo": 4,
+                "dueDate": "2024-10-25T00:00:00Z",
+                "paidDate": "2024-10-25T08:45:00Z",
+                "principalAmount": 1995.49,
+                "interestAmount": 220.37,
+                "totalAmount": 2215.86,
+                "status": "paid",
+                "paymentMethod": "auto_debit",
+                "receiptNo": "RCP-2024-100004"
+            },
+            {
+                "installmentNo": 5,
+                "dueDate": "2024-11-25T00:00:00Z",
+                "paidDate": "2024-11-25T11:20:00Z",
+                "principalAmount": 2005.47,
+                "interestAmount": 210.39,
+                "totalAmount": 2215.86,
+                "status": "paid",
+                "paymentMethod": "auto_debit",
+                "receiptNo": "RCP-2024-110005"
+            },
+            {
+                "installmentNo": 6,
+                "dueDate": "2024-12-10T00:00:00Z",
+                "paidDate": "2024-12-10T09:00:00Z",
+                "principalAmount": 2015.50,
+                "interestAmount": 200.36,
+                "totalAmount": 2215.86,
+                "status": "paid",
+                "paymentMethod": "counter",
+                "receiptNo": "RCP-2024-120006"
+            }
+        ]
+    }
+]

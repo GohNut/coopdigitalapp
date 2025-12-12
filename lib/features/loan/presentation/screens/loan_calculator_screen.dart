@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_product_model.dart';
 import '../../domain/loan_request_args.dart';
+import '../../data/loan_repository_impl.dart';
 import '../widgets/loan_overview_card.dart'; // Reusing styles if needed, or creating fresh
 
 class LoanCalculatorScreen extends StatefulWidget {
@@ -17,7 +18,7 @@ class LoanCalculatorScreen extends StatefulWidget {
 }
 
 class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
-  late LoanProduct product;
+  LoanProduct? product;
   double _amount = 10000;
   int _months = 12;
 
@@ -25,27 +26,46 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
   double _monthlyPayment = 0;
   double _totalInterest = 0;
   double _totalPayment = 0;
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // In a real app, use provider/repo to get product by ID.
-    // Here we find it from mock data.
-    product = LoanProduct.mockProducts.firstWhere(
-      (p) => p.id == widget.productId,
-      orElse: () => LoanProduct.mockProducts[0],
-    );
-    _amount = product.maxAmount / 2; // Default to half max
-    if (_amount < 1000) _amount = 1000;
-    
-    _calculate();
+    _loadProduct();
+  }
+
+  Future<void> _loadProduct() async {
+    try {
+      final repository = LoanRepositoryImpl();
+      final products = await repository.getLoanProducts();
+      final foundProduct = products.firstWhere(
+        (p) => p.id == widget.productId,
+        orElse: () => throw Exception('Product not found'),
+      );
+
+      setState(() {
+        product = foundProduct;
+        _amount = product!.maxAmount / 2; // Default to half max
+        if (_amount < 1000) _amount = 1000;
+        _isLoading = false;
+        _calculate();
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   void _calculate() {
+    if (product == null) return;
+    
     // Flat Rate Formula
     // Interest = Principal * Rate * Years
     double years = _months / 12;
-    _totalInterest = _amount * (product.interestRate / 100) * years;
+    _totalInterest = _amount * (product!.interestRate / 100) * years;
     _totalPayment = _amount + _totalInterest;
     _monthlyPayment = _totalPayment / _months;
     setState(() {});
@@ -53,13 +73,31 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null || product == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text('คำนวณวงเงินกู้'),
+          leading: IconButton(
+            icon: const Icon(LucideIcons.arrowLeft),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: Center(child: Text('เกิดข้อผิดพลาด: $_error')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('คำนวณวงเงินกู้'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
@@ -87,11 +125,11 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      product.name,
+                      product!.name,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      'ดอกเบี้ย ${product.interestRate}% ต่อปี',
+                      'ดอกเบี้ย ${product!.interestRate}% ต่อปี',
                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
                     ),
                   ],
@@ -128,7 +166,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
             Slider(
               value: _amount,
               min: 1000,
-              max: product.maxAmount,
+              max: product!.maxAmount,
               divisions: 100,
               activeColor: AppColors.primary,
               onChanged: (value) {
@@ -142,7 +180,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('ต่ำสุด: 1,000'),
-                Text('สูงสุด: ${NumberFormat.compact().format(product.maxAmount)}'),
+                Text('สูงสุด: ${NumberFormat.compact().format(product!.maxAmount)}'),
               ],
             ),
 
@@ -158,7 +196,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
               spacing: 12,
               runSpacing: 12,
               children: [6, 12, 18, 24, 36, 48, 60]
-                  .where((m) => m <= product.maxMonths)
+                  .where((m) => m <= product!.maxMonths)
                   .map((m) => ChoiceChip(
                         label: Text('$m งวด'),
                         selected: _months == m,
@@ -217,7 +255,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
             child: ElevatedButton(
               onPressed: () {
                 context.push('/loan/info', extra: LoanRequestArgs(
-                  product: product,
+                  product: product!,
                   amount: _amount,
                   months: _months,
                   monthlyPayment: _monthlyPayment,

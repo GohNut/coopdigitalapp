@@ -43,9 +43,6 @@ class _LoanDocumentScreenState extends State<LoanDocumentScreen> {
       appBar: AppBar(
         title: const Text('แนบเอกสาร'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

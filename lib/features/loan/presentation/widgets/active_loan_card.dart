@@ -2,22 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:intl/intl.dart';
 
 class ActiveLoanCard extends StatelessWidget {
-  const ActiveLoanCard({super.key});
+  final String loanType;
+  final String contractNumber;
+  final double principal;
+  final double paid;
+
+  const ActiveLoanCard({
+    super.key,
+    required this.loanType,
+    required this.contractNumber,
+    required this.principal,
+    required this.paid,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Mock data for a single loan item
-    const String loanType = 'เงินกู้สามัญฉุกเฉิน';
-    const String contractNumber = 'EM-2023-001';
-    const double principal = 50000;
-    const double paid = 15000;
-    const double progress = paid / principal;
+    final progress = principal > 0 ? paid / principal : 0.0;
+    final remaining = principal - paid;
+    final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 0);
 
     return InkWell(
       onTap: () {
-         context.push('/loan/contract/EM-2023-001'); // Mock ID
+        context.push('/loan/contract/$contractNumber');
       },
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -82,7 +91,7 @@ class ActiveLoanCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               Text(
-                '฿ 35,000',
+                currencyFormat.format(remaining),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

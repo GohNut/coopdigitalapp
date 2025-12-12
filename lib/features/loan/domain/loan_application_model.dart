@@ -1,93 +1,311 @@
 enum LoanApplicationStatus {
   pending,
   approved,
-  rejected,
+  rejected;
+
+  static LoanApplicationStatus fromString(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return LoanApplicationStatus.approved;
+      case 'rejected':
+        return LoanApplicationStatus.rejected;
+      default:
+        return LoanApplicationStatus.pending;
+    }
+  }
+
+  String toDisplayString() {
+    switch (this) {
+      case LoanApplicationStatus.pending: return 'รอพิจารณา';
+      case LoanApplicationStatus.approved: return 'อนุมัติ';
+      case LoanApplicationStatus.rejected: return 'ปฏิเสธ';
+    }
+  }
+}
+
+class Applicant {
+  final String memberId;
+  final String prefix;
+  final String firstName;
+  final String lastName;
+  final String idCard;
+  final DateTime? dateOfBirth;
+  final String? address;
+  final String? mobile;
+  final String? email;
+  final double salary;
+  final double otherIncome;
+  final double currentDebt;
+
+  String get fullName => '$prefix$firstName $lastName';
+
+  Applicant({
+    required this.memberId,
+    this.prefix = '',
+    required this.firstName,
+    required this.lastName,
+    required this.idCard,
+    this.dateOfBirth,
+    this.address,
+    this.mobile,
+    this.email,
+    required this.salary,
+    this.otherIncome = 0,
+    required this.currentDebt,
+  });
+
+  factory Applicant.fromJson(Map<String, dynamic> json) {
+    return Applicant(
+      memberId: json['memberId'],
+      prefix: json['prefix'] ?? '',
+      firstName: json['firstName'],
+      lastName: json['lastName'],
+      idCard: json['idCard'],
+      dateOfBirth: json['dateOfBirth'] != null ? DateTime.parse(json['dateOfBirth']) : null,
+      address: json['address'],
+      mobile: json['mobile'],
+      email: json['email'],
+      salary: (json['salary'] as num).toDouble(),
+      otherIncome: (json['otherIncome'] as num?)?.toDouble() ?? 0,
+      currentDebt: (json['currentDebt'] as num).toDouble(),
+    );
+  }
+}
+
+class LoanDetails {
+  final String productId;
+  final String productName;
+  final double requestAmount;
+  final double? approvedAmount;
+  final int requestTerm;
+  final double interestRate;
+  final String purpose;
+  final double installmentAmount;
+  final double totalPayment;
+  final double paidAmount;
+  final double remainingAmount;
+  final int paidInstallments;
+  final DateTime? nextPaymentDate;
+
+  LoanDetails({
+    required this.productId,
+    required this.productName,
+    required this.requestAmount,
+    this.approvedAmount,
+    required this.requestTerm,
+    required this.interestRate,
+    required this.purpose,
+    required this.installmentAmount,
+    required this.totalPayment,
+    required this.paidAmount,
+    required this.remainingAmount,
+    required this.paidInstallments,
+    this.nextPaymentDate,
+  });
+
+  factory LoanDetails.fromJson(Map<String, dynamic> json) {
+    return LoanDetails(
+      productId: json['productId'],
+      productName: json['productName'],
+      requestAmount: (json['requestAmount'] as num).toDouble(),
+      approvedAmount: (json['approvedAmount'] as num?)?.toDouble(),
+      requestTerm: json['requestTerm'],
+      interestRate: (json['interestRate'] as num).toDouble(),
+      purpose: json['purpose'],
+      installmentAmount: (json['installmentAmount'] as num).toDouble(),
+      totalPayment: (json['totalPayment'] as num?)?.toDouble() ?? 0,
+      paidAmount: (json['paidAmount'] as num?)?.toDouble() ?? 0,
+      remainingAmount: (json['remainingAmount'] as num?)?.toDouble() ?? 0,
+      paidInstallments: json['paidInstallments'] ?? 0,
+      nextPaymentDate: json['nextPaymentDate'] != null 
+          ? DateTime.parse(json['nextPaymentDate']) 
+          : null,
+    );
+  }
+}
+
+class Guarantor {
+  final String memberId;
+  final String name;
+  final String relationship;
+  final double? salary;
+
+  Guarantor({
+    required this.memberId,
+    required this.name,
+    required this.relationship,
+    this.salary,
+  });
+
+  factory Guarantor.fromJson(Map<String, dynamic> json) {
+    return Guarantor(
+      memberId: json['memberId'],
+      name: json['name'],
+      relationship: json['relationship'],
+      salary: (json['salary'] as num?)?.toDouble(),
+    );
+  }
+}
+
+class Collateral {
+  final String type;
+  final String description;
+  final double value;
+  final String? owner;
+
+  Collateral({
+    required this.type,
+    required this.description,
+    required this.value,
+    this.owner,
+  });
+
+  factory Collateral.fromJson(Map<String, dynamic> json) {
+    return Collateral(
+      type: json['type'],
+      description: json['description'],
+      value: (json['value'] as num).toDouble(),
+      owner: json['owner'],
+    );
+  }
+}
+
+class Security {
+  final List<Collateral> collaterals;
+  final List<Guarantor> guarantors;
+
+  Security({
+    this.collaterals = const [],
+    this.guarantors = const [],
+  });
+
+  factory Security.fromJson(Map<String, dynamic> json) {
+    return Security(
+      collaterals: (json['collaterals'] as List<dynamic>?)
+              ?.map((e) => Collateral.fromJson(e))
+              .toList() ??
+          [],
+      guarantors: (json['guarantors'] as List<dynamic>?)
+              ?.map((e) => Guarantor.fromJson(e))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class LoanDocument {
+  final String type;
+  final String name;
+  final String status;
+  final String? url;
+
+  LoanDocument({
+    required this.type,
+    required this.name,
+    required this.status,
+    this.url,
+  });
+
+  factory LoanDocument.fromJson(Map<String, dynamic> json) {
+    return LoanDocument(
+      type: json['type'],
+      name: json['name'],
+      status: json['status'],
+      url: json['url'],
+    );
+  }
+}
+
+class PaymentRecord {
+  final int installmentNo;
+  final DateTime dueDate;
+  final DateTime? paidDate;
+  final double principalAmount;
+  final double interestAmount;
+  final double totalAmount;
+  final String status;
+  final String? paymentMethod;
+  final String? receiptNo;
+
+  PaymentRecord({
+    required this.installmentNo,
+    required this.dueDate,
+    this.paidDate,
+    required this.principalAmount,
+    required this.interestAmount,
+    required this.totalAmount,
+    required this.status,
+    this.paymentMethod,
+    this.receiptNo,
+  });
+
+  factory PaymentRecord.fromJson(Map<String, dynamic> json) {
+    return PaymentRecord(
+      installmentNo: json['installmentNo'],
+      dueDate: DateTime.parse(json['dueDate']),
+      paidDate: json['paidDate'] != null ? DateTime.parse(json['paidDate']) : null,
+      principalAmount: (json['principalAmount'] as num).toDouble(),
+      interestAmount: (json['interestAmount'] as num).toDouble(),
+      totalAmount: (json['totalAmount'] as num).toDouble(),
+      status: json['status'],
+      paymentMethod: json['paymentMethod'],
+      receiptNo: json['receiptNo'],
+    );
+  }
 }
 
 class LoanApplication {
-  final String id;
-  final String applicantName;
-  final String applicantId;
-  final String memberId;
-  final double amount;
-  final String productName;
+  final String applicationId;
   final DateTime requestDate;
   final LoanApplicationStatus status;
-  final String? officerNote;
-  final double monthlySalary;
-  final double currentDebt;
-  final int requestTerm; // months
+  final Applicant applicant;
+  final LoanDetails loanDetails;
+  final Security security;
+  final List<LoanDocument> documents;
+  final List<PaymentRecord> paymentHistory;
 
+  // Helpers for backward compatibility or easy access
+  String get id => applicationId;
+  String get applicantName => applicant.fullName;
+  String get applicantId => applicant.idCard;
+  String get memberId => applicant.memberId;
+  double get amount => loanDetails.requestAmount;
+  String get productName => loanDetails.productName;
+  double get monthlySalary => applicant.salary;
+  double get currentDebt => applicant.currentDebt;
+  int get requestTerm => loanDetails.requestTerm;
+  
   LoanApplication({
-    required this.id,
-    required this.applicantName,
-    required this.applicantId,
-    required this.memberId,
-    required this.amount,
-    required this.productName,
+    required this.applicationId,
     required this.requestDate,
     required this.status,
-    this.officerNote,
-    required this.monthlySalary,
-    required this.currentDebt,
-    required this.requestTerm,
+    required this.applicant,
+    required this.loanDetails,
+    required this.security,
+    required this.documents,
+    this.paymentHistory = const [],
   });
 
-  // Mock Data
-  static List<LoanApplication> get mockApplications => [
-    LoanApplication(
-      id: 'REQ-2024-001',
-      applicantName: 'สมใจ รักดี',
-      applicantId: '1100200333444',
-      memberId: 'M00123',
-      amount: 50000,
-      productName: 'เงินกู้ฉุกเฉิน',
-      requestDate: DateTime.now().subtract(const Duration(days: 1)),
-      status: LoanApplicationStatus.pending,
-      monthlySalary: 25000,
-      currentDebt: 5000,
-      requestTerm: 24,
-    ),
-    LoanApplication(
-      id: 'REQ-2024-002',
-      applicantName: 'วิชัย ใจมั่น',
-      applicantId: '1100200333555',
-      memberId: 'M00124',
-      amount: 1500000,
-      productName: 'เงินกู้สามัญ',
-      requestDate: DateTime.now().subtract(const Duration(days: 2)),
-      status: LoanApplicationStatus.pending,
-      monthlySalary: 60000,
-      currentDebt: 1200000,
-      requestTerm: 120,
-    ),
-    LoanApplication(
-      id: 'REQ-2024-003',
-      applicantName: 'มานี มีตา',
-      applicantId: '1100200333666',
-      memberId: 'M00125',
-      amount: 200000,
-      productName: 'เงินกู้พิเศษ',
-      requestDate: DateTime.now().subtract(const Duration(days: 5)),
-      status: LoanApplicationStatus.approved,
-      officerNote: 'เอกสารครบถ้วน เครดิตดี',
-      monthlySalary: 45000,
-      currentDebt: 10000,
-      requestTerm: 60,
-    ),
-    LoanApplication(
-      id: 'REQ-2024-004',
-      applicantName: 'ปิติ พอใจ',
-      applicantId: '1100200333777',
-      memberId: 'M00126',
-      amount: 3000000,
-      productName: 'เงินกู้เพื่อที่อยู่อาศัย',
-      requestDate: DateTime.now().subtract(const Duration(days: 10)),
-      status: LoanApplicationStatus.rejected,
-      officerNote: 'ภาระหนี้สินเกินเกณฑ์ที่กำหนด',
-      monthlySalary: 35000,
-      currentDebt: 20000,
-      requestTerm: 360,
-    ),
-  ];
+  factory LoanApplication.fromJson(Map<String, dynamic> json) {
+    return LoanApplication(
+      applicationId: json['applicationId'],
+      requestDate: DateTime.parse(json['requestDate']),
+      status: LoanApplicationStatus.fromString(json['status']),
+      applicant: Applicant.fromJson(json['applicant']),
+      loanDetails: LoanDetails.fromJson(json['loanDetails']),
+      security: Security.fromJson(json['security']),
+      documents: (json['documents'] as List<dynamic>?)
+              ?.map((e) => LoanDocument.fromJson(e))
+              .toList() ??
+          [],
+      paymentHistory: (json['paymentHistory'] as List<dynamic>?)
+              ?.map((e) => PaymentRecord.fromJson(e))
+              .toList() ??
+          [],
+    );
+  }
+
+  // Legacy mock data compatible getter (optional, but keeping it empty for now as we want to use the repository)
+  static List<LoanApplication> get mockApplications => []; 
 }
+

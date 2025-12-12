@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:intl/intl.dart';
 
 class LoanOverviewCard extends StatelessWidget {
-  const LoanOverviewCard({super.key});
+  final double totalOutstanding;
+  final double totalLimit;
+
+  const LoanOverviewCard({
+    super.key,
+    required this.totalOutstanding,
+    required this.totalLimit,
+  });
 
   @override
   Widget build(BuildContext context) {
-    const double totalLimit = 500000;
-    const double outstanding = 350000;
-    const double progress = outstanding / totalLimit;
+    final progress = totalLimit > 0 ? totalOutstanding / totalLimit : 0.0;
+    final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 2);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -40,7 +47,7 @@ class LoanOverviewCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '฿ 350,000.00',
+                      currencyFormat.format(totalOutstanding),
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
                             color: AppColors.error,
                             fontWeight: FontWeight.bold,
@@ -55,7 +62,7 @@ class LoanOverviewCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '฿ 500,000.00',
+                      currencyFormat.format(totalLimit),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: AppColors.textPrimary,
                           ),

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../domain/loan_repository.dart';
+import '../domain/loan_application_model.dart';
+import '../domain/loan_product_model.dart';
 
 class FirebaseLoanRepository implements LoanRepository {
   final FirebaseFirestore _firestore;
@@ -24,5 +26,17 @@ class FirebaseLoanRepository implements LoanRepository {
       'createdAt': FieldValue.serverTimestamp(),
       'memberId': 'user_001', // Mock User ID for now
     });
+  }
+
+  @override
+  Future<List<LoanApplication>> getLoanApplications() async {
+    // TODO: Implement fetching from Firestore
+    return [];
+  }
+
+  @override
+  Future<List<LoanProduct>> getLoanProducts() {
+    // TODO: Implement fetching loan products from Firestore
+    throw UnimplementedError();
   }
 }

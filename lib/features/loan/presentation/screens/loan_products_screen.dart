@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_product_model.dart';
+import '../../data/loan_repository_impl.dart';
 import 'package:intl/intl.dart';
 
 class LoanProductsScreen extends StatelessWidget {
@@ -10,6 +11,8 @@ class LoanProductsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final repository = LoanRepositoryImpl();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('ประเภทเงินกู้'),
@@ -18,13 +21,31 @@ class LoanProductsScreen extends StatelessWidget {
           onPressed: () => context.go('/home'),
         ),
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: LoanProduct.mockProducts.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final product = LoanProduct.mockProducts[index];
-          return _LoanProductCard(product: product);
+      body: FutureBuilder<List<LoanProduct>>(
+        future: repository.getLoanProducts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+             return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
+          }
+
+          final products = snapshot.data ?? [];
+          if (products.isEmpty) {
+             return const Center(child: Text('ไม่พบประเภทสินเชื่อ'));
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: products.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return _LoanProductCard(product: product);
+            },
+          );
         },
       ),
     );
@@ -35,6 +56,21 @@ class _LoanProductCard extends StatelessWidget {
   final LoanProduct product;
 
   const _LoanProductCard({required this.product});
+
+  String _getCollateralDescription(LoanProduct product) {
+    // Logic to derive collateral description since it's not in JSON
+    if (product.id == 'housing') return 'จำนองโฉนดที่ดิน';
+    if (product.id == 'emergency') return 'ใช้หุ้นค้ำประกัน';
+    if (product.requireGuarantor) return 'บุคคลค้ำประกัน';
+    
+    // Fallback based on conditions if available
+    for (var condition in product.conditions) {
+      if (condition.contains('หลักทรัพย์')) return 'หลักทรัพย์ค้ำประกัน';
+      if (condition.contains('หุ้น')) return 'ใช้หุ้นค้ำประกัน';
+    }
+    
+    return 'ไม่ระบุ';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +124,7 @@ class _LoanProductCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'หลักประกัน: ${product.collateral}',
+                              'หลักประกัน: ${_getCollateralDescription(product)}',
                               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                 color: AppColors.secondary,
                                 fontWeight: FontWeight.w500,
@@ -104,7 +140,7 @@ class _LoanProductCard extends StatelessWidget {
               Row(
                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                  children: [
-                   _buildInfoChip(context, 'วงเงินสูงสุด', NumberFormat.compact().format(product.maxAmount)),
+                   _buildInfoChip(context, 'วงเงินสูงสุด', NumberFormat.compact(locale: 'th').format(product.maxAmount)),
                    _buildInfoChip(context, 'ดอกเบี้ย', '${product.interestRate}%'),
                    _buildInfoChip(context, 'ผ่อนนาน', '${product.maxMonths} งวด'),
                  ],

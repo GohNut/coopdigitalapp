@@ -26,9 +26,6 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
   void initState() {
     super.initState();
     _currentStatus = widget.application.status;
-    if (widget.application.officerNote != null) {
-      _commentController.text = widget.application.officerNote!;
-    }
   }
 
   void _updateStatus(LoanApplicationStatus newStatus) {

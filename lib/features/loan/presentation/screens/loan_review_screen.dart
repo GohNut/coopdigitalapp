@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_request_args.dart';
+import '../../data/loan_repository_impl.dart';
 
 class LoanReviewScreen extends StatelessWidget {
   final LoanRequestArgs args;
@@ -16,9 +17,6 @@ class LoanReviewScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('ตรวจสอบข้อมูล'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -174,7 +172,35 @@ class LoanReviewScreen extends StatelessWidget {
               onPressed: () async {
                 final result = await context.push<bool>('/loan/pin');
                 if (result == true && context.mounted) {
-                  context.go('/loan/success');
+                  // Show loading
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(child: CircularProgressIndicator()),
+                  );
+
+                  try {
+                    final repository = LoanRepositoryImpl();
+                    await repository.submitApplication(
+                      productId: args.product.id,
+                      amount: args.amount,
+                      months: args.months,
+                      guarantorId: args.guarantorMemberId,
+                      objective: args.objective,
+                    );
+                    
+                    if (context.mounted) {
+                      Navigator.pop(context); // Dismiss loading
+                      context.go('/loan/success');
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Navigator.pop(context); // Dismiss loading
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+                      );
+                    }
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
