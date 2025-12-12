@@ -11,20 +11,86 @@ class FirebaseLoanRepository implements LoanRepository {
   @override
   Future<void> submitApplication({
     required String productId,
+    required String productName,
+    required double interestRate,
     required double amount,
     required int months,
-    String? guarantorId,
+    required double monthlyPayment,
+    required double totalInterest,
+    required double totalPayment,
     String? objective,
+    String? guarantorType,
+    String? guarantorMemberId,
+    String? guarantorName,
+    String? guarantorRelationship,
+    double? guarantorSalary,
+    String? idCardFileName,
+    String? salarySlipFileName,
+    String? otherFileName,
+    required String memberId,
   }) async {
     await _firestore.collection('loan_applications').add({
-      'productId': productId, // "Ordinary", "Emergency"
-      'requestAmount': amount,
-      'months': months,
-      'guarantorId': guarantorId,
-      'objective': objective,
-      'status': 'PENDING',
-      'createdAt': FieldValue.serverTimestamp(),
-      'memberId': 'user_001', // Mock User ID for now
+      // ข้อมูลผลิตภัณฑ์
+      'productid': productId,
+      'productname': productName,
+      'interestrate': interestRate,
+      
+      // ข้อมูลวงเงินและการคำนวณ
+      'requestamount': amount,
+      'requestterm': months,
+      'monthlypayment': monthlyPayment,
+      'totalinterest': totalInterest,
+      'totalpayment': totalPayment,
+      
+      // ข้อมูลการกู้
+      'purpose': objective,
+      
+      // ข้อมูลหลักประกัน/ผู้ค้ำ
+      'securityinfo': {
+        'guarantors': [
+          if (guarantorType != null) {
+            if (guarantorType == 'member' && guarantorMemberId != null) 
+               {
+                 'memberid': guarantorMemberId,
+                 'name': 'สมาชิกสหกรณ์ (Mock)',
+                 'relationship': 'เพื่อนสมาชิก',
+                 'salary': 0.0,
+               }
+            else if (guarantorType == 'external') 
+               {
+                 'memberid': '',
+                 'name': guarantorName ?? 'ไม่ระบุ',
+                 'relationship': guarantorRelationship ?? 'ไม่ระบุ',
+                 'salary': guarantorSalary ?? 0.0,
+               }
+          }
+        ],
+        'collaterals': [],
+      },
+      
+      // เอกสารแนบ
+      'documents': [
+        if (idCardFileName != null) {
+          'type': 'id_card',
+          'name': idCardFileName,
+          'status': 'pending',
+        },
+        if (salarySlipFileName != null) {
+          'type': 'salary_slip',
+          'name': salarySlipFileName,
+          'status': 'pending',
+        },
+        if (otherFileName != null) {
+          'type': 'other',
+          'name': otherFileName, // In real app, this might be multiple files
+          'status': 'pending',
+        },
+      ],
+      
+      // สถานะและข้อมูลระบบ
+      'status': 'pending',
+      'createdat': FieldValue.serverTimestamp(),
+      'memberid': memberId,
     });
   }
 
@@ -37,6 +103,25 @@ class FirebaseLoanRepository implements LoanRepository {
   @override
   Future<List<LoanProduct>> getLoanProducts() {
     // TODO: Implement fetching loan products from Firestore
+    throw UnimplementedError();
+  }
+  @override
+  Future<void> updateLoanStatus(String applicationId, LoanApplicationStatus status, {String? comment}) async {
+    // TODO: Implement status update in Firestore
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> makePayment({
+    required String applicationId,
+    required int installmentNo,
+    required double amount,
+    required String paymentMethod,
+    required String paymentType,
+    int installmentCount = 1,
+    String? slipImagePath,
+  }) async {
+    // TODO: Implement payment recording in Firestore
     throw UnimplementedError();
   }
 }

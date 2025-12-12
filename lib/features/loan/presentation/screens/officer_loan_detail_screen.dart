@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_application_model.dart';
+import '../../data/loan_repository_impl.dart';
 import '../../../auth/domain/user_role.dart';
 
 class OfficerLoanDetailScreen extends StatefulWidget {
@@ -28,29 +29,57 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
     _currentStatus = widget.application.status;
   }
 
-  void _updateStatus(LoanApplicationStatus newStatus) {
-    // In a real app, call API here
-    setState(() {
-      _currentStatus = newStatus;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          newStatus == LoanApplicationStatus.approved 
-              ? 'อนุมัติสินเชื่อเรียบร้อยแล้ว' 
-              : 'ปฏิเสธสินเชื่อเรียบร้อยแล้ว'
-        ),
-        backgroundColor: newStatus == LoanApplicationStatus.approved 
-            ? AppColors.success 
-            : AppColors.error,
-      ),
+  Future<void> _updateStatus(LoanApplicationStatus newStatus) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
-    
-    // Delay slightly before going back
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) context.pop(true);
-    });
+
+    try {
+      final repository = LoanRepositoryImpl();
+      await repository.updateLoanStatus(
+        widget.application.id, 
+        newStatus, 
+        comment: _commentController.text.isNotEmpty ? _commentController.text : null
+      );
+
+      if (mounted) {
+        // Dismiss loading
+        Navigator.of(context, rootNavigator: true).pop(); 
+        
+        setState(() {
+          _currentStatus = newStatus;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newStatus == LoanApplicationStatus.approved 
+                  ? 'อนุมัติสินเชื่อเรียบร้อยแล้ว' 
+                  : 'ปฏิเสธสินเชื่อเรียบร้อยแล้ว'
+            ),
+            backgroundColor: newStatus == LoanApplicationStatus.approved 
+                ? AppColors.success 
+                : AppColors.error,
+          ),
+        );
+        
+        // Delay slightly before going back
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) context.pop(true);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        // Dismiss loading
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   @override
@@ -78,7 +107,11 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
             const SizedBox(height: 20),
             _buildFinancialInfo(currencyFormat),
             const SizedBox(height: 20),
-            if (_currentStatus == LoanApplicationStatus.pending && CurrentUser.isApprover)
+            _buildGuarantorInfo(),
+            const SizedBox(height: 20),
+            _buildDocumentsInfo(),
+            const SizedBox(height: 20),
+            if (_currentStatus == LoanApplicationStatus.pending && CurrentUser.isOfficerOrApprover)
                _buildActionSection(),
             if (_currentStatus != LoanApplicationStatus.pending)
                _buildResultSection(),
@@ -162,8 +195,139 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
         const Divider(),
         _buildInfoRow('เงินเดือน', format.format(widget.application.monthlySalary)),
         _buildInfoRow('หนี้สินปัจจุบัน', format.format(widget.application.currentDebt)),
-        _buildInfoRow('ภาระหนี้ต่อรายได้', '${((widget.application.currentDebt / widget.application.monthlySalary) * 100).toStringAsFixed(1)}%'),
+        _buildInfoRow('ภาระหนี้ต่อรายได้', '${widget.application.monthlySalary > 0 ? ((widget.application.currentDebt / widget.application.monthlySalary) * 100).toStringAsFixed(1) : "0.0"}%'),
       ],
+    );
+  }
+
+  Widget _buildGuarantorInfo() {
+    final guarantors = widget.application.security.guarantors;
+    
+    return _buildCard(
+      title: 'ผู้ค้ำประกัน',
+      icon: LucideIcons.userCheck,
+      children: [
+        if (guarantors.isNotEmpty) ...[
+          ...guarantors.map((g) => Column(
+            children: [
+              _buildInfoRow('ชื่อผู้ค้ำประกัน', g.name.isNotEmpty ? g.name : '-'),
+              _buildInfoRow('รหัสสมาชิก', g.memberId.isNotEmpty ? g.memberId : '-'),
+              _buildInfoRow('ความสัมพันธ์', g.relationship.isNotEmpty ? g.relationship : '-'),
+              if (guarantors.indexOf(g) < guarantors.length - 1) const Divider(),
+            ],
+          )),
+        ] else ...[
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'ไม่มีข้อมูลผู้ค้ำประกัน',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDocumentsInfo() {
+    final documents = widget.application.documents;
+    
+    return _buildCard(
+      title: 'เอกสารประกอบ',
+      icon: LucideIcons.fileText,
+      children: [
+        if (documents.isNotEmpty) ...[
+          ...documents.map((doc) => _buildDocumentRow(doc)),
+        ] else ...[
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'ไม่มีเอกสารแนบ',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _getDocumentTypeDisplay(String type) {
+    switch (type) {
+      case 'id_card':
+        return 'สำเนาบัตรประชาชน';
+      case 'salary_slip':
+        return 'สลิปเงินเดือน';
+      case 'other':
+        return 'เอกสารอื่นๆ';
+      default:
+        return type;
+    }
+  }
+
+  Widget _buildDocumentRow(LoanDocument doc) {
+    IconData icon;
+    switch (doc.type) {
+      case 'id_card':
+        icon = LucideIcons.creditCard;
+        break;
+      case 'salary_slip':
+        icon = LucideIcons.receipt;
+        break;
+      default:
+        icon = LucideIcons.file;
+    }
+    
+    final isVerified = doc.status == 'verified' || doc.status == 'approved';
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  doc.name,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  _getDocumentTypeDisplay(doc.type),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isVerified ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              isVerified ? 'ตรวจสอบแล้ว' : 'รอตรวจสอบ',
+              style: TextStyle(
+                fontSize: 11,
+                color: isVerified ? AppColors.success : AppColors.warning,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -189,35 +353,59 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
         Row(
           children: [
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _showConfirmationDialog(LoanApplicationStatus.rejected),
-                icon: const Icon(LucideIcons.x),
-                label: const Text('ปฏิเสธ'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+              child: SizedBox(
+                height: 60,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showConfirmationDialog(LoanApplicationStatus.rejected),
+                  icon: const Icon(LucideIcons.x, size: 24),
+                  label: const Text(
+                    'ปฏิเสธ',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 2,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _showConfirmationDialog(LoanApplicationStatus.approved),
-                icon: const Icon(LucideIcons.check),
-                label: const Text('อนุมัติ'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+              child: SizedBox(
+                height: 60,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showConfirmationDialog(LoanApplicationStatus.approved),
+                  icon: const Icon(LucideIcons.check, size: 24),
+                  label: const Text(
+                    'อนุมัติ',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 2,
+                  ),
                 ),
               ),
             ),
           ],
         ),
+        // เพิ่ม padding ด้านล่างเพื่อไม่ให้ปุ่มติด bar
+        const SizedBox(height: 32),
       ],
     );
   }
+
+
   
   Widget _buildResultSection() {
     return Column(

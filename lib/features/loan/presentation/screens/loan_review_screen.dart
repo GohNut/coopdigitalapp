@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_request_args.dart';
 import '../../data/loan_repository_impl.dart';
+import '../../../auth/domain/user_role.dart';
 
 class LoanReviewScreen extends StatelessWidget {
   final LoanRequestArgs args;
@@ -61,9 +62,16 @@ class LoanReviewScreen extends StatelessWidget {
               icon: Icons.description,
               children: [
                 _buildSummaryRow(context, 'วัตถุประสงค์', args.objective ?? 'ไม่ได้ระบุ'),
-                if (args.product.requireGuarantor)
-                  _buildSummaryRow(context, 'ผู้ค้ำประกัน', args.guarantorMemberId ?? 'ไม่ได้ระบุ')
-                else
+                if (args.product.requireGuarantor) ...[
+                  if (args.guarantorType == 'external') ...[
+                    _buildSummaryRow(context, 'ประเภทผู้ค้ำ', 'บุคคลภายนอก'),
+                    _buildSummaryRow(context, 'ชื่อผู้ค้ำประกัน', args.guarantorName ?? 'ไม่ได้ระบุ'),
+                    _buildSummaryRow(context, 'ความสัมพันธ์', args.guarantorRelationship ?? 'ไม่ได้ระบุ'),
+                  ] else ...[
+                    _buildSummaryRow(context, 'ประเภทผู้ค้ำ', 'สมาชิกสหกรณ์'),
+                    _buildSummaryRow(context, 'รหัสผู้ค้ำประกัน', args.guarantorMemberId ?? 'ไม่ได้ระบุ'),
+                  ],
+                ] else
                   _buildSummaryRow(context, 'ผู้ค้ำประกัน', 'ไม่ต้องใช้'),
               ],
             ),
@@ -183,10 +191,22 @@ class LoanReviewScreen extends StatelessWidget {
                     final repository = LoanRepositoryImpl();
                     await repository.submitApplication(
                       productId: args.product.id,
+                      productName: args.product.name,
+                      interestRate: args.product.interestRate,
                       amount: args.amount,
                       months: args.months,
-                      guarantorId: args.guarantorMemberId,
+                      monthlyPayment: args.monthlyPayment,
+                      totalInterest: args.totalInterest,
+                      totalPayment: args.totalPayment,
                       objective: args.objective,
+                      guarantorType: args.guarantorType,
+                      guarantorMemberId: args.guarantorMemberId,
+                      guarantorName: args.guarantorName,
+                      guarantorRelationship: args.guarantorRelationship,
+                      idCardFileName: args.idCardFileName,
+                      salarySlipFileName: args.salarySlipFileName,
+                      otherFileName: args.otherFileName,
+                      memberId: CurrentUser.id,
                     );
                     
                     if (context.mounted) {

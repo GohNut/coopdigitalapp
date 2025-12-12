@@ -15,18 +15,27 @@ class LoanInfoScreen extends StatefulWidget {
 class _LoanInfoScreenState extends State<LoanInfoScreen> {
   final TextEditingController _objectiveController = TextEditingController();
   final TextEditingController _guarantorController = TextEditingController();
+  final TextEditingController _guarantorNameController = TextEditingController();
+  final TextEditingController _guarantorRelationController = TextEditingController();
+  
+  String _guarantorType = 'member'; // 'member' or 'external'
 
   @override
   void dispose() {
     _objectiveController.dispose();
     _guarantorController.dispose();
+    _guarantorNameController.dispose();
+    _guarantorRelationController.dispose();
     super.dispose();
   }
 
   void _goNext() {
     final updatedArgs = widget.args.copyWith(
       objective: _objectiveController.text.isEmpty ? null : _objectiveController.text,
-      guarantorMemberId: _guarantorController.text.isEmpty ? null : _guarantorController.text,
+      guarantorMemberId: _guarantorType == 'member' ? (_guarantorController.text.isEmpty ? null : _guarantorController.text) : null,
+      guarantorType: _guarantorType,
+      guarantorName: _guarantorType == 'external' ? (_guarantorNameController.text.isEmpty ? null : _guarantorNameController.text) : null,
+      guarantorRelationship: _guarantorType == 'external' ? (_guarantorRelationController.text.isEmpty ? null : _guarantorRelationController.text) : null,
     );
     context.push('/loan/document', extra: updatedArgs);
   }
@@ -62,79 +71,273 @@ class _LoanInfoScreenState extends State<LoanInfoScreen> {
             const SizedBox(height: 32),
             
             // Objective Input
-            Text(
-              'วัตถุประสงค์การกู้',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _objectiveController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'เช่น เพื่อการศึกษา, เพื่อซ่อมแซมที่อยู่อาศัย, เพื่อการลงทุน',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.edit_note, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'วัตถุประสงค์การกู้',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _objectiveController,
+                      maxLines: 2,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        hintText: 'เช่น ซื้อรถ, ซ่อมบ้าน, ค่าเทอมบุตร',
+                        hintStyle: TextStyle(color: Colors.grey.shade400),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             
             // Guarantor Section
             if (product.requireGuarantor) ...[
-              Text(
-                'เลขสมาชิกผู้ค้ำประกัน',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'สินเชื่อประเภทนี้ต้องมีผู้ค้ำประกัน',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _guarantorController,
-                decoration: InputDecoration(
-                  hintText: 'ระบุเลขสมาชิกผู้ค้ำประกัน',
-                  filled: true,
-                  fillColor: Colors.white,
-                  suffixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.people, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'ข้อมูลผู้ค้ำประกัน',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'กรุณาเลือกประเภทผู้ค้ำประกัน',
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // ตัวเลือกประเภทผู้ค้ำ
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _guarantorType = 'member'),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: _guarantorType == 'member' ? AppColors.primary.withOpacity(0.1) : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _guarantorType == 'member' ? AppColors.primary : Colors.grey.shade300,
+                                    width: _guarantorType == 'member' ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.badge,
+                                      size: 32,
+                                      color: _guarantorType == 'member' ? AppColors.primary : Colors.grey,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'สมาชิกสหกรณ์',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: _guarantorType == 'member' ? AppColors.primary : Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _guarantorType = 'external'),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: _guarantorType == 'external' ? AppColors.primary.withOpacity(0.1) : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _guarantorType == 'external' ? AppColors.primary : Colors.grey.shade300,
+                                    width: _guarantorType == 'external' ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.person_outline,
+                                      size: 32,
+                                      color: _guarantorType == 'external' ? AppColors.primary : Colors.grey,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'บุคคลภายนอก',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: _guarantorType == 'external' ? AppColors.primary : Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // ฟอร์มกรอกข้อมูลตามประเภท
+                      if (_guarantorType == 'member') ...[
+                        const Text('รหัสสมาชิกผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _guarantorController,
+                          style: const TextStyle(fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'เช่น MEM002',
+                            prefixIcon: const Icon(Icons.search),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'ระบบจะดึงชื่อ-สกุลจากฐานข้อมูลสมาชิกอัตโนมัติ',
+                                  style: TextStyle(fontSize: 13, color: Colors.blue.shade700),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      
+                      if (_guarantorType == 'external') ...[
+                        const Text('ชื่อ - นามสกุล ผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _guarantorNameController,
+                          style: const TextStyle(fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'กรอกชื่อ-นามสกุล',
+                            prefixIcon: const Icon(Icons.person),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('ความสัมพันธ์กับผู้กู้', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _guarantorRelationController,
+                          style: const TextStyle(fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'เช่น บิดา, มารดา, พี่น้อง, เพื่อน',
+                            prefixIcon: const Icon(Icons.family_restroom),
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
             ] else ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+              Card(
+                elevation: 0,
+                color: Colors.green.shade50,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.green.shade200),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 28),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'ไม่ต้องใช้ผู้ค้ำประกัน',
-                            style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          Text(
-                            'สินเชื่อประเภท ${product.name} ไม่ต้องมีผู้ค้ำประกัน',
-                            style: TextStyle(color: Colors.green.shade700, fontSize: 12),
-                          ),
-                        ],
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green.shade700, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ไม่ต้องใช้ผู้ค้ำประกัน',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green.shade700),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'สินเชื่อประเภท ${product.name} ใช้หุ้นสะสมเป็นหลักประกัน',
+                              style: TextStyle(fontSize: 13, color: Colors.green.shade600),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

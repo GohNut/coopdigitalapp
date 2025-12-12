@@ -6,10 +6,10 @@ enum UserRole {
 
 class CurrentUser {
   // For demo/development purposes, we can toggle this to test different views
-  static UserRole role = UserRole.approver;
+  static UserRole role = UserRole.officer;
   
-  static String get name => 'เจ้าหน้าที่ สมชาย';
-  static String get id => 'OFF001';
+  static String get name => 'สมาชิก ใจดี (จนท.)';
+  static String get id => 'MEM001';
   
   static bool get isOfficerOrApprover => 
       role == UserRole.officer || role == UserRole.approver;

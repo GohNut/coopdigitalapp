@@ -23,7 +23,12 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   // Controller สำหรับ TextField
   late TextEditingController _amountController;
   final TextEditingController _objectiveController = TextEditingController();
-  final TextEditingController _guarantorController = TextEditingController();
+  final TextEditingController _guarantorController = TextEditingController(); // For member ID
+  
+  // Guarantor Info
+  String _guarantorType = 'member'; // 'member' or 'external'
+  final TextEditingController _guarantorNameController = TextEditingController();
+  final TextEditingController _guarantorRelationController = TextEditingController();
 
   // Documents
   PlatformFile? _idCardFile;
@@ -44,11 +49,12 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   }
 
   @override
-  @override
   void dispose() {
     _amountController.dispose();
     _objectiveController.dispose();
     _guarantorController.dispose();
+    _guarantorNameController.dispose();
+    _guarantorRelationController.dispose();
     super.dispose();
   }
 
@@ -274,22 +280,248 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
 
   Widget _buildInfoStep() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextFormField(
-          controller: _objectiveController,
-          decoration: const InputDecoration(labelText: 'วัตถุประสงค์'),
-        ),
-        const SizedBox(height: 16),
-        if (product.requireGuarantor)
-           TextFormField(
-            controller: _guarantorController,
-            decoration: const InputDecoration(
-              labelText: 'ระบุเลขสมาชิกผู้ค้ำประกัน',
-              suffixIcon: Icon(Icons.search),
+        // วัตถุประสงค์การกู้
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.edit_note, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    const Text('วัตถุประสงค์การกู้', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _objectiveController,
+                  style: const TextStyle(fontSize: 16),
+                  decoration: InputDecoration(
+                    hintText: 'เช่น ซื้อรถ, ซ่อมบ้าน, ค่าเทอมบุตร',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ],
             ),
           ),
-           if (!product.requireGuarantor)
-           const Text('สินเชื่อนี้ไม่ต้องใช้คนค้ำประกัน', style: TextStyle(color: Colors.green)),
+        ),
+        
+        const SizedBox(height: 20),
+        
+        // ข้อมูลผู้ค้ำประกัน
+        if (product.requireGuarantor) ...[
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.people, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      const Text('ข้อมูลผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text('กรุณาเลือกประเภทผู้ค้ำประกัน', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // ตัวเลือกประเภทผู้ค้ำ
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _guarantorType = 'member'),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: _guarantorType == 'member' ? AppColors.primary.withOpacity(0.1) : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _guarantorType == 'member' ? AppColors.primary : Colors.grey.shade300,
+                                width: _guarantorType == 'member' ? 2 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.badge,
+                                  size: 32,
+                                  color: _guarantorType == 'member' ? AppColors.primary : Colors.grey,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'สมาชิกสหกรณ์',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: _guarantorType == 'member' ? AppColors.primary : Colors.grey.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _guarantorType = 'external'),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: _guarantorType == 'external' ? AppColors.primary.withOpacity(0.1) : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _guarantorType == 'external' ? AppColors.primary : Colors.grey.shade300,
+                                width: _guarantorType == 'external' ? 2 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.person_outline,
+                                  size: 32,
+                                  color: _guarantorType == 'external' ? AppColors.primary : Colors.grey,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'บุคคลภายนอก',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: _guarantorType == 'external' ? AppColors.primary : Colors.grey.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // ฟอร์มกรอกข้อมูลตามประเภท
+                  if (_guarantorType == 'member') ...[
+                    const Text('รหัสสมาชิกผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _guarantorController,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        hintText: 'เช่น MEM002',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'ระบบจะดึงชื่อ-สกุลจากฐานข้อมูลสมาชิกอัตโนมัติ',
+                              style: TextStyle(fontSize: 13, color: Colors.blue.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  
+                  if (_guarantorType == 'external') ...[
+                    const Text('ชื่อ - นามสกุล ผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _guarantorNameController,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        hintText: 'กรอกชื่อ-นามสกุล',
+                        prefixIcon: const Icon(Icons.person),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('ความสัมพันธ์กับผู้กู้', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _guarantorRelationController,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        hintText: 'เช่น บิดา, มารดา, พี่น้อง, เพื่อน',
+                        prefixIcon: const Icon(Icons.family_restroom),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ] else
+          Card(
+            elevation: 0,
+            color: Colors.green.shade50,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.green.shade200),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green.shade700, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ไม่ต้องใช้ผู้ค้ำประกัน',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green.shade700),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'สินเชื่อนี้ใช้หุ้นสะสมเป็นหลักประกัน',
+                          style: TextStyle(fontSize: 13, color: Colors.green.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -353,7 +585,14 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
              ListTile(
                contentPadding: EdgeInsets.zero,
                title: const Text('ประเภทเงินกู้'),
-               trailing: Flexible(child: Text(product.name, overflow: TextOverflow.ellipsis)),
+               trailing: SizedBox(
+                 width: 150,
+                 child: Text(
+                   product.name, 
+                   overflow: TextOverflow.ellipsis,
+                   textAlign: TextAlign.end,
+                 ),
+               ),
              ),
              ListTile(
                contentPadding: EdgeInsets.zero,
@@ -365,6 +604,23 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
                title: const Text('จำนวนงวด'),
                trailing: Text('$_months งวด'),
              ),
+              if (product.requireGuarantor) ...[
+                 const Divider(),
+                 const Text('ข้อมูลผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.bold)),
+                 if (_guarantorType == 'member')
+                   ListTile(
+                     contentPadding: EdgeInsets.zero,
+                     title: const Text('สมาชิกสหกรณ์'),
+                     trailing: Text(_guarantorController.text.isNotEmpty ? 'รหัส ${_guarantorController.text}' : '-'),
+                   )
+                 else
+                   ListTile(
+                     contentPadding: EdgeInsets.zero,
+                     title: const Text('บุคคลภายนอก'),
+                     subtitle: Text('ความสัมพันธ์: ${_guarantorRelationController.text}'),
+                     trailing: Text(_guarantorNameController.text.isNotEmpty ? _guarantorNameController.text : '-'),
+                   ),
+              ],
               const Divider(),
               const Text('เอกสารแนบ', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
@@ -422,14 +678,32 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   
   Future<void> _submitApplication() async {
     try {
-      // Show loading (optional)
+      // Calculate monthly payment
+      final monthlyRate = product.interestRate / 100 / 12;
+      final monthlyPayment = (_requestAmount * monthlyRate * pow(1 + monthlyRate, _months)) / (pow(1 + monthlyRate, _months) - 1);
+      final totalPayment = monthlyPayment * _months;
+      final totalInterest = totalPayment - _requestAmount;
       
       await ref.read(loanRepositoryProvider).submitApplication(
         productId: product.id,
+        productName: product.name,
+        interestRate: product.interestRate,
         amount: _requestAmount,
         months: _months,
-        // TODO: Get actual input values
-        objective: _objectiveController.text.isEmpty ? 'เพื่อการใช้จ่าย' : _objectiveController.text, 
+        monthlyPayment: monthlyPayment,
+        totalInterest: totalInterest,
+        totalPayment: totalPayment,
+        objective: _objectiveController.text.isEmpty ? null : _objectiveController.text,
+        // Guarantor Info
+        guarantorType: _guarantorType,
+        guarantorMemberId: _guarantorController.text.isEmpty ? null : _guarantorController.text,
+        guarantorName: _guarantorNameController.text.isEmpty ? null : _guarantorNameController.text,
+        guarantorRelationship: _guarantorRelationController.text.isEmpty ? null : _guarantorRelationController.text,
+        // Documents
+        idCardFileName: _idCardFile?.name,
+        salarySlipFileName: _salarySlipFile?.name,
+        otherFileName: _otherFile?.name,
+        memberId: 'MEM001', // TODO: Get from Auth Service
       );
       
       // Print attached files for debug

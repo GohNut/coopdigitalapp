@@ -11,7 +11,10 @@ class LoanRequestArgs {
   
   // Info step data
   final String? objective;
+  final String? guarantorType; // 'member' or 'external'
   final String? guarantorMemberId;
+  final String? guarantorName;
+  final String? guarantorRelationship;
   
   // Document step data
   final String? idCardFileName;
@@ -26,7 +29,10 @@ class LoanRequestArgs {
     required this.totalInterest,
     required this.totalPayment,
     this.objective,
+    this.guarantorType,
     this.guarantorMemberId,
+    this.guarantorName,
+    this.guarantorRelationship,
     this.idCardFileName,
     this.salarySlipFileName,
     this.otherFileName,
@@ -41,7 +47,10 @@ class LoanRequestArgs {
     double? totalInterest,
     double? totalPayment,
     String? objective,
+    String? guarantorType,
     String? guarantorMemberId,
+    String? guarantorName,
+    String? guarantorRelationship,
     String? idCardFileName,
     String? salarySlipFileName,
     String? otherFileName,
@@ -54,7 +63,10 @@ class LoanRequestArgs {
       totalInterest: totalInterest ?? this.totalInterest,
       totalPayment: totalPayment ?? this.totalPayment,
       objective: objective ?? this.objective,
+      guarantorType: guarantorType ?? this.guarantorType,
       guarantorMemberId: guarantorMemberId ?? this.guarantorMemberId,
+      guarantorName: guarantorName ?? this.guarantorName,
+      guarantorRelationship: guarantorRelationship ?? this.guarantorRelationship,
       idCardFileName: idCardFileName ?? this.idCardFileName,
       salarySlipFileName: salarySlipFileName ?? this.salarySlipFileName,
       otherFileName: otherFileName ?? this.otherFileName,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../loan/data/loan_repository_impl.dart';
 
 class WalletCard extends StatefulWidget {
   const WalletCard({super.key});
@@ -13,6 +13,41 @@ class WalletCard extends StatefulWidget {
 
 class _WalletCardState extends State<WalletCard> {
   bool _isVisible = true;
+  bool _isLoading = true;
+  double _loanRemainingAmount = 0;
+  final _currencyFormat = NumberFormat.currency(symbol: '฿ ', decimalDigits: 2);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLoanData();
+  }
+
+  Future<void> _loadLoanData() async {
+    try {
+      final repository = LoanRepositoryImpl();
+      final loans = await repository.getLoanApplications();
+      
+      // Calculate total remaining amount from all approved loans
+      double totalRemaining = 0;
+      for (final loan in loans) {
+        if (loan.status.name == 'approved') {
+          totalRemaining += loan.loanDetails.remainingAmount;
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _loanRemainingAmount = totalRemaining;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +118,7 @@ class _WalletCardState extends State<WalletCard> {
                     icon: LucideIcons.creditCard,
                     iconColor: AppColors.warning,
                     title: 'วงเงินกู้คงเหลือ',
-                    amount: '฿ 350,000.00',
+                    amount: _isLoading ? 'กำลังโหลด...' : _currencyFormat.format(_loanRemainingAmount),
                     isVisible: _isVisible,
                     showVisibilityToggle: false,
                   ),
@@ -95,6 +130,7 @@ class _WalletCardState extends State<WalletCard> {
       ),
     );
   }
+
 
   Widget _buildCompactBalanceRow(
     BuildContext context, {

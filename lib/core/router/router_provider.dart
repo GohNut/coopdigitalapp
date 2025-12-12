@@ -28,6 +28,8 @@ import '../../features/loan/presentation/screens/loan_success_screen.dart';
 import '../../features/loan/presentation/screens/loan_tracking_screen.dart';
 import '../../features/loan/presentation/screens/loan_contract_detail_screen.dart';
 import '../../features/loan/presentation/screens/loan_payment_history_screen.dart';
+import '../../features/loan/presentation/screens/loan_payment_screen.dart';
+import '../../features/loan/presentation/screens/loan_payment_success_screen.dart';
 import '../../features/loan/domain/loan_request_args.dart';
 import '../../features/share/presentation/screens/share_dashboard_screen.dart';
 import '../../features/share/presentation/screens/buy_extra_share_screen.dart';
@@ -239,6 +241,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'history',
             builder: (context, state) => const LoanPaymentHistoryScreen(),
+          ),
+          GoRoute(
+            path: 'payment/success',
+            builder: (context, state) {
+               final args = state.extra as Map<String, dynamic>;
+               return LoanPaymentSuccessScreen(args: args);
+            },
+          ),
+          GoRoute(
+            path: 'payment/:applicationId',
+            builder: (context, state) {
+               final applicationId = state.pathParameters['applicationId'] ?? '';
+               return LoanPaymentScreen(applicationId: applicationId);
+            },
           ),
         ],
       ),

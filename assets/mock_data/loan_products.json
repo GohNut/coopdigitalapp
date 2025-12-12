@@ -1,13 +1,13 @@
 [
     {
-        "id": "ordinary",
+        "productid": "ordinary",
         "name": "เงินกู้สามัญ",
-        "nameEn": "Ordinary Loan",
+        "nameen": "Ordinary Loan",
         "description": "วงเงินสูง (หลักแสน-ล้าน) เหมาะสำหรับการลงทุนหรือค่าใช้จ่ายทั่วไป",
-        "maxAmount": 2000000,
-        "interestRate": 5.75,
-        "maxMonths": 120,
-        "requireGuarantor": true,
+        "maxamount": 2000000,
+        "interestrate": 5.75,
+        "maxmonths": 120,
+        "requireguarantor": true,
         "conditions": [
             "ต้องเป็นสมาชิกมาแล้วอย่างน้อย 6 เดือน",
             "มีหุ้นสะสมไม่ต่ำกว่า 10% ของวงเงินกู้",
@@ -15,42 +15,42 @@
         ]
     },
     {
-        "id": "emergency",
+        "productid": "emergency",
         "name": "เงินกู้ฉุกเฉิน",
-        "nameEn": "Emergency Loan",
+        "nameen": "Emergency Loan",
         "description": "วงเงิน 1-2 เท่าของเงินเดือน อนุมัติด่วน",
-        "maxAmount": 50000,
-        "interestRate": 6.00,
-        "maxMonths": 24,
-        "requireGuarantor": false,
+        "maxamount": 50000,
+        "interestrate": 6.00,
+        "maxmonths": 24,
+        "requireguarantor": false,
         "conditions": [
             "อนุมัติภายใน 1 วันทำการ",
             "ไม่ต้องมีบุคคลค้ำประกัน (ใช้หุ้นค้ำ)"
         ]
     },
     {
-        "id": "housing",
+        "productid": "housing",
         "name": "เงินกู้เพื่อที่อยู่อาศัย",
-        "nameEn": "Housing Loan",
+        "nameen": "Housing Loan",
         "description": "วงเงินสูงมาก ผ่อนยาว 20-30 ปี สำหรับซื้อ/สร้างบ้าน",
-        "maxAmount": 10000000,
-        "interestRate": 3.50,
-        "maxMonths": 360,
-        "requireGuarantor": false,
+        "maxamount": 10000000,
+        "interestrate": 3.50,
+        "maxmonths": 360,
+        "requireguarantor": false,
         "conditions": [
             "ต้องจำนองโฉนดที่ดินเป็นหลักทรัพย์ค้ำประกัน",
             "ทำประกันอัคคีภัยสิ่งปลูกสร้าง"
         ]
     },
     {
-        "id": "special",
+        "productid": "special",
         "name": "เงินกู้พิเศษ",
-        "nameEn": "Special Loan",
+        "nameen": "Special Loan",
         "description": "เพื่อวัตถุประสงค์เฉพาะ เช่น ซื้อคอมพิวเตอร์ หรือการศึกษา",
-        "maxAmount": 500000,
-        "interestRate": 4.50,
-        "maxMonths": 60,
-        "requireGuarantor": true,
+        "maxamount": 500000,
+        "interestrate": 4.50,
+        "maxmonths": 60,
+        "requireguarantor": true,
         "conditions": [
             "ต้องแนบเอกสารหลักฐานวัตถุประสงค์การกู้ (เช่น ใบกำกับภาษี, ใบลงทะเบียนเรียน)"
         ]

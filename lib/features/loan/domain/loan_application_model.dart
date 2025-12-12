@@ -54,21 +54,40 @@ class Applicant {
     required this.currentDebt,
   });
 
-  factory Applicant.fromJson(Map<String, dynamic> json) {
+  factory Applicant.fromJson(Map<String, dynamic> json, {String? memberId}) {
     return Applicant(
-      memberId: json['memberId'],
+      memberId: memberId ?? json['memberid'] ?? json['memberId'] ?? '',
       prefix: json['prefix'] ?? '',
-      firstName: json['firstName'],
-      lastName: json['lastName'],
-      idCard: json['idCard'],
-      dateOfBirth: json['dateOfBirth'] != null ? DateTime.parse(json['dateOfBirth']) : null,
+      firstName: json['firstname'] ?? json['firstName'] ?? '',
+      lastName: json['lastname'] ?? json['lastName'] ?? '',
+      idCard: json['idcard'] ?? json['idCard'] ?? '',
+      dateOfBirth: json['dateofbirth'] != null 
+          ? DateTime.parse(json['dateofbirth']) 
+          : (json['dateOfBirth'] != null ? DateTime.parse(json['dateOfBirth']) : null),
       address: json['address'],
       mobile: json['mobile'],
       email: json['email'],
-      salary: (json['salary'] as num).toDouble(),
-      otherIncome: (json['otherIncome'] as num?)?.toDouble() ?? 0,
-      currentDebt: (json['currentDebt'] as num).toDouble(),
+      salary: (json['salary'] as num?)?.toDouble() ?? 0.0,
+      otherIncome: (json['otherincome'] ?? json['otherIncome'] as num?)?.toDouble() ?? 0.0,
+      currentDebt: (json['currentdebt'] ?? json['currentDebt'] as num?)?.toDouble() ?? 0.0,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'memberid': memberId,
+      'prefix': prefix,
+      'firstname': firstName,
+      'lastname': lastName,
+      'idcard': idCard,
+      'dateofbirth': dateOfBirth?.toIso8601String(),
+      'address': address,
+      'mobile': mobile,
+      'email': email,
+      'salary': salary,
+      'otherincome': otherIncome,
+      'currentdebt': currentDebt,
+    };
   }
 }
 
@@ -104,23 +123,59 @@ class LoanDetails {
   });
 
   factory LoanDetails.fromJson(Map<String, dynamic> json) {
+    // Check if calculation object exists
+    final calc = json['calculation'] ?? {};
+    
+    // Parse amounts first
+    final requestAmount = (json['requestamount'] ?? json['requestAmount'] as num?)?.toDouble() ?? 0.0;
+    final paidAmount = (json['paidamount'] ?? json['paidAmount'] as num?)?.toDouble() ?? 0.0;
+    
+    // Calculate remaining amount: use from JSON if exists, otherwise calculate
+    double remainingAmount;
+    if (json['remainingamount'] != null) {
+      remainingAmount = (json['remainingamount'] as num).toDouble();
+    } else if (json['remainingAmount'] != null) {
+      remainingAmount = (json['remainingAmount'] as num).toDouble();
+    } else {
+      // Default: requestAmount - paidAmount (if not paid yet, remaining = full amount)
+      remainingAmount = requestAmount - paidAmount;
+    }
+
     return LoanDetails(
-      productId: json['productId'],
-      productName: json['productName'],
-      requestAmount: (json['requestAmount'] as num).toDouble(),
-      approvedAmount: (json['approvedAmount'] as num?)?.toDouble(),
-      requestTerm: json['requestTerm'],
-      interestRate: (json['interestRate'] as num).toDouble(),
-      purpose: json['purpose'],
-      installmentAmount: (json['installmentAmount'] as num).toDouble(),
-      totalPayment: (json['totalPayment'] as num?)?.toDouble() ?? 0,
-      paidAmount: (json['paidAmount'] as num?)?.toDouble() ?? 0,
-      remainingAmount: (json['remainingAmount'] as num?)?.toDouble() ?? 0,
-      paidInstallments: json['paidInstallments'] ?? 0,
-      nextPaymentDate: json['nextPaymentDate'] != null 
-          ? DateTime.parse(json['nextPaymentDate']) 
-          : null,
+      productId: json['productid'] ?? json['productId'] ?? '',
+      productName: json['productname'] ?? json['productName'] ?? '',
+      requestAmount: requestAmount,
+      approvedAmount: (json['approvedamount'] ?? json['approvedAmount'] as num?)?.toDouble(),
+      requestTerm: json['requestterm'] ?? json['requestTerm'] ?? 0,
+      interestRate: (json['interestrate'] ?? json['interestRate'] as num?)?.toDouble() ?? 0.0,
+      purpose: json['purpose'] ?? '',
+      installmentAmount: (calc['installment_amount'] ?? json['installmentamount'] ?? json['installmentAmount'] as num?)?.toDouble() ?? 0.0,
+      totalPayment: (calc['total_payment'] ?? json['totalpayment'] ?? json['totalPayment'] as num?)?.toDouble() ?? 0.0,
+      paidAmount: paidAmount,
+      remainingAmount: remainingAmount,
+      paidInstallments: json['paidinstallments'] ?? json['paidInstallments'] ?? 0,
+      nextPaymentDate: json['nextpaymentdate'] != null 
+          ? DateTime.parse(json['nextpaymentdate']) 
+          : (json['nextPaymentDate'] != null ? DateTime.parse(json['nextPaymentDate']) : null),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'productid': productId,
+      'productname': productName,
+      'requestamount': requestAmount,
+      'approvedamount': approvedAmount,
+      'requestterm': requestTerm,
+      'interestrate': interestRate,
+      'purpose': purpose,
+      'installmentamount': installmentAmount,
+      'totalpayment': totalPayment,
+      'paidamount': paidAmount,
+      'remainingamount': remainingAmount,
+      'paidinstallments': paidInstallments,
+      'nextpaymentdate': nextPaymentDate?.toIso8601String(),
+    };
   }
 }
 
@@ -139,11 +194,20 @@ class Guarantor {
 
   factory Guarantor.fromJson(Map<String, dynamic> json) {
     return Guarantor(
-      memberId: json['memberId'],
+      memberId: json['memberid'] ?? json['memberId'],
       name: json['name'],
       relationship: json['relationship'],
       salary: (json['salary'] as num?)?.toDouble(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'memberid': memberId,
+      'name': name,
+      'relationship': relationship,
+      'salary': salary,
+    };
   }
 }
 
@@ -164,9 +228,18 @@ class Collateral {
     return Collateral(
       type: json['type'],
       description: json['description'],
-      value: (json['value'] as num).toDouble(),
+      value: (json['value'] as num?)?.toDouble() ?? 0.0,
       owner: json['owner'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      'description': description,
+      'value': value,
+      'owner': owner,
+    };
   }
 }
 
@@ -181,15 +254,24 @@ class Security {
 
   factory Security.fromJson(Map<String, dynamic> json) {
     return Security(
-      collaterals: (json['collaterals'] as List<dynamic>?)
-              ?.map((e) => Collateral.fromJson(e))
-              .toList() ??
-          [],
-      guarantors: (json['guarantors'] as List<dynamic>?)
-              ?.map((e) => Guarantor.fromJson(e))
-              .toList() ??
-          [],
+      collaterals: (json['collaterals'] is List)
+              ? (json['collaterals'] as List<dynamic>)
+                  .map((e) => Collateral.fromJson(e))
+                  .toList()
+              : [],
+      guarantors: (json['guarantors'] is List)
+              ? (json['guarantors'] as List<dynamic>)
+                  .map((e) => Guarantor.fromJson(e))
+                  .toList()
+              : [],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'collaterals': collaterals.map((e) => e.toJson()).toList(),
+      'guarantors': guarantors.map((e) => e.toJson()).toList(),
+    };
   }
 }
 
@@ -214,10 +296,20 @@ class LoanDocument {
       url: json['url'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      'name': name,
+      'status': status,
+      'url': url,
+    };
+  }
 }
 
 class PaymentRecord {
   final int installmentNo;
+  final int? installmentEnd; // For full payoff: shows range like งวดที่ 68-96
   final DateTime dueDate;
   final DateTime? paidDate;
   final double principalAmount;
@@ -226,9 +318,12 @@ class PaymentRecord {
   final String status;
   final String? paymentMethod;
   final String? receiptNo;
+  final String? paymentType; // 'normal', 'advance', 'payoff'
+  final String? note;
 
   PaymentRecord({
     required this.installmentNo,
+    this.installmentEnd,
     required this.dueDate,
     this.paidDate,
     required this.principalAmount,
@@ -237,20 +332,44 @@ class PaymentRecord {
     required this.status,
     this.paymentMethod,
     this.receiptNo,
+    this.paymentType,
+    this.note,
   });
 
   factory PaymentRecord.fromJson(Map<String, dynamic> json) {
     return PaymentRecord(
-      installmentNo: json['installmentNo'],
-      dueDate: DateTime.parse(json['dueDate']),
-      paidDate: json['paidDate'] != null ? DateTime.parse(json['paidDate']) : null,
-      principalAmount: (json['principalAmount'] as num).toDouble(),
-      interestAmount: (json['interestAmount'] as num).toDouble(),
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-      status: json['status'],
-      paymentMethod: json['paymentMethod'],
-      receiptNo: json['receiptNo'],
+      installmentNo: json['installmentno'] ?? json['installmentNo'] ?? 0,
+      installmentEnd: json['installmentend'] ?? json['installmentEnd'],
+      dueDate: DateTime.parse(json['duedate'] ?? json['dueDate'] ?? DateTime.now().toIso8601String()),
+      paidDate: json['paiddate'] != null 
+          ? DateTime.parse(json['paiddate']) 
+          : (json['paidDate'] != null ? DateTime.parse(json['paidDate']) : null),
+      principalAmount: (json['principalamount'] ?? json['principalAmount'] as num?)?.toDouble() ?? 0.0,
+      interestAmount: (json['interestamount'] ?? json['interestAmount'] as num?)?.toDouble() ?? 0.0,
+      totalAmount: (json['totalamount'] ?? json['totalAmount'] as num?)?.toDouble() ?? 0.0,
+      status: json['status'] ?? 'paid',
+      paymentMethod: json['paymentmethod'] ?? json['paymentMethod'],
+      receiptNo: json['receiptno'] ?? json['receiptNo'],
+      paymentType: json['paymenttype'] ?? json['paymentType'],
+      note: json['note'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'installmentno': installmentNo,
+      'installmentend': installmentEnd,
+      'duedate': dueDate.toIso8601String(),
+      'paiddate': paidDate?.toIso8601String(),
+      'principalamount': principalAmount,
+      'interestamount': interestAmount,
+      'totalamount': totalAmount,
+      'status': status,
+      'paymentmethod': paymentMethod,
+      'receiptno': receiptNo,
+      'paymenttype': paymentType,
+      'note': note,
+    };
   }
 }
 
@@ -287,22 +406,75 @@ class LoanApplication {
   });
 
   factory LoanApplication.fromJson(Map<String, dynamic> json) {
+    // Parser documents
+    List<LoanDocument> docs = [];
+    
+    // 1. Try to parse from 'documents' list if exists
+    if (json['documents'] is List) {
+      docs = (json['documents'] as List<dynamic>)
+          .map((e) => LoanDocument.fromJson(e))
+          .toList();
+    } 
+    
+    // 2. If docs is empty, try to map from individual filename fields (MongoDB structure)
+    if (docs.isEmpty) {
+      if (json['idcardfilename'] != null) {
+        docs.add(LoanDocument(
+          type: 'id_card',
+          name: json['idcardfilename'],
+          status: 'pending',
+          url: null, // You might construct full URL here if needed
+        ));
+      }
+      if (json['salaryslipfilename'] != null) {
+        docs.add(LoanDocument(
+          type: 'salary_slip',
+          name: json['salaryslipfilename'],
+          status: 'pending',
+          url: null,
+        ));
+      }
+      if (json['otherfilename'] != null) {
+        docs.add(LoanDocument(
+          type: 'other',
+          name: json['otherfilename'],
+          status: 'pending',
+          url: null,
+        ));
+      }
+    }
+
     return LoanApplication(
-      applicationId: json['applicationId'],
-      requestDate: DateTime.parse(json['requestDate']),
-      status: LoanApplicationStatus.fromString(json['status']),
-      applicant: Applicant.fromJson(json['applicant']),
-      loanDetails: LoanDetails.fromJson(json['loanDetails']),
-      security: Security.fromJson(json['security']),
-      documents: (json['documents'] as List<dynamic>?)
-              ?.map((e) => LoanDocument.fromJson(e))
-              .toList() ??
-          [],
-      paymentHistory: (json['paymentHistory'] as List<dynamic>?)
-              ?.map((e) => PaymentRecord.fromJson(e))
-              .toList() ??
-          [],
+      applicationId: json['applicationid'] ?? json['applicationId'] ?? '',
+      requestDate: DateTime.parse(json['requestdate'] ?? json['requestDate'] ?? json['createdat'] ?? DateTime.now().toIso8601String()),
+      status: LoanApplicationStatus.fromString(json['status'] ?? 'pending'),
+      // Pass memberid from root to Applicant if needed
+      applicant: Applicant.fromJson(json['applicantinfo'] ?? json['applicant'] ?? {}, memberId: json['memberid']),
+      // LoanDetails fields are at root or in loanDetails
+      loanDetails: LoanDetails.fromJson(json['loanDetails'] ?? json),
+      security: Security.fromJson(json['securityinfo'] ?? json['security'] ?? {}),
+      documents: docs,
+      paymentHistory: (json['paymenthistory'] ?? json['paymentHistory']) is List
+              ? ((json['paymenthistory'] ?? json['paymentHistory']) as List<dynamic>)
+                  .map((e) => PaymentRecord.fromJson(e))
+                  .toList()
+              : [],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'applicationid': applicationId,
+      'memberid': applicant.memberId, // Important for indexing
+      'requestdate': requestDate.toIso8601String(),
+      'status': status.name, // or status.toString().split('.').last
+      'applicantinfo': applicant.toJson(),
+      // Flatten LoanDetails into root
+      ...loanDetails.toJson(),
+      'securityinfo': security.toJson(),
+      'documents': documents.map((e) => e.toJson()).toList(),
+      'paymenthistory': paymentHistory.map((e) => e.toJson()).toList(),
+    };
   }
 
   // Legacy mock data compatible getter (optional, but keeping it empty for now as we want to use the repository)

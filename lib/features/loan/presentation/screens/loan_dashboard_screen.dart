@@ -189,7 +189,7 @@ class LoanDashboardScreen extends StatelessWidget {
                   )
                 else
                   SizedBox(
-                    height: 220,
+                    height: 240,
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       scrollDirection: Axis.horizontal,

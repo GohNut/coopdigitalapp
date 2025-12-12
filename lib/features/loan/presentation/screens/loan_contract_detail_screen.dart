@@ -261,6 +261,34 @@ class LoanContractDetailScreen extends StatelessWidget {
                     ),
                   ),
                   
+                  const SizedBox(height: 12),
+                  
+                  // ปุ่มชำระค่างวด
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () => context.push('/loan/payment/${loan.applicationId}'),
+                      icon: const Icon(LucideIcons.creditCard, size: 20),
+                      label: const Text(
+                        'ชำระค่างวด',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                  
                   const SizedBox(height: 16),
 
                   // Tab Bar
@@ -352,6 +380,9 @@ class LoanContractDetailScreen extends StatelessWidget {
     final monthlyPrincipal = loanDetails.requestAmount / loanDetails.requestTerm;
     final monthlyInterest = (loanDetails.requestAmount * loanDetails.interestRate / 100) / 12;
     
+    // Check if loan is closed
+    final isClosed = loan.status.name == 'closed' || loanDetails.paidInstallments >= loanDetails.requestTerm;
+    
     if (isHistory) {
       // Use actual paymentHistory from JSON
       final payments = loan.paymentHistory;
@@ -368,9 +399,48 @@ class LoanContractDetailScreen extends StatelessWidget {
       return ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: payments.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
+        separatorBuilder: (context, index) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final payment = payments[index];
+          
+          // Determine badge and title based on payment type
+          String title;
+          Widget? badge;
+          
+          if (payment.paymentType == 'payoff') {
+            // Full payoff: Show range
+            title = payment.installmentEnd != null 
+                ? 'งวดที่ ${payment.installmentNo}-${payment.installmentEnd}'
+                : 'ปิดยอดกู้ทั้งหมด';
+            badge = Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'ปิดยอดกู้',
+                style: TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold),
+              ),
+            );
+          } else if (payment.paymentType == 'advance') {
+            title = 'งวดที่ ${payment.installmentNo}';
+            badge = Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'ล่วงหน้า',
+                style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
+              ),
+            );
+          } else {
+            title = 'งวดที่ ${payment.installmentNo}';
+            badge = null;
+          }
+          
           return Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -380,17 +450,26 @@ class LoanContractDetailScreen extends StatelessWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: CircleAvatar(
                 backgroundColor: AppColors.success.withOpacity(0.1),
-                child: Text('${payment.installmentNo}', style: const TextStyle(color: AppColors.success)),
+                child: payment.paymentType == 'payoff'
+                    ? const Icon(LucideIcons.checkCircle2, color: AppColors.success, size: 20)
+                    : Text('${payment.installmentNo}', style: const TextStyle(color: AppColors.success)),
               ),
-              title: Text(
-                dateFormat.format(payment.paidDate ?? payment.dueDate),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Row(
+              title: Row(
                 children: [
-                  Text('ต้น ${currencyFormat.format(payment.principalAmount)}', style: const TextStyle(fontSize: 12)),
-                  const SizedBox(width: 8),
-                  Text('ดอก ${currencyFormat.format(payment.interestAmount)}', style: const TextStyle(fontSize: 12, color: AppColors.error)),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  if (badge != null) ...[const SizedBox(width: 8), badge],
+                ],
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    dateFormat.format(payment.paidDate ?? payment.dueDate),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  if (payment.note != null) 
+                    Text(payment.note!, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                 ],
               ),
               trailing: Column(
@@ -406,6 +485,41 @@ class LoanContractDetailScreen extends StatelessWidget {
         },
       );
     } else {
+      // PENDING INSTALLMENTS
+      
+      // If loan is closed, show success message
+      if (isClosed) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(LucideIcons.checkCircle, size: 48, color: AppColors.success),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'สินเชื่อปิดยอดเรียบร้อยแล้ว',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.success,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'ไม่มีงวดที่ต้องชำระ',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        );
+      }
+      
       // Generate pending installments based on paidInstallments
       List<Map<String, dynamic>> items = [];
       for (int i = loanDetails.paidInstallments + 1; i <= loanDetails.requestTerm && i <= loanDetails.paidInstallments + 5; i++) {

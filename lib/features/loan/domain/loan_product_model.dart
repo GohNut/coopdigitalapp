@@ -25,17 +25,34 @@ class LoanProduct {
 
   factory LoanProduct.fromJson(Map<String, dynamic> json) {
     return LoanProduct(
-      id: json['id'],
+      id: json['productid'] ?? json['id'],
       name: json['name'],
-      nameEn: json['nameEn'],
+      nameEn: json['nameen'] ?? json['nameEn'],
       description: json['description'],
-      maxAmount: (json['maxAmount'] as num).toDouble(),
-      interestRate: (json['interestRate'] as num).toDouble(),
-      maxMonths: json['maxMonths'],
-      requireGuarantor: json['requireGuarantor'] ?? false,
-      conditions: (json['conditions'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      maxAmount: (json['maxamount'] ?? json['maxAmount'] as num?)?.toDouble() ?? 0.0,
+      interestRate: (json['interestrate'] ?? json['interestRate'] as num?)?.toDouble() ?? 0.0,
+      maxMonths: json['maxmonths'] ?? json['maxMonths'] ?? 12,
+      requireGuarantor: json['requireguarantor'] ?? json['requireGuarantor'] ?? false,
+      conditions: (json['conditions'] is List) 
+          ? (json['conditions'] as List<dynamic>).map((e) => e.toString()).toList() 
+          : [],
       icon: json['icon'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'productid': id,
+      'name': name,
+      'nameen': nameEn,
+      'description': description,
+      'maxamount': maxAmount,
+      'interestrate': interestRate,
+      'maxmonths': maxMonths,
+      'requireguarantor': requireGuarantor,
+      'conditions': conditions,
+      'icon': icon,
+    };
   }
 
   // Deprecated: Use repository to fetch data
