@@ -28,25 +28,25 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
     });
 
     try {
-      // Search by Account ID (for simplified demo, assuming user knows Account ID or Number)
-      // In real app, might search by member ID then pick account.
-      // Here we assume key is Account Number or ID.
-      // Let's try to query 'getAccountById' (if key is ID) or we need a search by number.
-      // Our API 'getAccountById' currently takes accountId.
-      // Let's assume input is Account ID for now to be safe with existing simple API, 
-      // or we can try to fetch all accounts and filter (bad for scale but ok for dev).
-      // better: use getAccountById directly.
-      
-      final account = await DynamicDepositApiService.getAccountById(key);
+      // Search by Account Number
+      final account = await DynamicDepositApiService.getAccountByNumber(key);
       
       if (account != null) {
         setState(() {
           _foundAccount = account;
         });
       } else {
-         setState(() {
-          _error = 'ไม่พบบัญชีเงินฝาก';
-        });
+         // Fallback: try search by ID just in case
+         final accountById = await DynamicDepositApiService.getAccountById(key);
+         if (accountById != null) {
+            setState(() {
+              _foundAccount = accountById;
+            });
+         } else {
+            setState(() {
+              _error = 'ไม่พบบัญชีเงินฝาก';
+            });
+         }
       }
     } catch (e) {
       setState(() {

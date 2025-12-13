@@ -223,16 +223,17 @@ class _ShareHistoryScreenState extends State<ShareHistoryScreen> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('ประวัติหุ้น'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Colors.black),
+          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
           onPressed: () => context.pop(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.filter, color: Colors.black),
+            icon: const Icon(LucideIcons.filter, color: Colors.white),
             onPressed: _showFilterSheet,
           ),
         ],

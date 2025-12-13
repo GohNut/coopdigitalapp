@@ -73,11 +73,12 @@ class _SellShareScreenState extends State<SellShareScreen> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('โอนหุ้น'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Colors.black),
+          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
           onPressed: () => context.pop(),
         ),
       ),

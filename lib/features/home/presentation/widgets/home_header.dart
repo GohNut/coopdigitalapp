@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/domain/user_role.dart';
 
-class HomeHeader extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../deposit/data/deposit_providers.dart';
+
+class HomeHeader extends ConsumerWidget {
   const HomeHeader({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    
     return Container(
-      padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 20),
+      padding: EdgeInsets.only(top: topPadding + 16, left: 24, right: 24, bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -49,7 +56,7 @@ class HomeHeader extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'คุณสมชาย',
+                    CurrentUser.name,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -62,12 +69,27 @@ class HomeHeader extends StatelessWidget {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: AppColors.error.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  onPressed: () {},
-                  icon: const Icon(LucideIcons.search, color: AppColors.textSecondary),
+                  onPressed: () {
+                    // Logout Logic
+                    // 1. Invalidate Account Providers to prevent data leak
+                    ref.invalidate(depositAccountsAsyncProvider);
+                    ref.invalidate(totalDepositBalanceAsyncProvider);
+                    
+                    // 2. Clear User Session
+                    CurrentUser.setUser(
+                      newName: '',
+                      newId: '',
+                      newRole: UserRole.member,
+                      newIsMember: false,
+                    );
+                    context.go('/login');
+                  },
+                  icon: const Icon(LucideIcons.logOut, color: AppColors.error),
+                  tooltip: 'ออกจากระบบ',
                 ),
               ),
               const SizedBox(width: 8),

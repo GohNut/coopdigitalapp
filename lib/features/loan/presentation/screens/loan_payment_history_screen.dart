@@ -13,8 +13,8 @@ class LoanPaymentHistoryScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('ประวัติการชำระ'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -40,7 +40,7 @@ class LoanPaymentHistoryScreen extends StatelessWidget {
                       Text('ยอดชำระทั้งหมด', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
                       const SizedBox(height: 4),
                       Text(
-                        '฿ 15,250.00',
+                        NumberFormat.currency(symbol: '฿', decimalDigits: 2).format(15250),
                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,

@@ -77,8 +77,8 @@ class _WithdrawReviewScreenState extends State<WithdrawReviewScreen> {
       appBar: AppBar(
         title: const Text('ตรวจสอบข้อมูล'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: SingleChildScrollView(

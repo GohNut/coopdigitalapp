@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../deposit/data/deposit_providers.dart';
+import '../../../deposit/domain/deposit_account.dart';
 import '../../domain/loan_request_args.dart';
 
-class LoanInfoScreen extends StatefulWidget {
+class LoanInfoScreen extends ConsumerStatefulWidget {
   final LoanRequestArgs args;
 
   const LoanInfoScreen({super.key, required this.args});
 
   @override
-  State<LoanInfoScreen> createState() => _LoanInfoScreenState();
+  ConsumerState<LoanInfoScreen> createState() => _LoanInfoScreenState();
 }
 
-class _LoanInfoScreenState extends State<LoanInfoScreen> {
+class _LoanInfoScreenState extends ConsumerState<LoanInfoScreen> {
   final TextEditingController _objectiveController = TextEditingController();
   final TextEditingController _guarantorController = TextEditingController();
   final TextEditingController _guarantorNameController = TextEditingController();
   final TextEditingController _guarantorRelationController = TextEditingController();
   
   String _guarantorType = 'member'; // 'member' or 'external'
+  DepositAccount? _selectedAccount;
 
   @override
   void dispose() {
@@ -30,12 +34,22 @@ class _LoanInfoScreenState extends State<LoanInfoScreen> {
   }
 
   void _goNext() {
+    if (_selectedAccount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเลือกบัญชีรับเงินกู้')),
+      );
+      return;
+    }
+    
     final updatedArgs = widget.args.copyWith(
       objective: _objectiveController.text.isEmpty ? null : _objectiveController.text,
       guarantorMemberId: _guarantorType == 'member' ? (_guarantorController.text.isEmpty ? null : _guarantorController.text) : null,
       guarantorType: _guarantorType,
       guarantorName: _guarantorType == 'external' ? (_guarantorNameController.text.isEmpty ? null : _guarantorNameController.text) : null,
       guarantorRelationship: _guarantorType == 'external' ? (_guarantorRelationController.text.isEmpty ? null : _guarantorRelationController.text) : null,
+      depositAccountId: _selectedAccount!.id,
+      depositAccountNumber: _selectedAccount!.accountNumber,
+      depositAccountName: _selectedAccount!.accountName,
     );
     context.push('/loan/document', extra: updatedArgs);
   }
@@ -49,6 +63,8 @@ class _LoanInfoScreenState extends State<LoanInfoScreen> {
       appBar: AppBar(
         title: const Text('ข้อมูลการกู้'),
         centerTitle: true,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -107,6 +123,150 @@ class _LoanInfoScreenState extends State<LoanInfoScreen> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+            
+            // Deposit Account Selector
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.account_balance_wallet, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'บัญชีรับเงินกู้',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'เลือกบัญชีที่ต้องการรับเงินกู้',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    ref.watch(depositAccountsAsyncProvider).when(
+                      data: (accounts) {
+                        if (accounts.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'ไม่พบบัญชีเงินฝาก กรุณาเปิดบัญชีก่อน',
+                                    style: TextStyle(color: Colors.orange.shade700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        return Column(
+                          children: accounts.map((account) {
+                            final isSelected = _selectedAccount?.id == account.id;
+                            return GestureDetector(
+                              onTap: () => setState(() => _selectedAccount = account),
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isSelected ? AppColors.primary : Colors.grey.shade300,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? AppColors.primary : Colors.grey.shade400,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.account_balance, color: Colors.white, size: 20),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            account.accountName,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected ? AppColors.primary : Colors.black87,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            account.accountNumber,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      Icon(Icons.check_circle, color: AppColors.primary),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      error: (error, _) => Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red.shade700),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'ไม่สามารถโหลดข้อมูลบัญชีได้',
+                                style: TextStyle(color: Colors.red.shade700),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

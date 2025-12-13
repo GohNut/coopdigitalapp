@@ -52,4 +52,4 @@ app.*.map.json
 mongodb-atlas-guide.md
 loan-system-dynamic-api-guide.md
 loan-system-mongodb-api-guide.md
-guide/  
+guide/

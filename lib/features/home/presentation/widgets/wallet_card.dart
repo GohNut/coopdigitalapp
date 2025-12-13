@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../loan/data/loan_repository_impl.dart';
+import '../../../deposit/data/deposit_providers.dart';
 
-class WalletCard extends StatefulWidget {
+class WalletCard extends ConsumerStatefulWidget {
   const WalletCard({super.key});
 
   @override
-  State<WalletCard> createState() => _WalletCardState();
+  ConsumerState<WalletCard> createState() => _WalletCardState();
 }
 
-class _WalletCardState extends State<WalletCard> {
+class _WalletCardState extends ConsumerState<WalletCard> {
   bool _isVisible = true;
   bool _isLoading = true;
   double _loanRemainingAmount = 0;
@@ -51,6 +53,8 @@ class _WalletCardState extends State<WalletCard> {
 
   @override
   Widget build(BuildContext context) {
+    final totalDepositAsync = ref.watch(totalDepositBalanceAsyncProvider);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
@@ -80,14 +84,34 @@ class _WalletCardState extends State<WalletCard> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildCompactBalanceRow(
-              context,
-              icon: LucideIcons.wallet,
-              iconColor: AppColors.secondary,
-              title: 'บัญชีออมทรัพย์',
-              amount: '฿ 750,000.00',
-              isVisible: _isVisible,
-              showVisibilityToggle: true,
+            totalDepositAsync.when(
+              data: (total) => _buildCompactBalanceRow(
+                context,
+                icon: LucideIcons.wallet,
+                iconColor: AppColors.secondary,
+                title: 'บัญชีออมทรัพย์ (รวมทุกบัญชี)',
+                amount: _currencyFormat.format(total),
+                isVisible: _isVisible,
+                showVisibilityToggle: true,
+              ),
+              loading: () => _buildCompactBalanceRow(
+                context,
+                icon: LucideIcons.wallet,
+                iconColor: AppColors.secondary,
+                title: 'บัญชีออมทรัพย์',
+                amount: 'กำลังโหลด...',
+                isVisible: true,
+                showVisibilityToggle: false,
+              ),
+              error: (error, stack) => _buildCompactBalanceRow(
+                context,
+                icon: LucideIcons.wallet,
+                iconColor: AppColors.secondary,
+                title: 'บัญชีออมทรัพย์',
+                amount: 'เกิดข้อผิดพลาด',
+                isVisible: true,
+                showVisibilityToggle: false,
+              ),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),

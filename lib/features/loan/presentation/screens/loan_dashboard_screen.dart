@@ -25,8 +25,8 @@ class LoanDashboardScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(LucideIcons.home, color: Colors.white),
-          onPressed: () => context.go('/home'),
+          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
+          onPressed: () => context.pop(),
         ),
       ),
       body: FutureBuilder<List<LoanApplication>>(

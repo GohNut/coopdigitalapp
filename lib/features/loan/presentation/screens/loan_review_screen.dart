@@ -18,6 +18,8 @@ class LoanReviewScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('ตรวจสอบข้อมูล'),
         centerTitle: true,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -132,8 +134,12 @@ class LoanReviewScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'บัญชีออมทรัพย์ xxx-x-xx456-7',
+                          args.depositAccountName ?? 'ไม่ได้ระบุ',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          args.depositAccountNumber ?? '-',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -207,6 +213,9 @@ class LoanReviewScreen extends StatelessWidget {
                       salarySlipFileName: args.salarySlipFileName,
                       otherFileName: args.otherFileName,
                       memberId: CurrentUser.id,
+                      depositAccountId: args.depositAccountId,
+                      depositAccountNumber: args.depositAccountNumber,
+                      depositAccountName: args.depositAccountName,
                     );
                     
                     if (context.mounted) {

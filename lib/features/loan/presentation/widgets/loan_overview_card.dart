@@ -15,107 +15,164 @@ class LoanOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = totalLimit > 0 ? totalOutstanding / totalLimit : 0.0;
-    final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 2);
+    final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 0);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary,
+            AppColors.primary.withOpacity(0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ยอดหนี้คงเหลือ',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      currencyFormat.format(totalOutstanding),
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'วงเงินกู้ทั้งหมด',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      currencyFormat.format(totalLimit),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 100,
-                height: 100,
-                child: Stack(
-                  children: [
-                    Center(
-                      child: SizedBox(
-                        width: 100,
-                        height: 100,
-                        child: CircularProgressIndicator(
-                          value: progress,
-                          strokeWidth: 10,
-                          backgroundColor: AppColors.background,
-                          color: AppColors.error,
-                          strokeCap: StrokeCap.round,
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Main content - Two columns
+            Row(
+              children: [
+                // ยอดหนี้คงเหลือ (Left)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            'ใช้ไป',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppColors.textSecondary,
-                              fontSize: 10,
-                            ),
+                          Icon(
+                            Icons.account_balance_wallet_outlined,
+                            color: Colors.white.withOpacity(0.8),
+                            size: 16,
                           ),
+                          const SizedBox(width: 6),
                           Text(
-                            '${(progress * 100).toInt()}%',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: AppColors.error,
-                              fontWeight: FontWeight.bold,
+                            'ยอดหนี้คงเหลือ',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          currencyFormat.format(totalOutstanding),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Divider
+                Container(
+                  width: 1,
+                  height: 50,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  color: Colors.white.withOpacity(0.3),
+                ),
+                // วงเงินกู้ทั้งหมด (Right)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.credit_card_outlined,
+                            color: Colors.white.withOpacity(0.8),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'วงเงินกู้ทั้งหมด',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          currencyFormat.format(totalLimit),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Progress bar
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'สัดส่วนการใช้วงเงิน',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      '${(progress * 100).toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: Colors.white.withOpacity(0.3),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+

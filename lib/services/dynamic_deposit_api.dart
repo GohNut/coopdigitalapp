@@ -5,6 +5,63 @@ import 'package:http/http.dart' as http;
 class DynamicDepositApiService {
   static const String _baseUrl = 'https://coopapi.vercel.app/api/v1/loan';
 
+  /// ดึงข้อมูลสมาชิกจากเลขบัตรประชาชน (Member ID)
+  static Future<Map<String, dynamic>?> getMember(String citizenId) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/get'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'members',
+        'filter': {'memberid': citizenId},
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final result = jsonDecode(response.body);
+      if (result['status'] == 'success' && result['data'] is List && (result['data'] as List).isNotEmpty) {
+        return (result['data'] as List).first;
+      }
+      return null;
+    } else {
+      throw Exception('Failed to get member: ${response.body}');
+    }
+  }
+
+  /// สร้างสมาชิกใหม่
+  static Future<Map<String, dynamic>> createMember({
+    required String citizenId, // ใช้เป็น memberid
+    required String nameTh,
+    required String mobile,
+    required String pin, // Added PIN
+  }) async {
+    final now = DateTime.now();
+    
+    final data = {
+      'memberid': citizenId,
+      'name_th': nameTh,
+      'mobile': mobile,
+      'pin': pin, // Added PIN
+      'role': 'member',
+      'created_at': now.toIso8601String(),
+    };
+
+    final response = await http.post(
+      Uri.parse('$_baseUrl/create'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'members',
+        'data': data,
+      }),
+    );
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final result = jsonDecode(response.body);
+      return {...result, 'memberid': citizenId};
+    } else {
+      throw Exception('Failed to create member: ${response.body}');
+    }
+  }
+
   /// สร้างบัญชีใหม่
   static Future<Map<String, dynamic>> createAccount({
     required String memberId,
@@ -82,6 +139,28 @@ class DynamicDepositApiService {
       body: jsonEncode({
         'collection': 'deposit_accounts',
         'filter': {'accountid': accountId},
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final result = jsonDecode(response.body);
+      if (result['status'] == 'success' && result['data'] is List && (result['data'] as List).isNotEmpty) {
+        return (result['data'] as List).first;
+      }
+      return null;
+    } else {
+      throw Exception('Failed to get account: ${response.body}');
+    }
+  }
+
+  /// ดึงบัญชีตาม Account Number
+  static Future<Map<String, dynamic>?> getAccountByNumber(String accountNumber) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/get'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'deposit_accounts',
+        'filter': {'accountnumber': accountNumber},
       }),
     );
 
@@ -236,6 +315,34 @@ class DynamicDepositApiService {
     await updateAccountBalance(accountId: accountId, newBalance: newBalance);
   }
 
+  /// จ่ายเงิน (สำหรับ Scan & Pay) - ใช้ transaction type 'payment'
+  static Future<void> payment({
+    required String accountId,
+    required double amount,
+    required double currentBalance,
+    String? description,
+    String? merchantId,
+  }) async {
+    if (amount > currentBalance) {
+      throw Exception('ยอดเงินไม่เพียงพอ');
+    }
+
+    final newBalance = currentBalance - amount;
+
+    // 1. เพิ่มรายการเดินบัญชี (ใช้ type = 'payment')
+    await addTransaction(
+      accountId: accountId,
+      type: 'payment',
+      amount: amount,
+      balanceAfter: newBalance,
+      description: description ?? 'จ่ายเงิน',
+      referenceNo: merchantId,
+    );
+
+    // 2. อัพเดทยอดเงิน
+    await updateAccountBalance(accountId: accountId, newBalance: newBalance);
+  }
+
   /// โอนเงินระหว่างบัญชี (convenience method)
   static Future<void> transfer({
     required String sourceAccountId,
@@ -280,5 +387,25 @@ class DynamicDepositApiService {
       referenceNo: sourceAccountId,
     );
     await updateAccountBalance(accountId: destinationAccountId, newBalance: newDestBalance);
+  }
+
+  /// อัพเดทข้อมูลสมาชิก
+  static Future<void> updateMember({
+    required String memberId,
+    Map<String, dynamic>? data,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/update'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'members',
+        'filter': {'memberid': memberId},
+        'data': data,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update member: ${response.body}');
+    }
   }
 }

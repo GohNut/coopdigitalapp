@@ -577,6 +577,8 @@ class _TransactionItem extends StatelessWidget {
         return LucideIcons.arrowDownLeft;
       case TransactionType.withdrawal:
         return LucideIcons.arrowUpRight;
+      case TransactionType.payment:
+        return LucideIcons.scanLine;
       case TransactionType.transferIn:
         return LucideIcons.arrowDownLeft;
       case TransactionType.transferOut:

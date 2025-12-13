@@ -7,6 +7,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
+import '../../../auth/presentation/screens/pin_verification_screen.dart'; // Import PIN screen
+import '../../../../core/utils/currency_input_formatter.dart';
 
 class TransferInputScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> account; // Destination Account
@@ -48,7 +50,7 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
        return;
     }
 
-    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
     if (amount < 1.0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ยอดโอนขั้นต่ำ 1.00 บาท')));
       return;
@@ -151,9 +153,12 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
   }
 
   Future<void> _processTransfer(double amount) async {
-    // 1. PIN Check (Assuming mock pass for now or separate pin flow)
-    // final pinSuccess = await context.push<bool>('/pin');
-    // if (pinSuccess != true) return;
+    // 1. PIN Check
+    final pinSuccess = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (c) => const PinVerificationScreen()),
+    );
+    if (pinSuccess != true) return;
 
     try {
       await ref.read(depositActionProvider.notifier).transfer(
@@ -208,8 +213,8 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
       appBar: AppBar(
         title: const Text('ระบุจำนวนเงิน'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -289,7 +294,10 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
             TextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                CurrencyInputFormatter(),
+              ],
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary),
               decoration: const InputDecoration(

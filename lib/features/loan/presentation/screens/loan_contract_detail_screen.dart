@@ -52,8 +52,8 @@ class LoanContractDetailScreen extends StatelessWidget {
             appBar: AppBar(
               title: const Text('รายละเอียดสัญญา'),
               centerTitle: true,
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.textPrimary,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
               elevation: 0,
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft),
@@ -141,6 +141,45 @@ class LoanContractDetailScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  
+                  // Officer Comment Section (Visible if exists)
+                  if (loan.officerComment != null && loan.officerComment!.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.info.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(LucideIcons.messageSquare, size: 18, color: AppColors.info),
+                              const SizedBox(width: 8),
+                              Text(
+                                'ความเห็นเจ้าหน้าที่',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.info,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            loan.officerComment!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   
                   const SizedBox(height: 12),
 
@@ -263,24 +302,32 @@ class LoanContractDetailScreen extends StatelessWidget {
                   
                   const SizedBox(height: 12),
                   
-                  // ปุ่มชำระค่างวด
+                  // ปุ่มชำระค่างวด (กดได้เฉพาะสถานะ approved)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton.icon(
-                      onPressed: () => context.push('/loan/payment/${loan.applicationId}'),
+                      onPressed: loan.status == LoanApplicationStatus.approved
+                          ? () => context.push('/loan/payment/${loan.applicationId}')
+                          : null,
                       icon: const Icon(LucideIcons.creditCard, size: 20),
-                      label: const Text(
-                        'ชำระค่างวด',
-                        style: TextStyle(
+                      label: Text(
+                        loan.status == LoanApplicationStatus.approved
+                            ? 'ชำระค่างวด'
+                            : 'ชำระค่างวด (${loan.status.toDisplayString()})',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
+                        backgroundColor: loan.status == LoanApplicationStatus.approved
+                            ? const Color(0xFF4CAF50)
+                            : Colors.grey,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade400,
+                        disabledForegroundColor: Colors.white70,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

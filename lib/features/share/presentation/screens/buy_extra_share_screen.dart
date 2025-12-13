@@ -74,11 +74,12 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('ซื้อหุ้นเพิ่ม (1/4)'), // Step Indicator
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Colors.black),
+          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
           onPressed: () => context.go('/share'), // Safe back
         ),
       ),

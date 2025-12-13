@@ -6,6 +6,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
+import '../../../auth/presentation/screens/pin_verification_screen.dart'; // Import PIN screen
+import '../../../../core/utils/currency_input_formatter.dart';
 
 class TopUpAmountScreen extends ConsumerStatefulWidget {
   const TopUpAmountScreen({super.key});
@@ -55,7 +57,7 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
       return;
     }
 
-    final amount = double.tryParse(input);
+    final amount = double.tryParse(input.replaceAll(',', ''));
     if (amount == null || amount < 1.0) {
       setState(() {
         _errorText = 'จำนวนเงินต้องมากกว่า 1.00 บาท';
@@ -76,12 +78,23 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
     }
 
     final input = _amountController.text.trim();
-    final amount = double.tryParse(input);
+    final amount = double.tryParse(input.replaceAll(',', ''));
 
     if (amount == null || amount < 100.0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณาระบุจำนวนเงินขั้นต่ำ 100 บาท')),
       );
+      return;
+    }
+
+    // PIN Verification
+    final pinResult = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (c) => const PinVerificationScreen()),
+    );
+
+    if (pinResult != true) {
+      // PIN failed or cancelled
       return;
     }
 
@@ -194,7 +207,8 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                CurrencyInputFormatter(),
               ],
               decoration: InputDecoration(
                 prefixText: '฿ ',

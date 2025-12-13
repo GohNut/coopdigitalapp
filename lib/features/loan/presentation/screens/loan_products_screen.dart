@@ -16,6 +16,8 @@ class LoanProductsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ประเภทเงินกู้'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => context.go('/home'),

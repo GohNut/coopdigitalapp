@@ -2,88 +2,108 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../domain/user_role.dart';
-import 'forgot_pin_screen.dart'; // Import Forgot Pin
 
-class PinVerificationScreen extends StatefulWidget {
-  const PinVerificationScreen({super.key});
+class PinSetupScreen extends StatefulWidget {
+  final Function(String) onPinSet;
+
+  const PinSetupScreen({super.key, required this.onPinSet});
 
   @override
-  State<PinVerificationScreen> createState() => _PinVerificationScreenState();
+  State<PinSetupScreen> createState() => _PinSetupScreenState();
 }
 
-class _PinVerificationScreenState extends State<PinVerificationScreen> {
+class _PinSetupScreenState extends State<PinSetupScreen> {
   String _pin = '';
-  // final String _correctPin = '123456'; // Removed hardcoded PIN
+  String _confirmPin = '';
+  bool _isConfirming = false;
   bool _isError = false;
+  String _errorMessage = '';
 
   void _onKeyPress(String value) {
-    if (_pin.length < 6) {
-      setState(() {
-        _isError = false;
-        _pin += value;
-      });
-      if (_pin.length == 6) {
-        _validatePin();
+    setState(() {
+      _isError = false;
+      _errorMessage = '';
+      if (!_isConfirming) {
+        if (_pin.length < 6) _pin += value;
+        if (_pin.length == 6) {
+          _isConfirming = true;
+        }
+      } else {
+        if (_confirmPin.length < 6) _confirmPin += value;
+        if (_confirmPin.length == 6) {
+          _validatePin();
+        }
       }
-    }
+    });
   }
 
   void _onDelete() {
-    if (_pin.isNotEmpty) {
-      setState(() {
-        _isError = false;
-        _pin = _pin.substring(0, _pin.length - 1);
-      });
-    }
+    setState(() {
+      _isError = false;
+      if (!_isConfirming) {
+        if (_pin.isNotEmpty) _pin = _pin.substring(0, _pin.length - 1);
+      } else {
+        if (_confirmPin.isNotEmpty) {
+          _confirmPin = _confirmPin.substring(0, _confirmPin.length - 1);
+        } else {
+          // Back to first step
+          _isConfirming = false;
+          _pin = '';
+        }
+      }
+    });
   }
 
-  Future<void> _validatePin() async {
-    // Simulate delay
-    await Future.delayed(const Duration(milliseconds: 300));
-    
-    if (_pin == CurrentUser.pin) {
-      if (mounted) context.pop(true);
+  void _validatePin() {
+    if (_pin == _confirmPin) {
+      widget.onPinSet(_pin);
     } else {
       setState(() {
         _isError = true;
+        _errorMessage = 'รหัส PIN ไม่ตรงกัน กรุณาลองใหม่';
+        _confirmPin = '';
+        _pin = ''; // Optional: Clear both or just confirm? Usually assume type error in confirm, but safe to clear confirm. 
+                   // Let's clear confirm first or reset both??
+                   // Let's reset confirm only first, but UX might be better if we reset confirm and let them try again.
+        _isConfirming = false; // Reset to start
         _pin = '';
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 1),
-          ),
-        );
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary, // Blue background as per theme
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(LucideIcons.x, color: Colors.white),
-          onPressed: () => context.pop(false),
+          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
+          onPressed: () {
+            if (_isConfirming) {
+              setState(() {
+                _isConfirming = false;
+                _confirmPin = '';
+                _pin = '';
+              });
+            } else {
+              context.pop();
+            }
+          },
         ),
       ),
       body: Column(
         children: [
           const SizedBox(height: 32),
-          const Text(
-            'กรุณากรอกรหัส PIN',
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          Text(
+            _isConfirming ? 'ยืนยันรหัส PIN' : 'ตั้งรหัส PIN',
+            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'เพื่อยืนยันตัวตน',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
+          Text(
+            _isConfirming ? 'กรอกรหัส PIN อีกครั้ง' : 'สร้างรหัส PIN 6 หลักเพื่อใช้งาน',
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
           
           const SizedBox(height: 48),
@@ -92,7 +112,8 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(6, (index) {
-              final isFilled = index < _pin.length;
+              final code = _isConfirming ? _confirmPin : _pin;
+              final isFilled = index < code.length;
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 12),
                 width: 16,
@@ -107,11 +128,11 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
           ),
           
           if (_isError)
-            const Padding(
-              padding: EdgeInsets.only(top: 24),
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
               child: Text(
-                'รหัส PIN ไม่ถูกต้อง',
-                style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
+                _errorMessage,
+                style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
               ),
             ),
           
@@ -129,7 +150,7 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
                 _buildKeyRow(['1', '2', '3']),
                 _buildKeyRow(['4', '5', '6']),
                 _buildKeyRow(['7', '8', '9']),
-                _buildKeyRow(['forgot', '0', 'del']), // Changed empty to forgot
+                _buildKeyRow(['', '0', 'del']),
               ],
             ),
           ),
@@ -144,17 +165,6 @@ class _PinVerificationScreenState extends State<PinVerificationScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: keys.map((key) {
-          if (key == 'forgot') {
-             return _buildKeyButton(
-              onTap: () {
-                Navigator.push(
-                  context, 
-                  MaterialPageRoute(builder: (c) => const ForgotPinScreen())
-                );
-              },
-              child: const Text('ลืม?', style: TextStyle(fontSize: 16, color: Colors.grey)),
-             );
-          }
           if (key.isEmpty) return const SizedBox(width: 80, height: 80);
           if (key == 'del') {
             return _buildKeyButton(

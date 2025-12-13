@@ -6,6 +6,7 @@ import '../../domain/loan_product_model.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/providers/repository_providers.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
 
 class LoanApplicationScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -44,8 +45,8 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   @override
   void initState() {
     super.initState();
-    // แปลงค่า double เป็น string (ไม่ใส่ comma เพื่อให้พิมพ์ได้)
-    _amountController = TextEditingController(text: _requestAmount.toStringAsFixed(0));
+    // แปลงค่า double เป็น string (ใส่ comma)
+    _amountController = TextEditingController(text: NumberFormat("#,##0").format(_requestAmount));
   }
 
   @override
@@ -63,7 +64,7 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
     setState(() {
       _requestAmount = value;
       // อัปเดตตัวเลขในช่องกรอก ให้ตรงกับ Slider
-      _amountController.text = value.toStringAsFixed(0);
+      _amountController.text = NumberFormat("#,##0").format(value);
     });
   }
 
@@ -71,8 +72,8 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   void _updateText(String value) {
     if (value.isEmpty) return;
     
-    // แปลง Text เป็น Double
-    double? parsedValue = double.tryParse(value);
+    // แปลง Text เป็น Double (ลบ comma ออกก่อน)
+    double? parsedValue = double.tryParse(value.replaceAll(',', ''));
     
     if (parsedValue != null) {
       // Clamp ไม่ให้ค่าเกิน Min/Max
@@ -179,7 +180,8 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
               fontWeight: FontWeight.bold,
             ),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9]')), // อนุญาตเฉพาะตัวเลข 0-9
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9,]')), // อนุญาตตัวเลขและ comma
+              CurrencyInputFormatter(maxDecimalDigits: 0), // ไม่เอาทศนิยมสำหรับสินเชื่อ
             ],
             decoration: InputDecoration(
               prefixText: '฿ ',

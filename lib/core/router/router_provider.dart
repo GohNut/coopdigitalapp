@@ -19,12 +19,15 @@ import '../../features/transfer/presentation/screens/transfer_success_screen.dar
 import '../../features/payment/presentation/screens/scan_screen.dart';
 import '../../features/payment/presentation/screens/payment_input_screen.dart';
 import '../../features/payment/presentation/screens/payment_success_screen.dart';
+import '../../features/payment/presentation/screens/payment_source_selection_screen.dart';
 import '../../features/loan/presentation/screens/loan_dashboard_screen.dart';
 import '../../features/loan/presentation/screens/loan_calculator_screen.dart';
 import '../../features/loan/presentation/screens/loan_info_screen.dart';
 import '../../features/loan/presentation/screens/loan_document_screen.dart';
 import '../../features/loan/presentation/screens/loan_review_screen.dart';
 import '../../features/auth/presentation/screens/pin_verification_screen.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/loan/presentation/screens/loan_success_screen.dart';
 import '../../features/loan/presentation/screens/loan_tracking_screen.dart';
 import '../../features/loan/presentation/screens/loan_contract_detail_screen.dart';
@@ -51,8 +54,18 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/home',
+    initialLocation: '/login', // Start at Login
     routes: [
+      // Auth Routes
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainLayoutScreen(navigationShell: navigationShell);
@@ -166,16 +179,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Only redirect if accessing /payment directly, not sub-routes
           final path = state.uri.path;
           if (path == '/payment' || path == '/payment/') {
-            return '/scan';
+            return '/payment/source';
           }
           return null; // Allow sub-routes to proceed
         },
         routes: [
            GoRoute(
+            path: 'source',
+            builder: (context, state) => const PaymentSourceSelectionScreen(),
+          ),
+           GoRoute(
             path: 'input',
             builder: (context, state) {
-              final merchant = state.extra as Map<String, dynamic>;
-              return PaymentInputScreen(merchant: merchant);
+              final args = state.extra as Map<String, dynamic>;
+              return PaymentInputScreen(args: args);
             },
           ),
            GoRoute(

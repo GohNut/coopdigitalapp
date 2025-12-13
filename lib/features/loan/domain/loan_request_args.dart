@@ -20,6 +20,11 @@ class LoanRequestArgs {
   final String? idCardFileName;
   final String? salarySlipFileName;
   final String? otherFileName;
+  
+  // Deposit account for receiving loan
+  final String? depositAccountId;
+  final String? depositAccountNumber;
+  final String? depositAccountName;
 
   LoanRequestArgs({
     required this.product,
@@ -36,6 +41,9 @@ class LoanRequestArgs {
     this.idCardFileName,
     this.salarySlipFileName,
     this.otherFileName,
+    this.depositAccountId,
+    this.depositAccountNumber,
+    this.depositAccountName,
   });
 
   /// Create a copy with updated values
@@ -54,6 +62,9 @@ class LoanRequestArgs {
     String? idCardFileName,
     String? salarySlipFileName,
     String? otherFileName,
+    String? depositAccountId,
+    String? depositAccountNumber,
+    String? depositAccountName,
   }) {
     return LoanRequestArgs(
       product: product ?? this.product,
@@ -70,6 +81,9 @@ class LoanRequestArgs {
       idCardFileName: idCardFileName ?? this.idCardFileName,
       salarySlipFileName: salarySlipFileName ?? this.salarySlipFileName,
       otherFileName: otherFileName ?? this.otherFileName,
+      depositAccountId: depositAccountId ?? this.depositAccountId,
+      depositAccountNumber: depositAccountNumber ?? this.depositAccountNumber,
+      depositAccountName: depositAccountName ?? this.depositAccountName,
     );
   }
 }

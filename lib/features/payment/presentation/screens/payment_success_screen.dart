@@ -12,7 +12,13 @@ class PaymentSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final amount = args['amount'] as double;
     final timestamp = DateTime.parse(args['timestamp']);
-    final sourceType = args['source_type'] == 'CASH' ? 'เงินสด (Cash)' : 'วงเงินกู้ (Credit)';
+    final sourceName = args['source_name'] ?? '';
+    final sourceType = args['source_type'];
+    final sourceDisplay = sourceType == 'deposit' 
+        ? 'บัญชีเงินฝาก: $sourceName' 
+        : sourceType == 'loan'
+            ? 'วงเงินสินเชื่อ: $sourceName'
+            : sourceName;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -47,7 +53,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                   style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.red),
                 ),
                 const SizedBox(height: 8),
-                Text('ชำระด้วย $sourceType', style: const TextStyle(color: AppColors.textSecondary)),
+                Text('ชำระด้วย $sourceDisplay', style: const TextStyle(color: AppColors.textSecondary)),
                 
                 const SizedBox(height: 60),
                 SizedBox(

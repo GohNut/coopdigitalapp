@@ -180,7 +180,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('ต่ำสุด: 1,000'),
-                Text('สูงสุด: ${NumberFormat.compact().format(product!.maxAmount)}'),
+                Text('สูงสุด: ${NumberFormat("#,##0").format(product!.maxAmount)}'),
               ],
             ),
 

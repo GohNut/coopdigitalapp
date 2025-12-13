@@ -1,57 +1,93 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../domain/payment_service.dart';
+import '../../data/payment_providers.dart';
+import '../../domain/payment_source_model.dart';
 
-class PaymentInputScreen extends StatefulWidget {
-  final Map<String, dynamic> merchant;
+class PaymentInputScreen extends ConsumerStatefulWidget {
+  final Map<String, dynamic> args;
 
-  const PaymentInputScreen({super.key, required this.merchant});
+  const PaymentInputScreen({super.key, required this.args});
 
   @override
-  State<PaymentInputScreen> createState() => _PaymentInputScreenState();
+  ConsumerState<PaymentInputScreen> createState() => _PaymentInputScreenState();
 }
 
-class _PaymentInputScreenState extends State<PaymentInputScreen> {
+class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
   final TextEditingController _amountController = TextEditingController();
-  String _sourceType = 'CASH'; // CASH or CREDIT
   bool _isLoading = false;
+
+  PaymentSource? get _selectedSource => widget.args['selectedSource'] as PaymentSource?;
+  String get _merchantId => widget.args['merchant_id'] ?? '';
+  String get _merchantName => widget.args['merchant_name'] ?? 'ร้านค้า';
+  double? get _fixedAmount => widget.args['amount'] as double?;
 
   @override
   void initState() {
     super.initState();
-    if (widget.merchant['amount'] != null) {
-      _amountController.text = widget.merchant['amount'].toString();
+    if (_fixedAmount != null) {
+      _amountController.text = _fixedAmount!.toStringAsFixed(2);
     }
   }
 
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
   Future<void> _processPayment() async {
-    final amount = double.tryParse(_amountController.text) ?? 0.0;
-    if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณาระบุยอดเงิน')));
+    final source = _selectedSource;
+    if (source == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่พบบัญชีที่เลือก กรุณาเลือกใหม่')),
+      );
+      context.go('/payment/source');
       return;
     }
 
-    // PIN
+    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาระบุยอดเงิน')),
+      );
+      return;
+    }
+
+    if (amount > source.balance) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ยอดเงินไม่เพียงพอ (คงเหลือ ${source.displayBalance})')),
+      );
+      return;
+    }
+
+    // PIN Verification
     final pinSuccess = await context.push<bool>('/pin');
     if (pinSuccess != true) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final result = await paymentServiceProvider.pay(
-        merchantId: widget.merchant['merchant_id'],
+      final result = await ref.read(paymentActionProvider.notifier).pay(
+        source: source,
+        merchantId: _merchantId,
+        merchantName: _merchantName,
         amount: amount,
-        sourceType: _sourceType,
       );
 
       if (mounted) {
-        context.push('/payment/success', extra: result);
+        // Clear selected source
+        ref.read(selectedPaymentSourceProvider.notifier).clear();
+        context.go('/payment/success', extra: result);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -59,133 +95,261 @@ class _PaymentInputScreenState extends State<PaymentInputScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final source = _selectedSource;
+    
+    if (source == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go('/payment/source');
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: AppColors.primary),
+              const SizedBox(height: 24),
+              const Text(
+                'กำลังดำเนินการ...',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'กรุณารอสักครู่',
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('ชำระเงิน'),
+        title: const Text(
+          'ชำระเงิน',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // Merchant Info
-            Column(
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
-                  child: const Icon(LucideIcons.store, size: 40, color: AppColors.primary),
-                ),
-                const SizedBox(height: 12),
-                Text(widget.merchant['merchant_name'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Text(widget.merchant['merchant_id'], style: const TextStyle(color: AppColors.textSecondary)),
-              ],
-            ),
-            const SizedBox(height: 32),
-            
-            // Amount
-            TextField(
-              controller: _amountController,
-              enabled: widget.merchant['amount'] == null, // Disable if fixed amount
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary),
-              decoration: const InputDecoration(
-                hintText: '0.00',
-                border: InputBorder.none,
-                prefixText: '฿ ',
-                prefixStyle: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary),
+            // Merchant Info Card
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    child: const Icon(LucideIcons.store, size: 40, color: AppColors.primary),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _merchantName,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _merchantId,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
             ),
             
-            const SizedBox(height: 32),
-            const Align(alignment: Alignment.centerLeft, child: Text('เลือกวิธีการชำระเงิน', style: TextStyle(color: AppColors.textSecondary))),
-            const SizedBox(height: 12),
-            
-            // Source Selection
-            _buildSourceOption(
-              value: 'CASH',
-              title: 'เงินสด (Cash Wallet)',
-              subtitle: 'ยอดคงเหลือ ฿ 10,000.00',
-              icon: LucideIcons.wallet,
+            const SizedBox(height: 24),
+
+            // Amount Input
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'จำนวนเงิน',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _amountController,
+                    enabled: _fixedAmount == null,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      hintStyle: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[300],
+                      ),
+                      border: InputBorder.none,
+                      prefixText: '฿ ',
+                      prefixStyle: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  if (_fixedAmount != null)
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'ยอดเงินถูกกำหนดจาก QR Code',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildSourceOption(
-              value: 'CREDIT',
-              title: 'วงเงินกู้ (Credit Line)',
-              subtitle: 'วงเงินคงเหลือ ฿ 5,000.00',
-              icon: LucideIcons.creditCard,
+            
+            const SizedBox(height: 24),
+
+            // Source Card (Read-only)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: source.type.color.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: source.type.color.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: source.type.color.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(source.type.icon, color: source.type.color, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'จ่ายจาก',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          source.sourceName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          'ยอดคงเหลือ ${source.displayBalance}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.check_circle,
+                    color: source.type.color,
+                    size: 28,
+                  ),
+                ],
+              ),
             ),
 
-            const SizedBox(height: 48),
+            const SizedBox(height: 32),
+
+            // Submit Button
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: 60,
               child: ElevatedButton(
                 onPressed: _processPayment,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 2,
                 ),
-                child: const Text('ยืนยันชำระเงิน', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(LucideIcons.checkCircle, size: 24),
+                    SizedBox(width: 12),
+                    Text(
+                      'ยืนยันชำระเงิน',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSourceOption({
-    required String value,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-  }) {
-    final isSelected = _sourceType == value;
-    return InkWell(
-      onTap: () => setState(() => _sourceType = value),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.divider,
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected ? [BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 8)] : null,
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.grey[100],
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: isSelected ? AppColors.primary : Colors.grey),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? AppColors.primary : Colors.black)),
-                  Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                ],
-              ),
-            ),
-            if (isSelected) 
-              const Icon(Icons.check_circle, color: AppColors.primary)
-            else
-              const Icon(Icons.circle_outlined, color: Colors.grey)
           ],
         ),
       ),

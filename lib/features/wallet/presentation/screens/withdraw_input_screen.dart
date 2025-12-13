@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
+import '../../../auth/presentation/screens/pin_verification_screen.dart'; // Import PIN screen
+import '../../../../core/utils/currency_input_formatter.dart';
 
 class WithdrawInputScreen extends ConsumerStatefulWidget {
   const WithdrawInputScreen({super.key});
@@ -64,7 +66,7 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
       return;
     }
     
-    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
     if (amount < 100) {
        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ยอดถอนขั้นต่ำ 100 บาท')));
       return;
@@ -81,7 +83,23 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
        return;
     }
 
-    // Perform withdrawal logic directly here to mock review step or navigate to confirm
+    // Perform withdrawal - with PIN verification
+    _verifyPinThenWithdraw(amount);
+  }
+
+  Future<void> _verifyPinThenWithdraw(double amount) async {
+    //  PIN Verification
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (c) => const PinVerificationScreen()),
+    );
+
+    if (result != true) {
+      // PIN failed or cancelled
+      return;
+    }
+
+    // PIN success, proceed
     _performRealWithdrawal(amount);
   }
 
@@ -241,7 +259,10 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
             TextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                CurrencyInputFormatter(),
+              ],
               decoration: InputDecoration(
                 prefixText: '฿ ',
                 hintText: '0.00',

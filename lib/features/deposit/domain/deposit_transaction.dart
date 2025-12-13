@@ -2,6 +2,7 @@
 enum TransactionType {
   deposit,      // ฝากเงิน
   withdrawal,   // ถอนเงิน
+  payment,      // จ่ายเงิน (Scan & Pay)
   transferIn,   // รับโอน
   transferOut,  // โอนออก
   interest,     // ดอกเบี้ย
@@ -16,6 +17,8 @@ extension TransactionTypeExtension on TransactionType {
         return 'ฝากเงิน';
       case TransactionType.withdrawal:
         return 'ถอนเงิน';
+      case TransactionType.payment:
+        return 'จ่ายเงิน';
       case TransactionType.transferIn:
         return 'รับโอน';
       case TransactionType.transferOut:
@@ -35,6 +38,7 @@ extension TransactionTypeExtension on TransactionType {
       case TransactionType.interest:
         return true;
       case TransactionType.withdrawal:
+      case TransactionType.payment:
       case TransactionType.transferOut:
       case TransactionType.fee:
         return false;

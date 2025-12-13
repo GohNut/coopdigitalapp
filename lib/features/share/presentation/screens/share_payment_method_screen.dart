@@ -27,11 +27,12 @@ class _SharePaymentMethodScreenState extends State<SharePaymentMethodScreen> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('เลือกช่องทางชำระเงิน (2/4)'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, color: Colors.black),
+          icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
           onPressed: () => context.pop(),
         ),
       ),

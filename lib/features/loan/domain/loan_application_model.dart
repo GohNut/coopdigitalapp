@@ -382,6 +382,14 @@ class LoanApplication {
   final Security security;
   final List<LoanDocument> documents;
   final List<PaymentRecord> paymentHistory;
+  
+  // Deposit account for receiving loan
+  final String? depositAccountId;
+  final String? depositAccountNumber;
+  final String? depositAccountName;
+  
+  // Officer comment
+  final String? officerComment;
 
   // Helpers for backward compatibility or easy access
   String get id => applicationId;
@@ -403,6 +411,10 @@ class LoanApplication {
     required this.security,
     required this.documents,
     this.paymentHistory = const [],
+    this.depositAccountId,
+    this.depositAccountNumber,
+    this.depositAccountName,
+    this.officerComment,
   });
 
   factory LoanApplication.fromJson(Map<String, dynamic> json) {
@@ -459,6 +471,10 @@ class LoanApplication {
                   .map((e) => PaymentRecord.fromJson(e))
                   .toList()
               : [],
+      depositAccountId: json['depositaccountid'] ?? json['depositAccountId'],
+      depositAccountNumber: json['depositaccountnumber'] ?? json['depositAccountNumber'],
+      depositAccountName: json['depositaccountname'] ?? json['depositAccountName'],
+      officerComment: json['officercomment'] ?? json['officerComment'],
     );
   }
 
@@ -474,6 +490,10 @@ class LoanApplication {
       'securityinfo': security.toJson(),
       'documents': documents.map((e) => e.toJson()).toList(),
       'paymenthistory': paymentHistory.map((e) => e.toJson()).toList(),
+      'depositaccountid': depositAccountId,
+      'depositaccountnumber': depositAccountNumber,
+      'depositaccountname': depositAccountName,
+      'officercomment': officerComment,
     };
   }
 

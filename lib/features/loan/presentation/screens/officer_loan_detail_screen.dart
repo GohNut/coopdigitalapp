@@ -107,6 +107,8 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
             const SizedBox(height: 20),
             _buildFinancialInfo(currencyFormat),
             const SizedBox(height: 20),
+            _buildDepositAccountInfo(),
+            const SizedBox(height: 20),
             _buildGuarantorInfo(),
             const SizedBox(height: 20),
             _buildDocumentsInfo(),
@@ -196,6 +198,30 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
         _buildInfoRow('เงินเดือน', format.format(widget.application.monthlySalary)),
         _buildInfoRow('หนี้สินปัจจุบัน', format.format(widget.application.currentDebt)),
         _buildInfoRow('ภาระหนี้ต่อรายได้', '${widget.application.monthlySalary > 0 ? ((widget.application.currentDebt / widget.application.monthlySalary) * 100).toStringAsFixed(1) : "0.0"}%'),
+      ],
+    );
+  }
+
+  Widget _buildDepositAccountInfo() {
+    return _buildCard(
+      title: 'บัญชีรับเงินกู้',
+      icon: LucideIcons.wallet,
+      children: [
+        if (widget.application.depositAccountId != null && 
+            widget.application.depositAccountId!.isNotEmpty) ...[
+          _buildInfoRow('ชื่อบัญชี', widget.application.depositAccountName ?? '-'),
+          _buildInfoRow('เลขที่บัญชี', widget.application.depositAccountNumber ?? '-'),
+        ] else ...[
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'ไม่ได้ระบุบัญชีรับเงินกู้',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

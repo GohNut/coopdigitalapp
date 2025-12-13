@@ -11,6 +11,8 @@ import '../domain/deposit_transaction.dart';
 /// Provider สำหรับดึงบัญชีทั้งหมดจาก API
 final depositAccountsAsyncProvider = FutureProvider<List<DepositAccount>>((ref) async {
   final memberId = CurrentUser.id;
+  if (memberId.isEmpty) return []; // Guard: Don't fetch if no user ID
+  
   final accountsData = await DynamicDepositApiService.getAccounts(memberId);
   
   return accountsData.map((data) => DepositAccount(
@@ -261,6 +263,8 @@ TransactionType _parseTransactionType(String? type) {
       return TransactionType.deposit;
     case 'withdrawal':
       return TransactionType.withdrawal;
+    case 'payment':
+      return TransactionType.payment;
     case 'transferin':
     case 'transfer_in': // Added case for transfer_in
       return TransactionType.transferIn;

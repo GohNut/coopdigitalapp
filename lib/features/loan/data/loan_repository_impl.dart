@@ -1,4 +1,5 @@
 import '../../../services/dynamic_loan_api.dart'; // Import Service
+import '../../../services/dynamic_deposit_api.dart'; // Import Deposit Service
 import '../../auth/domain/user_role.dart';
 import '../domain/loan_repository.dart';
 import '../domain/loan_application_model.dart';
@@ -25,6 +26,9 @@ class LoanRepositoryImpl implements LoanRepository {
     String? salarySlipFileName,
     String? otherFileName,
     required String memberId,
+    String? depositAccountId,
+    String? depositAccountNumber,
+    String? depositAccountName,
   }) async {
     // Generate Application ID
     final applicationId = 'REQ-${DateTime.now().millisecondsSinceEpoch}';
@@ -82,6 +86,11 @@ class LoanRepositoryImpl implements LoanRepository {
       
       // ข้อมูลการกู้
       'purpose': objective,
+      
+      // บัญชีรับเงินกู้
+      'depositaccountid': depositAccountId,
+      'depositaccountnumber': depositAccountNumber,
+      'depositaccountname': depositAccountName,
       
       // ข้อมูลหลักประกัน/ผู้ค้ำ
       'securityinfo': {
@@ -166,8 +175,58 @@ class LoanRepositoryImpl implements LoanRepository {
   @override
   Future<void> updateLoanStatus(String applicationId, LoanApplicationStatus status, {String? comment}) async {
     // Convert Enum to String compatible with API (e.g. 'approved', 'rejected')
-    String statusStr = status.name; // or logic to match API expected strings
+    String statusStr = status.name;
     await DynamicLoanApiService.updateLoanStatus(applicationId, statusStr, comment: comment);
+    
+    // If approved, deposit loan amount to the selected account
+    if (status == LoanApplicationStatus.approved) {
+      await _depositLoanToAccount(applicationId);
+    }
+  }
+  
+  /// ฝากเงินกู้เข้าบัญชีที่ผู้กู้เลือกไว้
+  Future<void> _depositLoanToAccount(String applicationId) async {
+    try {
+      // 1. ดึงข้อมูล loan application
+      final response = await DynamicLoanApiService.getLoans({'applicationid': applicationId});
+      
+      if (response['status'] != 'success' || response['data'] is! List || (response['data'] as List).isEmpty) {
+        print('Loan application not found for deposit');
+        return;
+      }
+      
+      final loanData = (response['data'] as List).first;
+      final depositAccountId = loanData['depositaccountid'];
+      final requestAmount = (loanData['requestamount'] ?? 0.0).toDouble();
+      
+      // ถ้าไม่มี depositAccountId ให้ skip
+      if (depositAccountId == null || depositAccountId.toString().isEmpty) {
+        print('No deposit account specified for this loan');
+        return;
+      }
+      
+      // 2. ดึงข้อมูลบัญชีเพื่อหายอดเงินปัจจุบัน
+      final accountData = await DynamicDepositApiService.getAccountById(depositAccountId);
+      if (accountData == null) {
+        print('Deposit account not found: $depositAccountId');
+        return;
+      }
+      
+      final currentBalance = (accountData['balance'] ?? 0.0).toDouble();
+      
+      // 3. ฝากเงินกู้เข้าบัญชี
+      await DynamicDepositApiService.deposit(
+        accountId: depositAccountId,
+        amount: requestAmount,
+        currentBalance: currentBalance,
+        description: 'รับเงินกู้ - $applicationId',
+      );
+      
+      print('Loan amount $requestAmount deposited to account $depositAccountId');
+    } catch (e) {
+      print('Error depositing loan to account: $e');
+      // ไม่ throw error เพื่อไม่ให้กระทบการอนุมัติ
+    }
   }
 
   @override
