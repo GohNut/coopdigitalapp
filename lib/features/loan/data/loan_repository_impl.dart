@@ -191,4 +191,14 @@ class LoanRepositoryImpl implements LoanRepository {
       slipImageUrl: slipImagePath,
     );
   }
+
+  /// Save (create or update) a loan product
+  Future<void> saveLoanProduct(LoanProduct product) async {
+    await DynamicLoanApiService.createOrUpdateLoanProduct(product.toJson());
+  }
+
+  /// Delete a loan product
+  Future<void> deleteLoanProduct(String productId) async {
+    await DynamicLoanApiService.deleteLoanProduct(productId);
+  }
 }

@@ -79,13 +79,49 @@ class ServiceMenuGrid extends StatelessWidget {
               _buildSmallMenuItem(context, LucideIcons.barChart3, 'ปันผล', Colors.purple),
               _buildSmallMenuItem(context, LucideIcons.fileText, 'เอกสาร', Colors.blueGrey),
               _buildSmallMenuItem(context, LucideIcons.headphones, 'ช่วยเหลือ', Colors.teal),
-              // Show approval menu only for officers
-              if (CurrentUser.isOfficerOrApprover)
-                _buildSmallMenuItem(context, LucideIcons.fileCheck, 'อนุมัติ', AppColors.primary, onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const OfficerDashboardScreen()));
-                }),
             ],
           ),
+
+          // ========== Officer Section (Check Permission) ==========
+          if (CurrentUser.isOfficerOrApprover) ...[
+            const SizedBox(height: 32),
+            Text(
+              'สำหรับเจ้าหน้าที่',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 4,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.9,
+              children: [
+                _buildSmallMenuItem(
+                  context, 
+                  LucideIcons.fileCheck, 
+                  'อนุมัติสินเชื่อ', 
+                  AppColors.primary, 
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const OfficerDashboardScreen()));
+                  },
+                ),
+                _buildSmallMenuItem(
+                  context, 
+                  LucideIcons.settings2, 
+                  'ประเภทเงินกู้', 
+                  Colors.orange, 
+                  onTap: () {
+                    context.push('/loan-products-management');
+                  },
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

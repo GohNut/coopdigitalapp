@@ -18,55 +18,47 @@ class AccountBookScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          // Header
-          SliverToBoxAdapter(
-            child: _buildHeader(context, totalBalance, accounts.length, currencyFormat),
-          ),
-          // Menu Grid
-          SliverToBoxAdapter(
-            child: _buildMenuGrid(context),
-          ),
-          // My Accounts Section
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'บัญชีของฉัน',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.push('/deposit'),
-                    child: const Text('ดูทั้งหมด'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Account Cards
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final account = accounts[index];
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          onPressed: () => context.go('/home'),
+        ),
+        title: const Text('บัญชีของฉัน'),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          // Total Balance Header
+          _buildBalanceHeader(context, totalBalance, accounts.length, currencyFormat),
+          // Account List
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              itemCount: accounts.length + 1, // +1 for add card
+              itemBuilder: (context, index) {
+                // Last item is "Add Account" card
+                if (index == accounts.length) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _AccountCard(
-                      account: account,
-                      currencyFormat: currencyFormat,
-                      onTap: () => context.push('/deposit/${account.id}'),
+                    child: _AddAccountCard(
+                      onTap: () => context.push('/deposit/create'),
                     ),
                   );
-                },
-                childCount: accounts.length,
-              ),
+                }
+                // Account cards
+                final account = accounts[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _AccountCard(
+                    account: account,
+                    currencyFormat: currencyFormat,
+                    onTap: () => context.push('/deposit/${account.id}'),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -74,113 +66,48 @@ class AccountBookScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, double totalBalance, int accountCount, NumberFormat currencyFormat) {
+  Widget _buildBalanceHeader(BuildContext context, double totalBalance, int accountCount, NumberFormat currencyFormat) {
     return Container(
-      decoration: const BoxDecoration(
+      width: double.infinity,
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.primary, AppColors.primary.withOpacity(0.9)],
         ),
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // AppBar section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => context.go('/home'),
-                    icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'สมุดบัญชี',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      // TODO: Notifications
-                    },
-                    icon: const Icon(LucideIcons.bell, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-            // Total Wealth Section
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              child: Column(
-                children: [
-                  Text(
-                    'ยอดเงินฝากรวม',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white70,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    currencyFormat.format(totalBalance),
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 36,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'รวม $accountCount บัญชี',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white60,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuGrid(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
         children: [
-          Expanded(
-            child: _MenuButton(
-              icon: LucideIcons.piggyBank,
-              label: 'เงินฝาก',
-              color: AppColors.primary,
-              onTap: () => context.push('/deposit'),
+          Text(
+            'ยอดเงินฝากทั้งหมด',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 14,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _MenuButton(
-              icon: LucideIcons.trendingUp,
-              label: 'หุ้น',
-              color: const Color(0xFF2563EB),
-              onTap: () => context.push('/share'),
+          const SizedBox(height: 8),
+          Text(
+            currencyFormat.format(totalBalance),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _MenuButton(
-              icon: LucideIcons.banknote,
-              label: 'สินเชื่อ',
-              color: const Color(0xFF10B981),
-              onTap: () => context.push('/loan'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              '$accountCount บัญชี',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -189,58 +116,7 @@ class AccountBookScreen extends ConsumerWidget {
   }
 }
 
-/// Menu Button Widget
-class _MenuButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _MenuButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: 2,
-      shadowColor: color.withOpacity(0.2),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Account Card Widget
+/// Account Card
 class _AccountCard extends StatelessWidget {
   final DepositAccount account;
   final NumberFormat currencyFormat;
@@ -254,40 +130,31 @@ class _AccountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = Color(account.accountType.colorCode);
+    final color = Color(account.accountType.colorCode);
 
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
       elevation: 2,
-      shadowColor: cardColor.withOpacity(0.2),
+      shadowColor: Colors.black12,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border(
-              left: BorderSide(
-                color: cardColor,
-                width: 4,
-              ),
-            ),
-          ),
           child: Row(
             children: [
-              // Account Type Icon
+              // Account Icon
               Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: cardColor.withOpacity(0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   _getAccountIcon(account.accountType),
-                  color: cardColor,
+                  color: color,
                   size: 24,
                 ),
               ),
@@ -297,78 +164,74 @@ class _AccountCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Account Type Badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: cardColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        account.accountType.displayName,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: cardColor,
-                          fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            account.accountType.displayName,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 6),
-                    // Account Name
+                    const SizedBox(height: 4),
                     Text(
                       account.accountName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
-                    // Masked Account Number
                     Text(
-                      account.maskedAccountNumber,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      account.accountNumber,
+                      style: TextStyle(
                         color: AppColors.textSecondary,
+                        fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
-              // Balance
+              // Balance & Arrow
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     currencyFormat.format(account.balance),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: color,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        LucideIcons.percent,
-                        size: 12,
-                        color: AppColors.success,
+                      Text(
+                        '${account.interestRate}% ต่อปี',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        '${account.interestRate.toStringAsFixed(2)}%',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Icon(
+                        LucideIcons.chevronRight,
+                        color: AppColors.textSecondary.withOpacity(0.5),
+                        size: 16,
                       ),
                     ],
                   ),
                 ],
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                LucideIcons.chevronRight,
-                color: AppColors.textSecondary.withOpacity(0.5),
-                size: 20,
               ),
             ],
           ),
@@ -387,4 +250,114 @@ class _AccountCard extends StatelessWidget {
         return LucideIcons.star;
     }
   }
+}
+
+/// Add Account Card with dashed border
+class _AddAccountCard extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddAccountCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: CustomPaint(
+          painter: _DashedBorderPainter(
+            color: AppColors.primary.withOpacity(0.4),
+            strokeWidth: 2,
+            dashWidth: 8,
+            dashSpace: 6,
+            radius: 16,
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    LucideIcons.plus,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'เพิ่มบัญชีใหม่',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Custom painter for dashed border
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double dashWidth;
+  final double dashSpace;
+  final double radius;
+
+  _DashedBorderPainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.dashWidth,
+    required this.dashSpace,
+    required this.radius,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    );
+
+    final path = Path()..addRRect(rrect);
+    final dashPath = _createDashedPath(path);
+
+    canvas.drawPath(dashPath, paint);
+  }
+
+  Path _createDashedPath(Path source) {
+    final dashPath = Path();
+    for (final pathMetric in source.computeMetrics()) {
+      double distance = 0;
+      while (distance < pathMetric.length) {
+        final nextDistance = distance + dashWidth;
+        dashPath.addPath(
+          pathMetric.extractPath(distance, nextDistance),
+          Offset.zero,
+        );
+        distance = nextDistance + dashSpace;
+      }
+    }
+    return dashPath;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

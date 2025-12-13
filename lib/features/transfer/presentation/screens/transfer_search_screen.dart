@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../domain/transfer_service.dart';
+import '../../../../services/dynamic_deposit_api.dart';
 
 class TransferSearchScreen extends StatefulWidget {
   const TransferSearchScreen({super.key});
@@ -14,7 +14,7 @@ class TransferSearchScreen extends StatefulWidget {
 class _TransferSearchScreenState extends State<TransferSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = false;
-  Map<String, dynamic>? _foundMember;
+  Map<String, dynamic>? _foundAccount;
   String? _error;
 
   void _search() async {
@@ -24,17 +24,33 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
-      _foundMember = null;
+      _foundAccount = null;
     });
 
     try {
-      final member = await transferServiceProvider.searchMember(key);
-      setState(() {
-        _foundMember = member;
-      });
+      // Search by Account ID (for simplified demo, assuming user knows Account ID or Number)
+      // In real app, might search by member ID then pick account.
+      // Here we assume key is Account Number or ID.
+      // Let's try to query 'getAccountById' (if key is ID) or we need a search by number.
+      // Our API 'getAccountById' currently takes accountId.
+      // Let's assume input is Account ID for now to be safe with existing simple API, 
+      // or we can try to fetch all accounts and filter (bad for scale but ok for dev).
+      // better: use getAccountById directly.
+      
+      final account = await DynamicDepositApiService.getAccountById(key);
+      
+      if (account != null) {
+        setState(() {
+          _foundAccount = account;
+        });
+      } else {
+         setState(() {
+          _error = 'ไม่พบบัญชีเงินฝาก';
+        });
+      }
     } catch (e) {
       setState(() {
-        _error = 'ไม่พบข้อมูลสมาชิก';
+        _error = 'ไม่พบข้อมูลบัญชีหรือเกิดข้อผิดพลาด';
       });
     } finally {
       setState(() {
@@ -43,9 +59,9 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
     }
   }
 
-  void _selectMember() {
-    if (_foundMember != null) {
-      context.push('/transfer/input', extra: _foundMember);
+  void _selectAccount() {
+    if (_foundAccount != null) {
+      context.push('/transfer/input', extra: _foundAccount);
     }
   }
 
@@ -54,10 +70,10 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('โอนเงิน'),
+        title: const Text('โอนเงินสมาชิก'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: Padding(
@@ -65,16 +81,15 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('ระบุเลขสมาชิก หรือ เบอร์โทรศัพท์', style: TextStyle(color: AppColors.textSecondary)),
+            const Text('ระบุเลขที่บัญชีปลายทาง (Account ID)', style: TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      hintText: 'ค้นหา...',
+                      hintText: 'เช่น acc_123456...',
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
@@ -105,9 +120,9 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
               Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-            else if (_foundMember != null)
+            else if (_foundAccount != null)
               GestureDetector(
-                onTap: _selectMember,
+                onTap: _selectAccount,
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -121,12 +136,10 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
                          width: 50,
                          height: 50,
                          decoration: BoxDecoration(
-                           color: Colors.grey[200],
+                           color: AppColors.primary.withOpacity(0.1),
                            shape: BoxShape.circle,
-                           image: DecorationImage(
-                             image: NetworkImage(_foundMember!['avatar_url']),
-                           ),
                          ),
+                         child: const Icon(LucideIcons.user, color: AppColors.primary),
                        ),
                        const SizedBox(width: 16),
                        Expanded(
@@ -134,11 +147,11 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
                            crossAxisAlignment: CrossAxisAlignment.start,
                            children: [
                              Text(
-                               _foundMember!['display_name'],
+                               _foundAccount!['accountname'] ?? 'ไม่ระบุชื่อ',
                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                              ),
                              Text(
-                               'รหัสสมาชิก: ${_foundMember!['member_id']}',
+                               'เลขบัญชี: ${_foundAccount!['accountnumber']}\nID: ${_foundAccount!['accountid']}',
                                style: const TextStyle(color: AppColors.textSecondary),
                              ),
                            ],

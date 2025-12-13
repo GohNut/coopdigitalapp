@@ -288,4 +288,45 @@ class DynamicLoanApiService {
       throw Exception('Failed to get payments: ${response.body}');
     }
   }
+
+  /// Create or update a loan product (for officers)
+  /// Uses /update endpoint with upsert: true for proper upsert behavior
+  static Future<Map<String, dynamic>> createOrUpdateLoanProduct(Map<String, dynamic> data) async {
+    final productId = data['productid'];
+    
+    final response = await http.post(
+      Uri.parse('$_baseUrl/update'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'loan_products',
+        'filter': {'productid': productId}, // Filter by productid
+        'data': data,
+        'upsert': true, // Create if not exists, update if exists
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to save loan product: ${response.body}');
+    }
+  }
+
+  /// Delete a loan product
+  static Future<Map<String, dynamic>> deleteLoanProduct(String productId) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/delete'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'loan_products',
+        'filter': {'productid': productId},
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to delete loan product: ${response.body}');
+    }
+  }
 }

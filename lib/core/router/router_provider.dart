@@ -6,6 +6,7 @@ import '../../features/home/presentation/screens/main_layout_screen.dart';
 import '../../features/wallet/presentation/screens/account_book_screen.dart';
 import '../../features/deposit/presentation/screens/deposit_account_list_screen.dart';
 import '../../features/deposit/presentation/screens/deposit_account_detail_screen.dart';
+import '../../features/deposit/presentation/screens/create_account_screen.dart';
 import '../../features/loan/presentation/screens/loan_products_screen.dart';
 import '../../features/loan/presentation/screens/loan_application_screen.dart';
 import '../../features/wallet/presentation/screens/top_up_amount_screen.dart';
@@ -40,6 +41,9 @@ import '../../features/share/presentation/screens/sell_share_screen.dart';
 import '../../features/share/presentation/screens/sell_share_success_screen.dart';
 import '../../features/share/presentation/screens/change_share_subscription_screen.dart';
 import '../../features/share/presentation/screens/share_history_screen.dart';
+import '../../features/loan/presentation/screens/loan_products_management_screen.dart';
+import '../../features/loan/presentation/screens/loan_product_form_screen.dart';
+import '../../features/loan/domain/loan_product_model.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -80,6 +84,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/deposit',
         builder: (context, state) => const DepositAccountListScreen(),
         routes: [
+          GoRoute(
+            path: 'create',
+            builder: (context, state) => const CreateAccountScreen(),
+          ),
           GoRoute(
             path: ':accountId',
             builder: (context, state) {
@@ -135,8 +143,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'input',
             builder: (context, state) {
-              final member = state.extra as Map<String, dynamic>;
-              return TransferInputScreen(member: member);
+              final account = state.extra as Map<String, dynamic>;
+              return TransferInputScreen(account: account);
             },
           ),
           GoRoute(
@@ -264,6 +272,24 @@ final routerProvider = Provider<GoRouter>((ref) {
            final id = state.pathParameters['id'] ?? '';
            return LoanApplicationScreen(productId: id);
         },
+      ),
+      // Loan Products Management (Officer only)
+      GoRoute(
+        path: '/loan-products-management',
+        builder: (context, state) => const LoanProductsManagementScreen(),
+        routes: [
+          GoRoute(
+            path: 'create',
+            builder: (context, state) => const LoanProductFormScreen(),
+          ),
+          GoRoute(
+            path: 'edit/:productId',
+            builder: (context, state) {
+              final product = state.extra as LoanProduct;
+              return LoanProductFormScreen(product: product);
+            },
+          ),
+        ],
       ),
     GoRoute(
         path: '/share',

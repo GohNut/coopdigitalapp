@@ -8,20 +8,31 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/deposit_providers.dart';
 import '../../domain/deposit_account.dart';
 import '../../domain/deposit_transaction.dart';
-import '../widgets/transaction_filter_sheet.dart';
-import '../widgets/transaction_list_item.dart';
 
-class DepositAccountDetailScreen extends ConsumerWidget {
+class DepositAccountDetailScreen extends ConsumerStatefulWidget {
   final String accountId;
 
   const DepositAccountDetailScreen({super.key, required this.accountId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final account = ref.watch(depositAccountByIdProvider(accountId));
-    final transactions = ref.watch(filteredTransactionsProvider(accountId));
+  ConsumerState<DepositAccountDetailScreen> createState() => _DepositAccountDetailScreenState();
+}
+
+class _DepositAccountDetailScreenState extends ConsumerState<DepositAccountDetailScreen> {
+  late DateTime _selectedMonth;
+  
+  @override
+  void initState() {
+    super.initState();
+    // เริ่มต้นที่เดือนปัจจุบัน
+    _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final account = ref.watch(depositAccountByIdProvider(widget.accountId));
+    final allTransactions = ref.watch(depositTransactionsProvider(widget.accountId));
     final isBalanceVisible = ref.watch(balanceVisibilityProvider);
-    final filter = ref.watch(transactionFilterProvider);
     final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '฿');
 
     if (account == null) {
@@ -30,6 +41,12 @@ class DepositAccountDetailScreen extends ConsumerWidget {
         body: const Center(child: Text('ไม่พบข้อมูลบัญชี')),
       );
     }
+
+    // Filter transactions by selected month
+    final transactions = allTransactions.where((txn) {
+      return txn.dateTime.year == _selectedMonth.year &&
+             txn.dateTime.month == _selectedMonth.month;
+    }).toList();
 
     final cardColor = Color(account.accountType.colorCode);
 
@@ -41,7 +58,6 @@ class DepositAccountDetailScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: _buildHeaderSection(
               context,
-              ref,
               account,
               cardColor,
               currencyFormat,
@@ -52,17 +68,32 @@ class DepositAccountDetailScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: _buildActionButtons(context),
           ),
-          // Transaction Header with Filter
+          // Month Selector
           SliverToBoxAdapter(
-            child: _buildTransactionHeader(context, ref, filter),
+            child: _buildMonthSelector(context),
+          ),
+          // Transaction Header
+          SliverToBoxAdapter(
+            child: _buildTransactionHeader(context, transactions.length),
           ),
           // Transaction List
           if (transactions.isEmpty)
-            const SliverFillRemaining(
-              child: Center(
-                child: Text(
-                  'ไม่พบรายการเดินบัญชี',
-                  style: TextStyle(color: AppColors.textSecondary),
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    Icon(
+                      LucideIcons.inbox,
+                      size: 48,
+                      color: AppColors.textSecondary.withOpacity(0.5),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'ไม่พบรายการเดินบัญชีในเดือนนี้',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ],
                 ),
               ),
             )
@@ -75,7 +106,6 @@ class DepositAccountDetailScreen extends ConsumerWidget {
 
   Widget _buildHeaderSection(
     BuildContext context,
-    WidgetRef ref,
     DepositAccount account,
     Color cardColor,
     NumberFormat currencyFormat,
@@ -103,92 +133,83 @@ class DepositAccountDetailScreen extends ConsumerWidget {
                     icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
                   ),
                   Expanded(
-                    child: Column(
+                    child: Text(
+                      account.accountName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(width: 48), // Balance for back button
+                ],
+              ),
+            ),
+            // Account Info
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              child: Column(
+                children: [
+                  // Account Type Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      account.accountType.displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Account Number
+                  InkWell(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: account.accountNumber));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('คัดลอกเลขบัญชีแล้ว')),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          account.accountName,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                          account.accountNumber,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                            letterSpacing: 1,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            account.accountType.displayName,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Colors.white,
-                            ),
-                          ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          LucideIcons.copy,
+                          size: 16,
+                          color: Colors.white.withOpacity(0.7),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-
-            // Balance Section
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: Column(
-                children: [
-                  // Account Number with Copy
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: account.fullAccountNumber));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('คัดลอกเลขที่บัญชีแล้ว'),
-                          backgroundColor: AppColors.success,
-                          behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            account.fullAccountNumber,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(LucideIcons.copy, size: 16, color: Colors.white70),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Balance with Toggle
+                  const SizedBox(height: 20),
+                  // Balance
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        isBalanceVisible ? currencyFormat.format(account.balance) : '฿ ••••••••',
-                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        isBalanceVisible
+                            ? currencyFormat.format(account.balance)
+                            : '฿ ••••••',
+                        style: const TextStyle(
                           color: Colors.white,
+                          fontSize: 36,
                           fontWeight: FontWeight.bold,
-                          fontSize: 40,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -204,32 +225,14 @@ class DepositAccountDetailScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // Interest Info Cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _InfoCard(
-                          icon: LucideIcons.trendingUp,
-                          label: 'ดอกเบี้ยสะสมปีนี้',
-                          value: isBalanceVisible
-                              ? currencyFormat.format(account.accruedInterest)
-                              : '฿ ••••',
-                          valueColor: Colors.lightGreenAccent,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _InfoCard(
-                          icon: LucideIcons.percent,
-                          label: 'อัตราดอกเบี้ย',
-                          value: '${account.interestRate.toStringAsFixed(2)}% ต่อปี',
-                          valueColor: Colors.white,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 12),
+                  // Interest Rate
+                  Text(
+                    'ดอกเบี้ย ${account.interestRate}% ต่อปี',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -247,30 +250,19 @@ class DepositAccountDetailScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: _ActionButton(
+              icon: LucideIcons.arrowDownLeft,
+              label: 'ฝากเงิน',
+              color: AppColors.success,
+              onTap: () => context.push('/wallet/topup'),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: _ActionButton(
               icon: LucideIcons.arrowUpRight,
-              label: 'โอนเงิน',
-              onTap: () => context.push('/transfer'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _ActionButton(
-              icon: LucideIcons.banknote,
               label: 'ถอนเงิน',
+              color: AppColors.primary,
               onTap: () => context.push('/wallet/withdraw'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _ActionButton(
-              icon: LucideIcons.fileText,
-              label: 'Statement',
-              onTap: () {
-                // TODO: Navigate to E-Statement
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('ฟีเจอร์ E-Statement จะพร้อมใช้งานเร็วๆ นี้')),
-                );
-              },
             ),
           ),
         ],
@@ -278,29 +270,83 @@ class DepositAccountDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTransactionHeader(BuildContext context, WidgetRef ref, TransactionFilter filter) {
+  Widget _buildMonthSelector(BuildContext context) {
+    final monthFormat = DateFormat('MMMM yyyy', 'th');
+    final now = DateTime.now();
+    
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'รายการเดินบัญชี',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+          // Previous Month Button
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
+              });
+            },
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(LucideIcons.chevronLeft, size: 20),
             ),
           ),
-          TextButton.icon(
-            onPressed: () => _showFilterSheet(context, ref),
-            icon: Icon(
-              LucideIcons.filter,
-              size: 18,
-              color: filter.hasFilter ? AppColors.primary : AppColors.textSecondary,
+          // Month Display
+          GestureDetector(
+            onTap: () => _showMonthPicker(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    LucideIcons.calendar,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    monthFormat.format(_selectedMonth),
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            label: Text(
-              filter.hasFilter ? 'กำลังกรอง' : 'กรอง',
-              style: TextStyle(
-                color: filter.hasFilter ? AppColors.primary : AppColors.textSecondary,
+          ),
+          // Next Month Button (disabled if current month)
+          IconButton(
+            onPressed: _selectedMonth.year >= now.year && _selectedMonth.month >= now.month
+                ? null
+                : () {
+                    setState(() {
+                      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
+                    });
+                  },
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _selectedMonth.year >= now.year && _selectedMonth.month >= now.month
+                    ? Colors.grey.shade50
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                LucideIcons.chevronRight,
+                size: 20,
+                color: _selectedMonth.year >= now.year && _selectedMonth.month >= now.month
+                    ? Colors.grey.shade300
+                    : Colors.black,
               ),
             ),
           ),
@@ -309,12 +355,51 @@ class DepositAccountDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showFilterSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+  Future<void> _showMonthPicker(BuildContext context) async {
+    final result = await showDatePicker(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const TransactionFilterSheet(),
+      initialDate: _selectedMonth,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDatePickerMode: DatePickerMode.year,
+    );
+    
+    if (result != null) {
+      setState(() {
+        _selectedMonth = DateTime(result.year, result.month);
+      });
+    }
+  }
+
+  Widget _buildTransactionHeader(BuildContext context, int count) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'ความเคลื่อนไหว',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$count รายการ',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -323,140 +408,63 @@ class DepositAccountDetailScreen extends ConsumerWidget {
     List<DepositTransaction> transactions,
     NumberFormat currencyFormat,
   ) {
-    // Group transactions by month
-    final groupedTransactions = <String, List<DepositTransaction>>{};
-    final monthFormat = DateFormat('MMMM yyyy', 'th');
-
-    for (final txn in transactions) {
-      final monthKey = monthFormat.format(txn.dateTime);
-      groupedTransactions.putIfAbsent(monthKey, () => []).add(txn);
-    }
-
-    final sortedMonths = groupedTransactions.keys.toList();
-
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final monthKey = sortedMonths[index];
-          final monthTransactions = groupedTransactions[monthKey]!;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Month Header
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
-                  monthKey,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              // Transactions for this month
-              ...monthTransactions.map((txn) => TransactionListItem(
-                transaction: txn,
-                currencyFormat: currencyFormat,
-              )),
-            ],
-          );
-        },
-        childCount: sortedMonths.length,
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final txn = transactions[index];
+            return _TransactionItem(
+              transaction: txn,
+              currencyFormat: currencyFormat,
+            );
+          },
+          childCount: transactions.length,
+        ),
       ),
     );
   }
 }
 
-/// Info card widget for interest info
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color valueColor;
-
-  const _InfoCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.valueColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: Colors.white70),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white70,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: valueColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Action button widget
+/// Action Button
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color? color;
   final VoidCallback onTap;
 
   const _ActionButton({
     required this.icon,
     required this.label,
+    this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final buttonColor = color ?? AppColors.primary;
+    
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
       elevation: 1,
+      shadowColor: Colors.black12,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: AppColors.primary, size: 22),
-              ),
-              const SizedBox(height: 8),
+              Icon(icon, color: buttonColor, size: 22),
+              const SizedBox(width: 8),
               Text(
                 label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
+                style: TextStyle(
+                  color: buttonColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -464,5 +472,119 @@ class _ActionButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Transaction Item
+class _TransactionItem extends StatelessWidget {
+  final DepositTransaction transaction;
+  final NumberFormat currencyFormat;
+
+  const _TransactionItem({
+    required this.transaction,
+    required this.currencyFormat,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isCredit = transaction.type.isCredit;
+    final color = isCredit ? AppColors.success : AppColors.error;
+    final dateFormat = DateFormat('dd MMM', 'th');
+    final timeFormat = DateFormat('HH:mm');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        children: [
+          // Transaction Icon
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              _getTransactionIcon(transaction.type),
+              color: color,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Transaction Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.type.displayName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                if (transaction.description != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    transaction.description!,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Amount & Time
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${isCredit ? '+' : '-'}${currencyFormat.format(transaction.amount)}',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${dateFormat.format(transaction.dateTime)} ${timeFormat.format(transaction.dateTime)}',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getTransactionIcon(TransactionType type) {
+    switch (type) {
+      case TransactionType.deposit:
+        return LucideIcons.arrowDownLeft;
+      case TransactionType.withdrawal:
+        return LucideIcons.arrowUpRight;
+      case TransactionType.transferIn:
+        return LucideIcons.arrowDownLeft;
+      case TransactionType.transferOut:
+        return LucideIcons.arrowUpRight;
+      case TransactionType.interest:
+        return LucideIcons.trendingUp;
+      case TransactionType.fee:
+        return LucideIcons.minus;
+    }
   }
 }
