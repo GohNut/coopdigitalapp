@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../data/repositories/mock_share_repository.dart';
+import '../../data/repositories/share_repository_impl.dart';
 import '../../domain/models/share_model.dart';
 import '../../presentation/widgets/wealth_calculator.dart';
 import 'package:intl/intl.dart';
+import '../../domain/models/share_transaction.dart';
+import '../../domain/models/dividend_model.dart';
+import '../../data/repositories/dividend_repository_impl.dart';
 
 class ShareDashboardScreen extends StatefulWidget {
   const ShareDashboardScreen({super.key});
@@ -15,24 +18,56 @@ class ShareDashboardScreen extends StatefulWidget {
   State<ShareDashboardScreen> createState() => _ShareDashboardScreenState();
 }
 
-class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
-  final _repository = MockShareRepository();
+class _ShareDashboardScreenState extends State<ShareDashboardScreen> with WidgetsBindingObserver {
+  final _repository = ShareRepositoryImpl();
+  final _dividendRepository = DividendRepositoryImpl();
   ShareModel? _shareData;
+  List<ShareTransaction> _recentTransactions = [];
+  DividendSummary? _dividendSummary;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadData(); // Refresh when app comes to foreground
+    }
+  }
+
+  // Note: ไม่ต้องใช้ didChangeDependencies เพราะ go_router จะสร้าง widget ใหม่เมื่อ navigate ด้วย go()
+
   Future<void> _loadData() async {
-    final data = await _repository.getShareInfo();
-    if (mounted) {
-      setState(() {
-        _shareData = data;
-        _isLoading = false;
-      });
+    setState(() => _isLoading = true);
+    
+    try {
+      final data = await _repository.getShareInfo();
+      final transactions = await _repository.getShareHistory();
+      final dividend = await _dividendRepository.calculateDividend(DateTime.now().year);
+      
+      if (mounted) {
+        setState(() {
+          _shareData = data;
+          _recentTransactions = transactions;
+          _dividendSummary = dividend;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -74,11 +109,15 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
              _buildPortfolioSummary(data, currencyFormat, unitsFormat),
              const SizedBox(height: 24),
 
-            // 2. Share Info Card (Subscription & Price)
+            // 2. Share Info Card (Price)
             _buildShareInfoRow(currencyFormat, data),
             const SizedBox(height: 24),
 
-            // 3. User Actions (Buy/Sell/History)
+            // 3. Dividend Card
+            _buildDividendCard(currencyFormat),
+            const SizedBox(height: 24),
+
+            // 4. User Actions (Buy/Sell/History)
             _buildActionButtons(context),
             const SizedBox(height: 24),
             
@@ -117,9 +156,54 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
   }
 
   Widget _buildPortfolioSummary(ShareModel data, NumberFormat currency, NumberFormat units) {
-     // Mock data for wealth growth trend (12 months)
+     // คำนวณข้อมูลกราฟจาก transactions จริง (12 เดือนล่าสุด)
      final months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-     final values = [75000.0, 80000.0, 84000.0, 88000.0, 92000.0, 95000.0, 100000.0, 105000.0, 110000.0, 115000.0, 120000.0, data.totalValue];
+     
+     // คำนวณมูลค่าสะสมจาก transactions จริงเท่านั้น
+     List<double> values = List.filled(12, 0.0);
+     
+     if (_recentTransactions.isNotEmpty) {
+       // เรียงข้อมูล transactions ตามวันที่
+       final sortedTransactions = List<ShareTransaction>.from(_recentTransactions)
+         ..sort((a, b) => a.date.compareTo(b.date));
+       
+       double cumulativeValue = 0;
+       final now = DateTime.now();
+       
+       // วนลูปทุก transaction และ update ค่าสะสม
+       for (var transaction in sortedTransactions) {
+         cumulativeValue += transaction.amount;
+         
+         // หาว่า transaction นี้อยู่เดือนไหนใน 12 เดือนย้อนหลัง
+         final monthsAgo = (now.year - transaction.date.year) * 12 + 
+                          (now.month - transaction.date.month);
+         
+         if (monthsAgo >= 0 && monthsAgo < 12) {
+           final index = 11 - monthsAgo; // เดือนปัจจุบันอยู่ที่ index 11
+           values[index] = cumulativeValue;
+         }
+       }
+       
+       // กรอกค่าที่ว่างด้วยค่าจากเดือนก่อนหน้า (carry forward)
+       for (int i = 1; i < 12; i++) {
+         if (values[i] == 0.0 && values[i - 1] > 0.0) {
+           values[i] = values[i - 1];
+         }
+       }
+     }
+     
+     // คำนวณ minY/maxY จากข้อมูลจริง
+     final nonZeroValues = values.where((v) => v > 0).toList();
+     double chartMinY = 0;
+     double chartMaxY = 10000; // default
+     
+     if (nonZeroValues.isNotEmpty) {
+       final maxValue = nonZeroValues.reduce((a, b) => a > b ? a : b);
+       final minValue = nonZeroValues.reduce((a, b) => a < b ? a : b);
+       final range = maxValue - minValue;
+       chartMinY = range > 0 ? (minValue - range * 0.2).clamp(0.0, double.infinity) : 0;
+       chartMaxY = maxValue + (range > 0 ? range * 0.2 : maxValue * 0.2);
+     }
 
      return Container(
        padding: const EdgeInsets.all(24),
@@ -165,10 +249,11 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
            const Text('การเติบโตของเงินออม', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
            const SizedBox(height: 16),
 
-           // Area Line Chart
-           SizedBox(
-             height: 160,
-             child: LineChart(
+           // Area Line Chart (ใช้ ClipRect เพื่อป้องกันจุดทะลุขอบ)
+           ClipRect(
+             child: SizedBox(
+              height: 160,
+              child: LineChart(
                LineChartData(
                  gridData: FlGridData(
                    show: true,
@@ -204,8 +289,8 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
                  borderData: FlBorderData(show: false),
                  minX: 0,
                  maxX: (months.length - 1).toDouble(),
-                 minY: 60000,
-                 maxY: 140000,
+                 minY: chartMinY,
+                 maxY: chartMaxY,
                  lineBarsData: [
                    LineChartBarData(
                      spots: values.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
@@ -252,6 +337,7 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
                ),
              ),
            ),
+           ),
          ],
        ),
      );
@@ -260,10 +346,6 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
   Widget _buildShareInfoRow(NumberFormat currency, ShareModel data) {
     return Row(
       children: [
-        Expanded(
-          child: _buildInfoCard('ส่งรายเดือน', '${(data.monthlyRate / data.shareParValue).toStringAsFixed(0)} หุ้น', LucideIcons.calendarClock, Colors.orange),
-        ),
-        const SizedBox(width: 16),
         Expanded(
           child: _buildInfoCard('ราคาต่อหุ้น', '${currency.format(data.shareParValue)} บาท', LucideIcons.tag, Colors.blue),
         ),
@@ -298,51 +380,74 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> {
     );
   }
 
+  Widget _buildDividendCard(NumberFormat currency) {
+    final dividend = _dividendSummary;
+    if (dividend == null) return const SizedBox.shrink();
+
+    return InkWell(
+      onTap: () => context.push('/share/dividend'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF6B4EFF), Color(0xFF9747FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(LucideIcons.gift, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('เงินปันผลโดยประมาณ', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Text('฿${currency.format(dividend.totalAmount)}', 
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('${dividend.rate}%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 8),
+            const Icon(LucideIcons.chevronRight, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
    Widget _buildActionButtons(BuildContext context) {
-     return Row(
-       children: [
-         Expanded(
-           child: ElevatedButton.icon(
-             icon: const Icon(LucideIcons.plusCircle, color: Colors.white),
-             label: const Text('ซื้อหุ้น', style: TextStyle(color: Colors.white)),
-             onPressed: () => context.go('/share/buy'),
-             style: ElevatedButton.styleFrom(
-               backgroundColor: const Color(0xFF10B981), // Green
-               padding: const EdgeInsets.symmetric(vertical: 16),
-               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-             ),
-           ),
+     return SizedBox(
+       width: double.infinity,
+       child: ElevatedButton.icon(
+         icon: const Icon(LucideIcons.plusCircle, color: Colors.white),
+         label: const Text('ซื้อหุ้น', style: TextStyle(color: Colors.white)),
+         onPressed: () => context.go('/share/buy'),
+         style: ElevatedButton.styleFrom(
+           backgroundColor: const Color(0xFF10B981), // Green
+           padding: const EdgeInsets.symmetric(vertical: 16),
+           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
          ),
-         const SizedBox(width: 16),
-         Expanded(
-            child: ElevatedButton.icon(
-             icon: const Icon(LucideIcons.minusCircle, color: Colors.black),
-             label: const Text('โอนหุ้น', style: TextStyle(color: Colors.black)),
-             onPressed: () async {
-                final eligible = await _repository.checkSellEligibility();
-                if (eligible) {
-                  context.go('/share/sell');
-                } else {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                       const SnackBar(
-                         content: Text('คุณไม่สามารถโอนหุ้นได้ในขณะนี้ (ต้องถือครองขั้นต่ำ 100 หุ้น)'),
-                         backgroundColor: Colors.red,
-                       )
-                    );
-                  }
-                }
-             },
-             style: ElevatedButton.styleFrom(
-               backgroundColor: Colors.white,
-               side: BorderSide(color: Colors.grey.shade300),
-               padding: const EdgeInsets.symmetric(vertical: 16),
-               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-               elevation: 0,
-             ),
-           ),
-         )
-       ],
+       ),
      );
    }
 }

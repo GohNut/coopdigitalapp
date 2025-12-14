@@ -3,19 +3,22 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../data/repositories/mock_share_repository.dart';
+import '../../data/repositories/share_repository_impl.dart';
+import '../../../../services/dynamic_deposit_api.dart';
+import '../../../deposit/data/deposit_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ShareConfirmationScreen extends StatefulWidget {
+class ShareConfirmationScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
 
   const ShareConfirmationScreen({super.key, required this.args});
 
   @override
-  State<ShareConfirmationScreen> createState() => _ShareConfirmationScreenState();
+  ConsumerState<ShareConfirmationScreen> createState() => _ShareConfirmationScreenState();
 }
 
-class _ShareConfirmationScreenState extends State<ShareConfirmationScreen> {
-  final _repository = MockShareRepository();
+class _ShareConfirmationScreenState extends ConsumerState<ShareConfirmationScreen> {
+  final _repository = ShareRepositoryImpl();
   bool _isConsent = false;
   bool _isLoading = false;
 
@@ -26,13 +29,64 @@ class _ShareConfirmationScreenState extends State<ShareConfirmationScreen> {
 
     setState(() => _isLoading = true);
     
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-    await _repository.buyExtraShares(widget.args['netTotal']); // Mock logic
+    try {
+      final units = widget.args['units'] as int;
+      final netTotal = widget.args['netTotal'] as double;
+      final method = widget.args['paymentMethod'] as String;
+      final paymentSourceId = widget.args['paymentSourceId'] as String?;
+      
+      // 2. ตัดเงินจากแหล่งชำระเงิน (ถ้าเป็นบัญชีออมทรัพย์)
+      if (paymentSourceId != null && paymentSourceId.isNotEmpty) {
+        final accountData = await DynamicDepositApiService.getAccountById(paymentSourceId);
+        if (accountData != null) {
+          final currentBalance = (accountData['balance'] ?? 0.0).toDouble();
+          
+          // ตรวจสอบยอดเงินเพียงพอ
+          if (currentBalance < netTotal) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('ยอดเงินในบัญชีไม่เพียงพอ'),
+                  backgroundColor: Colors.red,
+                )
+              );
+              setState(() => _isLoading = false);
+            }
+            return;
+          }
+          
+          // ตัดเงินจากบัญชี (ใช้ payment แทน withdraw เพื่อให้แสดงเป็น "จ่ายเงิน")
+          await DynamicDepositApiService.payment(
+            accountId: paymentSourceId,
+            amount: netTotal,
+            currentBalance: currentBalance,
+            description: 'ซื้อหุ้นสหกรณ์ $units หุ้น',
+          );
+        }
+      }
+      
+      // 3. ซื้อหุ้น
+      await _repository.buyShare(
+        units: units,
+        amount: netTotal,
+        paymentMethod: method,
+        paymentSourceId: paymentSourceId ?? '',
+      );
 
-    if (mounted) {
-       // Go to Step 4: Success, replacing history so user can't go back to confirm
-       context.go('/share/buy/success');
+      if (mounted) {
+         // Go to Step 4: Success
+         context.go('/share/buy/success');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          )
+        );
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -44,14 +98,28 @@ class _ShareConfirmationScreenState extends State<ShareConfirmationScreen> {
     final units = widget.args['units'] as int;
     final price = widget.args['pricePerUnit'] as double;
     final totalBody = widget.args['totalBody'] as double;
-    final vat = widget.args['vat'] as double;
     final netTotal = widget.args['netTotal'] as double;
     final method = widget.args['paymentMethod'] as String;
+    final paymentSourceId = widget.args['paymentSourceId'] as String?;
 
-    String methodLabel = 'วอลเล็ทสหกรณ์';
-    if (method == 'promptpay') methodLabel = 'QR PromptPay';
-    if (method == 'truemoney') methodLabel = 'TrueMoney Wallet';
-    if (method == 'creditcard') methodLabel = 'บัตรเครดิต';
+    // Get payment method label
+    String methodLabel = 'ไม่ทราบ';
+    String? accountInfo;
+    
+    if (method == 'qr') {
+      methodLabel = 'QR PromptPay';
+    } else if (method == 'account' && paymentSourceId != null) {
+      // ดึงข้อมูลบัญชีจาก provider
+      final accounts = ref.watch(depositAccountsProvider);
+      final account = accounts.where((a) => a.id == paymentSourceId).firstOrNull;
+      
+      if (account != null) {
+        methodLabel = 'บัญชีออมทรัพย์';
+        accountInfo = '${account.accountName} (${account.maskedAccountNumber})';
+      } else {
+        methodLabel = 'บัญชีออมทรัพย์';
+      }
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -89,8 +157,6 @@ class _ShareConfirmationScreenState extends State<ShareConfirmationScreen> {
                   _buildRow('ราคาต่อหน่วย', '${currencyFormat.format(price)} บาท'),
                   const SizedBox(height: 8),
                   _buildRow('ราคารวม', '${currencyFormat.format(totalBody)} บาท'),
-                  const SizedBox(height: 8),
-                  _buildRow('VAT 7%', '${currencyFormat.format(vat)} บาท', isHighlight: true),
                   const Divider(height: 24),
                   _buildRow('ยอดชำระสุทธิ', '${currencyFormat.format(netTotal)} บาท', isTotal: true),
                   
@@ -98,11 +164,23 @@ class _ShareConfirmationScreenState extends State<ShareConfirmationScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(LucideIcons.wallet, size: 20, color: Colors.grey),
-                        const SizedBox(width: 12),
-                        Text('ชำระผ่าน: $methodLabel', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            const Icon(LucideIcons.wallet, size: 20, color: Colors.grey),
+                            const SizedBox(width: 12),
+                            Text('ชำระผ่าน: $methodLabel', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        if (accountInfo != null) ...[
+                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 32),
+                            child: Text(accountInfo, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                          ),
+                        ],
                       ],
                     ),
                   )

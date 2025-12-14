@@ -19,7 +19,6 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
   
   double _pricePerUnit = 50.0;
   int _units = 10;
-  double _vatRate = 0.07;
 
   @override
   void initState() {
@@ -49,17 +48,13 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     // Navigate to Step 2: Payment
-    // We pass data via state or simple arguments map. Using args for simplicity.
     final totalBody = _units * _pricePerUnit;
-    final vat = totalBody * _vatRate;
-    final netTotal = totalBody + vat;
 
     context.go('/share/buy/payment', extra: {
       'units': _units,
       'pricePerUnit': _pricePerUnit,
       'totalBody': totalBody,
-      'vat': vat,
-      'netTotal': netTotal,
+      'netTotal': totalBody, // ไม่มี VAT สำหรับหุ้นสหกรณ์
     });
   }
 
@@ -67,8 +62,6 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat("#,##0.00", "th_TH");
     final totalBody = _units * _pricePerUnit;
-    final vat = totalBody * _vatRate;
-    final netTotal = totalBody + vat;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -160,15 +153,13 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
                      _buildSummaryRow('ราคาต่อหน่วย', '${currencyFormat.format(_pricePerUnit)} บาท'),
                      const Divider(height: 24),
                      _buildSummaryRow('ราคารวม ($_units หุ้น)', '${currencyFormat.format(totalBody)} บาท'),
-                     const SizedBox(height: 8),
-                     _buildSummaryRow('VAT 7%', '${currencyFormat.format(vat)} บาท', isVat: true),
                      const Divider(height: 24),
                      Row(
                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                        children: [
                          const Text('ยอดชำระสุทธิ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                          Text(
-                           '${currencyFormat.format(netTotal)} บาท',
+                           '${currencyFormat.format(totalBody)} บาท',
                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.primary),
                          ),
                        ],

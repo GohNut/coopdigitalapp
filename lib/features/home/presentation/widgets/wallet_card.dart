@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../loan/data/loan_repository_impl.dart';
 import '../../../deposit/data/deposit_providers.dart';
+import '../../../share/data/repositories/share_repository_impl.dart';
 
 class WalletCard extends ConsumerStatefulWidget {
   const WalletCard({super.key});
@@ -17,12 +18,15 @@ class _WalletCardState extends ConsumerState<WalletCard> {
   bool _isVisible = true;
   bool _isLoading = true;
   double _loanRemainingAmount = 0;
+  double _shareValue = 0;
+  bool _isShareLoading = true;
   final _currencyFormat = NumberFormat.currency(symbol: '฿ ', decimalDigits: 2);
 
   @override
   void initState() {
     super.initState();
     _loadLoanData();
+    _loadShareData();
   }
 
   Future<void> _loadLoanData() async {
@@ -47,6 +51,24 @@ class _WalletCardState extends ConsumerState<WalletCard> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadShareData() async {
+    try {
+      final repository = ShareRepositoryImpl();
+      final shareData = await repository.getShareInfo();
+      
+      if (mounted) {
+        setState(() {
+          _shareValue = shareData.totalValue;
+          _isShareLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isShareLoading = false);
       }
     }
   }
@@ -125,7 +147,7 @@ class _WalletCardState extends ConsumerState<WalletCard> {
                     icon: LucideIcons.pieChart,
                     iconColor: AppColors.success,
                     title: 'มูลค่าหุ้นรวม',
-                    amount: '฿ 125,000.00',
+                    amount: _isShareLoading ? 'กำลังโหลด...' : _currencyFormat.format(_shareValue),
                     isVisible: _isVisible,
                     showVisibilityToggle: false,
                   ),

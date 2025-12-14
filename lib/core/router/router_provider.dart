@@ -40,10 +40,13 @@ import '../../features/share/presentation/screens/buy_extra_share_screen.dart';
 import '../../features/share/presentation/screens/share_payment_method_screen.dart';
 import '../../features/share/presentation/screens/share_confirmation_screen.dart';
 import '../../features/share/presentation/screens/buy_share_success_screen.dart';
-import '../../features/share/presentation/screens/sell_share_screen.dart';
-import '../../features/share/presentation/screens/sell_share_success_screen.dart';
+import '../../features/share/presentation/screens/share_qr_payment_screen.dart';
+
 import '../../features/share/presentation/screens/change_share_subscription_screen.dart';
 import '../../features/share/presentation/screens/share_history_screen.dart';
+import '../../features/share/presentation/screens/dividend_detail_screen.dart';
+import '../../features/share/presentation/screens/dividend_history_screen.dart';
+import '../../features/share/presentation/screens/dividend_request_screen.dart';
 import '../../features/loan/presentation/screens/loan_products_management_screen.dart';
 import '../../features/loan/presentation/screens/loan_product_form_screen.dart';
 import '../../features/loan/domain/loan_product_model.dart';
@@ -331,21 +334,19 @@ final routerProvider = Provider<GoRouter>((ref) {
               },
             ),
             GoRoute(
+              path: 'qr',
+              builder: (context, state) {
+                final args = state.extra as Map<String, dynamic>;
+                return ShareQrPaymentScreen(args: args);
+              },
+            ),
+            GoRoute(
               path: 'success',
               builder: (context, state) => const BuyShareSuccessScreen(),
             ),
           ]
         ),
-        GoRoute(
-          path: 'sell',
-          builder: (context, state) => const SellShareScreen(),
-          routes: [
-             GoRoute(
-               path: 'success',
-               builder: (context, state) => const SellShareSuccessScreen(),
-             ),
-          ]
-        ),
+
            GoRoute(
             path: 'change',
             builder: (context, state) => const ChangeShareSubscriptionScreen(),
@@ -353,6 +354,23 @@ final routerProvider = Provider<GoRouter>((ref) {
            GoRoute(
             path: 'history',
             builder: (context, state) => const ShareHistoryScreen(),
+          ),
+           GoRoute(
+            path: 'dividend',
+            builder: (context, state) => const DividendDetailScreen(),
+            routes: [
+              GoRoute(
+                path: 'history',
+                builder: (context, state) => const DividendHistoryScreen(),
+              ),
+              GoRoute(
+                path: 'request',
+                builder: (context, state) {
+                  final args = state.extra as Map<String, dynamic>;
+                  return DividendRequestScreen(args: args);
+                },
+              ),
+            ],
           ),
         ],
       ),

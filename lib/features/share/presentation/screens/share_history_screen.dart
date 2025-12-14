@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../data/repositories/mock_share_repository.dart';
+import '../../data/repositories/share_repository_impl.dart';
 import '../../domain/models/share_transaction.dart';
 
 class ShareHistoryScreen extends StatefulWidget {
@@ -14,7 +14,7 @@ class ShareHistoryScreen extends StatefulWidget {
 }
 
 class _ShareHistoryScreenState extends State<ShareHistoryScreen> {
-  final _repository = MockShareRepository();
+  final _repository = ShareRepositoryImpl();
   List<ShareTransaction> _allTransactions = [];
   List<ShareTransaction> _filteredTransactions = [];
   bool _isLoading = true;
@@ -35,7 +35,7 @@ class _ShareHistoryScreenState extends State<ShareHistoryScreen> {
   }
 
   Future<void> _loadData() async {
-    final data = await _repository.getHistory();
+    final data = await _repository.getShareHistory();
     if (mounted) {
       setState(() {
         _allTransactions = data;

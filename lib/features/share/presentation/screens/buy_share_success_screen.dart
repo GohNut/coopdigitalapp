@@ -40,7 +40,13 @@ class BuyShareSuccessScreen extends StatelessWidget {
                  width: double.infinity,
                  height: 56,
                  child: ElevatedButton(
-                   onPressed: () => context.go('/share'), // Return to dashboard
+                   onPressed: () async {
+                     // รอให้ API sync ข้อมูลก่อน
+                     await Future.delayed(const Duration(milliseconds: 500));
+                     if (context.mounted) {
+                       context.go('/share');
+                     }
+                   },
                    style: ElevatedButton.styleFrom(
                      backgroundColor: AppColors.primary,
                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

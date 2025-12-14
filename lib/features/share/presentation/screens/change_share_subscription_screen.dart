@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../data/repositories/mock_share_repository.dart';
+import '../../data/repositories/share_repository_impl.dart';
 
 class ChangeShareSubscriptionScreen extends StatefulWidget {
   const ChangeShareSubscriptionScreen({super.key});
@@ -14,7 +14,7 @@ class ChangeShareSubscriptionScreen extends StatefulWidget {
 
 class _ChangeShareSubscriptionScreenState extends State<ChangeShareSubscriptionScreen> {
   final _amountController = TextEditingController();
-  final _repository = MockShareRepository();
+  final _repository = ShareRepositoryImpl();
   final _formKey = GlobalKey<FormState>();
   
   bool _isLoading = false;
