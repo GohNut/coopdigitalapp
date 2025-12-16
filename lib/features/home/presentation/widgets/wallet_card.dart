@@ -20,7 +20,7 @@ class _WalletCardState extends ConsumerState<WalletCard> {
   double _loanRemainingAmount = 0;
   double _shareValue = 0;
   bool _isShareLoading = true;
-  final _currencyFormat = NumberFormat.currency(symbol: '฿ ', decimalDigits: 2);
+  final _currencyFormat = NumberFormat.currency(symbol: '', decimalDigits: 2);
 
   @override
   void initState() {
@@ -75,18 +75,21 @@ class _WalletCardState extends ConsumerState<WalletCard> {
 
   @override
   Widget build(BuildContext context) {
-    final totalDepositAsync = ref.watch(totalDepositBalanceAsyncProvider);
+    final totalDepositExcludingLoan = ref.watch(totalDepositExcludingLoanAsyncProvider);
+    final loanAccountBalance = ref.watch(loanAccountBalanceAsyncProvider);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             Colors.white,
-            AppColors.primary.withOpacity(0.05),
+            Color(0xFFE3F2FD), // สีฟ้าอ่อนตรงกลาง (Blue 50)
+            Colors.white,
           ],
+          stops: [0.0, 0.5, 1.0], // ขาว → ฟ้าตรงกลาง → ขาว
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -102,151 +105,198 @@ class _WalletCardState extends ConsumerState<WalletCard> {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            totalDepositAsync.when(
-              data: (total) => _buildCompactBalanceRow(
-                context,
-                icon: LucideIcons.wallet,
-                iconColor: AppColors.secondary,
-                title: 'บัญชีออมทรัพย์ (รวมทุกบัญชี)',
-                amount: _currencyFormat.format(total),
-                isVisible: _isVisible,
-                showVisibilityToggle: true,
+      child: Stack(
+        children: [
+          // ปุ่มซ่อน/แสดงตัวเลขที่มุมขวาบน - Style 1: กรอบกลม + พื้นหลังชมพู
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
-              loading: () => _buildCompactBalanceRow(
-                context,
-                icon: LucideIcons.wallet,
-                iconColor: AppColors.secondary,
-                title: 'บัญชีออมทรัพย์',
-                amount: 'กำลังโหลด...',
-                isVisible: true,
-                showVisibilityToggle: false,
-              ),
-              error: (error, stack) => _buildCompactBalanceRow(
-                context,
-                icon: LucideIcons.wallet,
-                iconColor: AppColors.secondary,
-                title: 'บัญชีออมทรัพย์',
-                amount: 'เกิดข้อผิดพลาด',
-                isVisible: true,
-                showVisibilityToggle: false,
+              child: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isVisible = !_isVisible;
+                  });
+                },
+                icon: Icon(
+                  _isVisible ? LucideIcons.eye : LucideIcons.eyeOff,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(),
+                tooltip: _isVisible ? 'ซ่อนตัวเลข' : 'แสดงตัวเลข',
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10),
-              child: Divider(height: 1, color: AppColors.divider),
-            ),
-            Row(
+          ),
+          // เนื้อหาหลัก
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                Expanded(
-                  child: _buildCompactBalanceRow(
-                    context,
-                    icon: LucideIcons.pieChart,
-                    iconColor: AppColors.success,
-                    title: 'มูลค่าหุ้นรวม',
-                    amount: _isShareLoading ? 'กำลังโหลด...' : _currencyFormat.format(_shareValue),
-                    isVisible: _isVisible,
-                    showVisibilityToggle: false,
-                  ),
+                // Row 1: เงินฝากรวม (ซ้าย) | บัญชีเงินกู้ (ขวา)
+                Row(
+                  children: [
+                    Expanded(
+                      child: totalDepositExcludingLoan.when(
+                        data: (total) => _buildBalanceBox(
+                          context,
+                          icon: LucideIcons.wallet,
+                          iconColor: AppColors.secondary,
+                          title: 'เงินฝากรวม',
+                          amount: _currencyFormat.format(total),
+                          isVisible: _isVisible,
+                        ),
+                        loading: () => _buildBalanceBox(
+                          context,
+                          icon: LucideIcons.wallet,
+                          iconColor: AppColors.secondary,
+                          title: 'เงินฝากรวม',
+                          amount: 'กำลังโหลด...',
+                          isVisible: true,
+                        ),
+                        error: (error, stack) => _buildBalanceBox(
+                          context,
+                          icon: LucideIcons.wallet,
+                          iconColor: AppColors.secondary,
+                          title: 'เงินฝากรวม',
+                          amount: 'ผิดพลาด',
+                          isVisible: true,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 50,
+                      color: AppColors.divider,
+                      margin: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    Expanded(
+                      child: loanAccountBalance.when(
+                        data: (balance) => _buildBalanceBox(
+                          context,
+                          icon: LucideIcons.banknote,
+                          iconColor: const Color(0xFF9C27B0),
+                          title: 'บัญชีเงินกู้',
+                          amount: _currencyFormat.format(balance),
+                          isVisible: _isVisible,
+                        ),
+                        loading: () => _buildBalanceBox(
+                          context,
+                          icon: LucideIcons.banknote,
+                          iconColor: const Color(0xFF9C27B0),
+                          title: 'บัญชีเงินกู้',
+                          amount: 'กำลังโหลด...',
+                          isVisible: true,
+                        ),
+                        error: (error, stack) => _buildBalanceBox(
+                          context,
+                          icon: LucideIcons.banknote,
+                          iconColor: const Color(0xFF9C27B0),
+                          title: 'บัญชีเงินกู้',
+                          amount: 'ผิดพลาด',
+                          isVisible: true,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: AppColors.divider,
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Divider(height: 1, color: AppColors.divider),
                 ),
-                Expanded(
-                  child: _buildCompactBalanceRow(
-                    context,
-                    icon: LucideIcons.creditCard,
-                    iconColor: AppColors.warning,
-                    title: 'วงเงินกู้คงเหลือ',
-                    amount: _isLoading ? 'กำลังโหลด...' : _currencyFormat.format(_loanRemainingAmount),
-                    isVisible: _isVisible,
-                    showVisibilityToggle: false,
-                  ),
+                // Row 2: หุ้น (ซ้าย) | วงเงินกู้คงเหลือ (ขวา)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildBalanceBox(
+                        context,
+                        icon: LucideIcons.pieChart,
+                        iconColor: AppColors.success,
+                        title: 'มูลค่าหุ้นรวม',
+                        amount: _isShareLoading ? 'กำลังโหลด...' : _currencyFormat.format(_shareValue),
+                        isVisible: _isVisible,
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: AppColors.divider,
+                      margin: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    Expanded(
+                      child: _buildBalanceBox(
+                        context,
+                        icon: LucideIcons.creditCard,
+                        iconColor: AppColors.warning,
+                        title: 'วงเงินกู้คงเหลือ',
+                        amount: _isLoading ? 'กำลังโหลด...' : _currencyFormat.format(_loanRemainingAmount),
+                        isVisible: _isVisible,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-
-  Widget _buildCompactBalanceRow(
+  /// Style: ไอคอนกรอบกลม (Style 1) + สีเข้ม (Style 3)
+  Widget _buildBalanceBox(
     BuildContext context, {
     required IconData icon,
     required Color iconColor,
     required String title,
     required String amount,
     required bool isVisible,
-    required bool showVisibilityToggle,
   }) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // ไอคอนกรอบกลม (Style 1)
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 16, color: iconColor),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    icon,
-                    size: 14,
-                    color: iconColor,
-                  ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                            fontSize: 11,
-                          ),
-                      overflow: TextOverflow.ellipsis,
+              // Title สีเข้ม (Style 3)
+              Text(
+                title,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.black87,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-                ],
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
+              // Amount สีเข้ม (Style 3)
               Text(
                 isVisible ? amount : '••••••',
-                style: showVisibilityToggle
-                    ? Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        )
-                    : Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                    ),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
-        if (showVisibilityToggle)
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isVisible = !_isVisible;
-              });
-            },
-            icon: Icon(
-              isVisible ? LucideIcons.eye : LucideIcons.eyeOff,
-              color: AppColors.secondary,
-              size: 20,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
       ],
     );
   }

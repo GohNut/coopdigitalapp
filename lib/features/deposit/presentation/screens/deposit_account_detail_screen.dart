@@ -33,7 +33,7 @@ class _DepositAccountDetailScreenState extends ConsumerState<DepositAccountDetai
     final account = ref.watch(depositAccountByIdProvider(widget.accountId));
     final allTransactions = ref.watch(depositTransactionsProvider(widget.accountId));
     final isBalanceVisible = ref.watch(balanceVisibilityProvider);
-    final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '฿');
+    final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '');
 
     if (account == null) {
       return Scaffold(
@@ -141,6 +141,7 @@ class _DepositAccountDetailScreenState extends ConsumerState<DepositAccountDetai
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 48), // Balance for back button
@@ -202,14 +203,17 @@ class _DepositAccountDetailScreenState extends ConsumerState<DepositAccountDetai
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        isBalanceVisible
-                            ? currencyFormat.format(account.balance)
-                            : '฿ ••••••',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: Text(
+                          isBalanceVisible
+                              ? currencyFormat.format(account.balance)
+                              : '••••••',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -296,31 +300,39 @@ class _DepositAccountDetailScreenState extends ConsumerState<DepositAccountDetai
             ),
           ),
           // Month Display
-          GestureDetector(
-            onTap: () => _showMonthPicker(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    LucideIcons.calendar,
-                    size: 18,
-                    color: AppColors.primary,
+          Expanded(
+            child: Center(
+              child: GestureDetector(
+                onTap: () => _showMonthPicker(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    monthFormat.format(_selectedMonth),
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        LucideIcons.calendar,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          monthFormat.format(_selectedMonth),
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -356,12 +368,13 @@ class _DepositAccountDetailScreenState extends ConsumerState<DepositAccountDetai
   }
 
   Future<void> _showMonthPicker(BuildContext context) async {
-    final result = await showDatePicker(
+    final result = await showDialog<DateTime>(
       context: context,
-      initialDate: _selectedMonth,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDatePickerMode: DatePickerMode.year,
+      builder: (context) => _YearMonthPickerDialog(
+        initialDate: _selectedMonth,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now(),
+      ),
     );
     
     if (result != null) {
@@ -555,6 +568,7 @@ class _TransactionItem extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
@@ -588,5 +602,171 @@ class _TransactionItem extends StatelessWidget {
       case TransactionType.fee:
         return LucideIcons.minus;
     }
+  }
+}
+
+/// Year-Month Picker Dialog
+class _YearMonthPickerDialog extends StatefulWidget {
+  final DateTime initialDate;
+  final DateTime firstDate;
+  final DateTime lastDate;
+
+  const _YearMonthPickerDialog({
+    super.key,
+    required this.initialDate,
+    required this.firstDate,
+    required this.lastDate,
+  });
+
+  @override
+  State<_YearMonthPickerDialog> createState() => _YearMonthPickerDialogState();
+}
+
+class _YearMonthPickerDialogState extends State<_YearMonthPickerDialog> {
+  late int _year;
+  late int _month;
+
+  @override
+  void initState() {
+    super.initState();
+    _year = widget.initialDate.year;
+    _month = widget.initialDate.month;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final months = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
+      'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
+      'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Text(
+              'เลือกเดือน',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            
+            // Year Selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  onPressed: _year > widget.firstDate.year
+                      ? () => setState(() => _year--)
+                      : null,
+                  icon: const Icon(LucideIcons.chevronLeft),
+                ),
+                Text(
+                  '${_year + 543}', // Display as Buddhist Year
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  onPressed: _year < widget.lastDate.year
+                      ? () => setState(() => _year++)
+                      : null,
+                  icon: const Icon(LucideIcons.chevronRight),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Month Grid
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: List.generate(12, (index) {
+                final monthIndex = index + 1;
+                final isSelected = _month == monthIndex;
+                
+                final isDisabled = (_year == widget.lastDate.year && monthIndex > widget.lastDate.month) ||
+                                 (_year == widget.firstDate.year && monthIndex < widget.firstDate.month);
+                
+                return InkWell(
+                  onTap: isDisabled
+                      ? null
+                      : () {
+                          setState(() {
+                            _month = monthIndex;
+                          });
+                        },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: (MediaQuery.of(context).size.width - 80) / 3, // 3 columns
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Text(
+                      months[index],
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : (isDisabled ? Colors.grey.shade300 : AppColors.textPrimary),
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 24),
+            
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'ยกเลิก',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context, DateTime(_year, _month));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('ตกลง'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

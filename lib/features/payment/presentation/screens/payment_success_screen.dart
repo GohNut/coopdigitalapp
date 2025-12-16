@@ -49,24 +49,48 @@ class PaymentSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  '฿${NumberFormat('#,##0.00').format(amount)}',
+                  '${NumberFormat('#,##0.00').format(amount)}',
                   style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.red),
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                Text('ชำระด้วย $sourceDisplay', style: const TextStyle(color: AppColors.textSecondary)),
+                Text(
+                  'ชำระด้วย $sourceDisplay', 
+                  style: const TextStyle(color: AppColors.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                ),
                 
                 const SizedBox(height: 60),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () => context.go('/home'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                const SizedBox(height: 60),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => context.go('/scan'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                        ),
+                        child: const Text('จ่ายอีกครั้ง', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
                     ),
-                    child: const Text('เสร็จสิ้น', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => context.go('/home'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary, width: 2),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('กลับหน้าหลัก', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

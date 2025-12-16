@@ -3,6 +3,7 @@ enum AccountType {
   savings,   // ออมทรัพย์
   fixed,     // ประจำ
   special,   // พิเศษ
+  loan,      // เงินกู้สหกรณ์
 }
 
 /// Extension สำหรับ AccountType
@@ -15,6 +16,8 @@ extension AccountTypeExtension on AccountType {
         return 'ประจำ';
       case AccountType.special:
         return 'พิเศษ';
+      case AccountType.loan:
+        return 'เงินกู้สหกรณ์';
     }
   }
 
@@ -27,6 +30,8 @@ extension AccountTypeExtension on AccountType {
         return 0xFFD4AF37; // ทอง
       case AccountType.special:
         return 0xFFE53935; // แดง
+      case AccountType.loan:
+        return 0xFF9C27B0; // ม่วง
     }
   }
 }

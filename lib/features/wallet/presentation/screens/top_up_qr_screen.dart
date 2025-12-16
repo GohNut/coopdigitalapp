@@ -111,7 +111,7 @@ class _TopUpQrScreenState extends State<TopUpQrScreen> {
                   child: Column(
                     children: [
                       const Text(
-                        'เติมเงินเข้ากระเป๋า',
+                        'ฝากเงินเข้ากระเป๋า',
                         style: TextStyle(
                           fontSize: 18,
                           color: AppColors.textSecondary,
@@ -119,7 +119,7 @@ class _TopUpQrScreenState extends State<TopUpQrScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '฿ ${NumberFormat('#,##0.00').format(widget.amount)}',
+                        '${NumberFormat('#,##0.00').format(widget.amount)}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -197,7 +197,7 @@ class _TopUpQrScreenState extends State<TopUpQrScreen> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'เมื่อโอนเงินเรียบร้อยแล้ว ระบบจะทำการเติมเงินเข้ากระเป๋าของคุณโดยอัตโนมัติ',
+                  'เมื่อโอนเงินเรียบร้อยแล้ว ระบบจะทำการฝากเงินเข้ากระเป๋าของคุณโดยอัตโนมัติ',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),

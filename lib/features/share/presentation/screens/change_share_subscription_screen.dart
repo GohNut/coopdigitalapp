@@ -14,10 +14,24 @@ class ChangeShareSubscriptionScreen extends StatefulWidget {
 
 class _ChangeShareSubscriptionScreenState extends State<ChangeShareSubscriptionScreen> {
   final _amountController = TextEditingController();
+  final _amountFocusNode = FocusNode();
   final _repository = ShareRepositoryImpl();
   final _formKey = GlobalKey<FormState>();
   
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _amountFocusNode.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -113,6 +127,7 @@ class _ChangeShareSubscriptionScreenState extends State<ChangeShareSubscriptionS
                const SizedBox(height: 8),
                TextFormField(
                  controller: _amountController,
+                 focusNode: _amountFocusNode,
                  keyboardType: TextInputType.number,
                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -125,7 +140,7 @@ class _ChangeShareSubscriptionScreenState extends State<ChangeShareSubscriptionS
                      borderSide: BorderSide.none,
                    ),
                    contentPadding: const EdgeInsets.all(20),
-                   hintText: 'ขั้นต่ำ 500',
+                   hintText: _amountFocusNode.hasFocus ? null : 'ขั้นต่ำ 500',
                  ),
                  validator: (value) {
                     if (value == null || value.isEmpty) return 'กรุณาตัวเลข';

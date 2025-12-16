@@ -161,6 +161,7 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
                          Text(
                            '${currencyFormat.format(totalBody)} บาท',
                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.primary),
+                           overflow: TextOverflow.ellipsis,
                          ),
                        ],
                      )
@@ -196,7 +197,7 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: TextStyle(color: isVat ? Colors.orange : Colors.grey.shade700)),
-        Text(value, style: TextStyle(fontWeight: FontWeight.w600, color: isVat ? Colors.orange : Colors.black)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w600, color: isVat ? Colors.orange : Colors.black), overflow: TextOverflow.ellipsis),
       ],
     );
   }

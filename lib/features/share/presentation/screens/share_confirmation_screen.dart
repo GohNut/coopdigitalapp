@@ -171,14 +171,14 @@ class _ShareConfirmationScreenState extends ConsumerState<ShareConfirmationScree
                           children: [
                             const Icon(LucideIcons.wallet, size: 20, color: Colors.grey),
                             const SizedBox(width: 12),
-                            Text('ชำระผ่าน: $methodLabel', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Text('ชำระผ่าน: $methodLabel', style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
                           ],
                         ),
                         if (accountInfo != null) ...[
                           const SizedBox(height: 4),
                           Padding(
                             padding: const EdgeInsets.only(left: 32),
-                            child: Text(accountInfo, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            child: Text(accountInfo, style: const TextStyle(color: Colors.grey, fontSize: 13), overflow: TextOverflow.ellipsis),
                           ),
                         ],
                       ],
@@ -231,11 +231,11 @@ class _ShareConfirmationScreenState extends ConsumerState<ShareConfirmationScree
           fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
           fontSize: isTotal ? 16 : 14,
         )),
-        Text(value, style: TextStyle(
+        Expanded(child: Text(value, style: TextStyle(
           fontWeight: isTotal || isHighlight ? FontWeight.bold : FontWeight.w600,
           fontSize: isTotal ? 20 : 14,
           color: isTotal ? AppColors.primary : (isHighlight ? Colors.orange : Colors.black),
-        )),
+        ), textAlign: TextAlign.right, overflow: TextOverflow.ellipsis)),
       ],
     );
   }

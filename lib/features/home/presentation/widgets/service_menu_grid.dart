@@ -171,6 +171,7 @@ class ServiceMenuGrid extends StatelessWidget {
                   color: Colors.black87,
                   fontSize: 17,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               // Subtitle
@@ -180,6 +181,7 @@ class ServiceMenuGrid extends StatelessWidget {
                   color: Colors.grey.shade600,
                   fontSize: 12,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

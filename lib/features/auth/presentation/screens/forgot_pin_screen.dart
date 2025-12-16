@@ -15,6 +15,25 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
   final _idCardController = TextEditingController();
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  
+  final _idCardFocusNode = FocusNode();
+  final _phoneFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _idCardFocusNode.addListener(() => setState(() {}));
+    _phoneFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _idCardController.dispose();
+    _phoneController.dispose();
+    _idCardFocusNode.dispose();
+    _phoneFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,9 +59,10 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
               _buildInputLabel('เลขบัตรประชาชน'),
               TextFormField(
                 controller: _idCardController,
+                focusNode: _idCardFocusNode,
                 keyboardType: TextInputType.number,
                 maxLength: 13,
-                decoration: _inputDecoration('ระบุเลขบัตรประชาชน 13 หลัก', counterText: ''),
+                decoration: _inputDecoration('ระบุเลขบัตรประชาชน 13 หลัก', _idCardFocusNode, counterText: ''),
                 validator: (v) => v!.length != 13 ? 'ระบุให้ครบ 13 หลัก' : null,
               ),
               const SizedBox(height: 16),
@@ -50,9 +70,10 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
               _buildInputLabel('เบอร์โทรศัพท์'),
               TextFormField(
                 controller: _phoneController,
+                focusNode: _phoneFocusNode,
                 keyboardType: TextInputType.phone,
                 maxLength: 10,
-                decoration: _inputDecoration('ระบุเบอร์โทรศัพท์ที่ลงทะเบียน', counterText: ''),
+                decoration: _inputDecoration('ระบุเบอร์โทรศัพท์ที่ลงทะเบียน', _phoneFocusNode, counterText: ''),
                 validator: (v) => v!.length < 9 ? 'ระบุเบอร์โทรศัพท์ให้ถูกต้อง' : null,
               ),
 
@@ -127,9 +148,9 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
     }
   }
 
-  InputDecoration _inputDecoration(String hint, {String? counterText}) {
+  InputDecoration _inputDecoration(String hint, FocusNode? focusNode, {String? counterText}) {
     return InputDecoration(
-      hintText: hint,
+      hintText: (focusNode?.hasFocus ?? false) ? null : hint,
       counterText: counterText,
       filled: true,
       fillColor: Colors.white,

@@ -13,9 +13,23 @@ class TransferSearchScreen extends StatefulWidget {
 
 class _TransferSearchScreenState extends State<TransferSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isLoading = false;
   Map<String, dynamic>? _foundAccount;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
 
   void _search() async {
     final key = _searchController.text.trim();
@@ -88,8 +102,9 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    focusNode: _searchFocusNode,
                     decoration: InputDecoration(
-                      hintText: 'เช่น acc_123456...',
+                      hintText: _searchFocusNode.hasFocus ? null : 'เช่น acc_123456...',
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
@@ -149,10 +164,12 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
                              Text(
                                _foundAccount!['accountname'] ?? 'ไม่ระบุชื่อ',
                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                               overflow: TextOverflow.ellipsis,
                              ),
                              Text(
                                'เลขบัญชี: ${_foundAccount!['accountnumber']}\nID: ${_foundAccount!['accountid']}',
                                style: const TextStyle(color: AppColors.textSecondary),
+                               overflow: TextOverflow.ellipsis,
                              ),
                            ],
                          ),

@@ -21,6 +21,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController(text: CurrentUser.name);
   final _idCardController = TextEditingController();
   final _phoneController = TextEditingController();
+  
+  final _nameFocusNode = FocusNode();
+  final _idCardFocusNode = FocusNode();
+  final _phoneFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameFocusNode.addListener(() => setState(() {}));
+    _idCardFocusNode.addListener(() => setState(() {}));
+    _phoneFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _idCardController.dispose();
+    _phoneController.dispose();
+    _nameFocusNode.dispose();
+    _idCardFocusNode.dispose();
+    _phoneFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +89,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               _buildInputLabel('ชื่อ-นามสกุล'),
               TextFormField(
                 controller: _nameController,
-                decoration: _inputDecoration('ระบุชื่อ-นามสกุล'),
+                focusNode: _nameFocusNode,
+                decoration: _inputDecoration('ระบุชื่อ-นามสกุล', _nameFocusNode),
                 validator: (v) => v!.isEmpty ? 'กรุณาระบุชื่อ' : null,
               ),
               const SizedBox(height: 16),
@@ -74,9 +98,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               _buildInputLabel('เลขบัตรประชาชน'),
               TextFormField(
                 controller: _idCardController,
+                focusNode: _idCardFocusNode,
                 keyboardType: TextInputType.number,
                 maxLength: 13,
-                decoration: _inputDecoration('ระบุเลขบัตรประชาชน 13 หลัก', counterText: ''),
+                decoration: _inputDecoration('ระบุเลขบัตรประชาชน 13 หลัก', _idCardFocusNode, counterText: ''),
                 validator: (v) => v!.length != 13 ? 'ระบุให้ครบ 13 หลัก' : null,
               ),
               const SizedBox(height: 16),
@@ -84,9 +109,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               _buildInputLabel('เบอร์โทรศัพท์'),
               TextFormField(
                 controller: _phoneController,
+                focusNode: _phoneFocusNode,
                 keyboardType: TextInputType.phone,
                 maxLength: 10,
-                decoration: _inputDecoration('ระบุเบอร์โทรศัพท์', counterText: ''),
+                decoration: _inputDecoration('ระบุเบอร์โทรศัพท์', _phoneFocusNode, counterText: ''),
                 validator: (v) => v!.length < 9 ? 'ระบุเบอร์โทรศัพท์ให้ถูกต้อง' : null,
               ),
               
@@ -119,19 +145,59 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  void _onNextPressed() {
+  Future<void> _onNextPressed() async {
     if (_formKey.currentState!.validate()) {
-      // Navigate to PIN Setup
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => PinSetupScreen(
-            onPinSet: (pin) {
-              Navigator.pop(context); // Close PIN screen
-              _submitRegistration(pin); // Proceed to submit with PIN
-            },
-          ),
-        ),
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (c) => const Center(child: CircularProgressIndicator()),
       );
+
+      try {
+        final idCard = _idCardController.text.trim();
+        final member = await DynamicDepositApiService.getMember(idCard);
+        
+        // Hide loading
+        if (!mounted) return;
+        Navigator.pop(context);
+
+        if (member != null) {
+          // ID already exists
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('เลขบัตรประชาชนนี้ถูกใช้งานแล้ว'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Navigate to PIN Setup
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PinSetupScreen(
+              onPinSet: (pin) {
+                Navigator.pop(context); // Close PIN screen
+                _submitRegistration(pin); // Proceed to submit with PIN
+              },
+            ),
+          ),
+        );
+
+      } catch (e) {
+        // Hide loading
+        if (!mounted) return;
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -165,6 +231,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           accountName: 'บัญชีออมทรัพย์ - $name',
           accountType: 'savings',
           interestRate: 0.25,
+        );
+
+        // 3. Auto-create Loan Account (บัญชีเงินกู้สหกรณ์)
+        final loanAccountNo = '5${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}-${(10000 + DateTime.now().microsecond % 90000).toString()}';
+        await DynamicDepositApiService.createAccount(
+          memberId: idCard,
+          accountNumber: loanAccountNo,
+          accountName: 'บัญชีเงินกู้สหกรณ์ - $name',
+          accountType: 'loan',
+          interestRate: 0.0, // ดอกเบี้ยคิดตามสัญญากู้
         );
 
         if (!mounted) return;
@@ -203,9 +279,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       }
   }
 
-  InputDecoration _inputDecoration(String hint, {String? counterText}) {
+  InputDecoration _inputDecoration(String hint, FocusNode? focusNode, {String? counterText}) {
     return InputDecoration(
-      hintText: hint,
+      hintText: (focusNode?.hasFocus ?? false) ? null : hint,
       counterText: counterText,
       filled: true,
       fillColor: Colors.white,

@@ -21,12 +21,21 @@ class OfficerLoanDetailScreen extends StatefulWidget {
 
 class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
   final TextEditingController _commentController = TextEditingController();
+  final FocusNode _commentFocusNode = FocusNode();
   late LoanApplicationStatus _currentStatus;
 
   @override
   void initState() {
     super.initState();
     _currentStatus = widget.application.status;
+    _commentFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    _commentFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _updateStatus(LoanApplicationStatus newStatus) async {
@@ -88,7 +97,7 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
       return const Scaffold(body: Center(child: Text('Unauthorized')));
     }
 
-    final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(symbol: '', decimalDigits: 0);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -368,11 +377,12 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
         const SizedBox(height: 12),
         TextField(
           controller: _commentController,
+          focusNode: _commentFocusNode,
           maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'ความเห็นเจ้าหน้าที่ (ถ้ามี)',
-            border: OutlineInputBorder(),
-            hintText: 'ระบุเหตุผล หรือเงื่อนไขเพิ่มเติม...',
+          decoration: InputDecoration(
+            labelText: _commentFocusNode.hasFocus ? null : 'ความเห็นเจ้าหน้าที่ (ถ้ามี)',
+            border: const OutlineInputBorder(),
+            hintText: _commentFocusNode.hasFocus ? null : 'ระบุเหตุผล หรือเงื่อนไขเพิ่มเติม...',
           ),
         ),
         const SizedBox(height: 16),

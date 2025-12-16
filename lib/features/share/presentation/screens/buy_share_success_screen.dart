@@ -36,24 +36,34 @@ class BuyShareSuccessScreen extends StatelessWidget {
                  style: TextStyle(fontSize: 16, color: Colors.grey),
                ),
                const SizedBox(height: 48),
-               SizedBox(
-                 width: double.infinity,
-                 height: 56,
-                 child: ElevatedButton(
-                   onPressed: () async {
-                     // รอให้ API sync ข้อมูลก่อน
-                     await Future.delayed(const Duration(milliseconds: 500));
-                     if (context.mounted) {
-                       context.go('/share');
-                     }
-                   },
-                   style: ElevatedButton.styleFrom(
-                     backgroundColor: AppColors.primary,
-                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                     elevation: 0,
+               Row(
+                 children: [
+                   Expanded(
+                     child: ElevatedButton(
+                       onPressed: () => context.go('/share/buy'),
+                       style: ElevatedButton.styleFrom(
+                         backgroundColor: AppColors.primary,
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                         elevation: 0,
+                         padding: const EdgeInsets.symmetric(vertical: 18),
+                       ),
+                       child: const Text('ซื้อเพิ่ม', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                     ),
                    ),
-                   child: const Text('กลับสู่หน้าหลัก', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                 ),
+                   const SizedBox(width: 12),
+                   Expanded(
+                     child: OutlinedButton(
+                       onPressed: () => context.go('/home'),
+                       style: OutlinedButton.styleFrom(
+                         foregroundColor: AppColors.primary,
+                         side: const BorderSide(color: AppColors.primary, width: 2),
+                         padding: const EdgeInsets.symmetric(vertical: 18),
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                       ),
+                       child: const Text('กลับหน้าหลัก', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                     ),
+                   ),
+                 ],
                ),
             ],
           ),

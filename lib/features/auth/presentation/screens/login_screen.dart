@@ -18,7 +18,21 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _idCardController = TextEditingController();
+  final _idCardFocusNode = FocusNode();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _idCardFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _idCardController.dispose();
+    _idCardFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,11 +86,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // ID Card Input
               TextFormField(
                 controller: _idCardController,
+                focusNode: _idCardFocusNode,
                 keyboardType: TextInputType.number,
                 maxLength: 13,
                 decoration: InputDecoration(
-                  labelText: 'เลขบัตรประชาชน',
-                  hintText: 'กรอกเลข 13 หลัก',
+                  labelText: _idCardFocusNode.hasFocus ? null : 'เลขบัตรประชาชน',
+                  hintText: _idCardFocusNode.hasFocus ? null : 'กรอกเลข 13 หลัก',
                   prefixIcon: const Icon(LucideIcons.creditCard),
                   counterText: '',
                   filled: true,

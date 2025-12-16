@@ -55,7 +55,7 @@ class _SharePaymentMethodScreenState extends ConsumerState<SharePaymentMethodScr
                 children: [
                   const Text('ยอดชำระสุทธิ', style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 8),
-                  Text('฿${currencyFormat.format(netTotal)}', 
+                  Text('${currencyFormat.format(netTotal)}', 
                     style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -218,7 +218,7 @@ class _SharePaymentMethodScreenState extends ConsumerState<SharePaymentMethodScr
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('฿${currencyFormat.format(account.balance)}', 
+                            Text('${currencyFormat.format(account.balance)}', 
                               style: const TextStyle(fontWeight: FontWeight.bold)),
                             if (!canUse)
                               const Text('ไม่เพียงพอ', 
@@ -249,6 +249,8 @@ class _SharePaymentMethodScreenState extends ConsumerState<SharePaymentMethodScr
         return LucideIcons.lock;
       case AccountType.special:
         return LucideIcons.star;
+      case AccountType.loan:
+        return LucideIcons.banknote;
     }
   }
 

@@ -18,6 +18,7 @@ class TopUpAmountScreen extends ConsumerStatefulWidget {
 
 class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
   final TextEditingController _amountController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
   final List<double> _chips = [100, 500, 1000, 5000];
   String? _errorText;
   String? _selectedAccountId;
@@ -25,6 +26,7 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
   @override
   void initState() {
     super.initState();
+    _amountFocusNode.addListener(() => setState(() {}));
     // Pre-select first account when data loads
     ref.read(depositAccountsAsyncProvider.future).then((accounts) {
       if (accounts.isNotEmpty && mounted && _selectedAccountId == null) {
@@ -38,6 +40,7 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
   @override
   void dispose() {
     _amountController.dispose();
+    _amountFocusNode.dispose();
     super.dispose();
   }
 
@@ -134,7 +137,7 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('เติมเงิน'),
+        title: const Text('ฝากเงิน'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -205,14 +208,15 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _amountController,
+              focusNode: _amountFocusNode,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                 CurrencyInputFormatter(),
               ],
               decoration: InputDecoration(
-                prefixText: '฿ ',
-                hintText: '0.00',
+                prefixText: '',
+                hintText: _amountFocusNode.hasFocus ? null : '0.00',
                 errorText: _errorText,
                 filled: true,
                 fillColor: Colors.white,
@@ -258,7 +262,7 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
               runSpacing: 12,
               children: _chips.map((amount) {
                 return ActionChip(
-                  label: Text('฿ ${amount.toStringAsFixed(0)}'),
+                  label: Text('${amount.toStringAsFixed(0)}'),
                   backgroundColor: Colors.white,
                   surfaceTintColor: Colors.white,
                   shape: RoundedRectangleBorder(

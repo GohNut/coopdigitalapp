@@ -136,7 +136,7 @@ class _ShareQrPaymentScreenState extends State<ShareQrPaymentScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '฿ ${NumberFormat('#,##0.00').format(amount)}',
+                        '${NumberFormat('#,##0.00').format(amount)}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,

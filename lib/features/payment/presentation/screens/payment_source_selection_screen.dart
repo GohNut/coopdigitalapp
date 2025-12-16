@@ -239,6 +239,7 @@ class _PaymentSourceSelectionScreenState
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   'ยอดคงเหลือ ${_selectedSource!.displayBalance}',
@@ -246,6 +247,7 @@ class _PaymentSourceSelectionScreenState
                                     fontSize: 14,
                                     color: Colors.grey[600],
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -388,6 +390,7 @@ class _PaymentSourceSelectionScreenState
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     if (source.accountNumber != null)
@@ -421,6 +424,7 @@ class _PaymentSourceSelectionScreenState
                       fontWeight: FontWeight.bold,
                       color: color,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Icon(

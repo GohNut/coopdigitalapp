@@ -14,7 +14,7 @@ class DepositAccountListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accounts = ref.watch(depositAccountsProvider);
     final totalBalance = ref.watch(totalDepositBalanceProvider);
-    final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '฿');
+    final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -105,6 +105,7 @@ class DepositAccountListScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 36,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -207,6 +208,7 @@ class _AccountCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     // Masked Account Number
@@ -229,6 +231,7 @@ class _AccountCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -272,6 +275,8 @@ class _AccountCard extends StatelessWidget {
         return LucideIcons.lock;
       case AccountType.special:
         return LucideIcons.star;
+      case AccountType.loan:
+        return LucideIcons.banknote;
     }
   }
 }

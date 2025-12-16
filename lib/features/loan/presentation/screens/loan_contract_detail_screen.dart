@@ -14,7 +14,7 @@ class LoanContractDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repository = LoanRepositoryImpl();
-    final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 0);
+    final currencyFormat = NumberFormat.currency(symbol: '', decimalDigits: 0);
     final dateFormat = DateFormat('dd MMM yyyy', 'th');
 
     return FutureBuilder<List<LoanApplication>>(
@@ -45,9 +45,7 @@ class LoanContractDetailScreen extends StatelessWidget {
             ? loanDetails.paidAmount / loanDetails.requestAmount 
             : 0.0;
 
-        return DefaultTabController(
-          length: 2,
-          child: Scaffold(
+        return Scaffold(
             backgroundColor: AppColors.background,
             appBar: AppBar(
               title: const Text('รายละเอียดสัญญา'),
@@ -65,77 +63,52 @@ class LoanContractDetailScreen extends StatelessWidget {
                 children: [
                   // Header Section - ยอดคงเหลือ + Progress
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                     color: Colors.white,
                     child: Column(
                       children: [
-                        Text(
-                          'ยอดคงเหลือ',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          currencyFormat.format(loanDetails.remainingAmount),
-                          style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Progress Bar พร้อมตัวเลขงวด
+                        // ยอดคงเหลือ
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(LucideIcons.checkCircle, size: 14, color: AppColors.success),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${loanDetails.paidInstallments}/${loanDetails.requestTerm} งวด',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.success,
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              currencyFormat.format(loanDetails.remainingAmount),
+                              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 4),
+                            Text('บาท', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('ยอดคงเหลือ', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                        const SizedBox(height: 12),
+                        
+                        // Progress Bar
+                        Row(
+                          children: [
+                            Text(
+                              '${loanDetails.paidInstallments}/${loanDetails.requestTerm} งวด',
+                              style: TextStyle(fontSize: 14, color: AppColors.success, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(4),
                                 child: LinearProgressIndicator(
                                   value: loanDetails.requestTerm > 0 
                                       ? loanDetails.paidInstallments / loanDetails.requestTerm 
                                       : 0,
-                                  minHeight: 10,
+                                  minHeight: 8,
                                   backgroundColor: AppColors.background,
                                   color: AppColors.success,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // ข้อมูลสรุป
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _buildMiniStat('ชำระแล้ว', currencyFormat.format(loanDetails.paidAmount)),
-                            Container(width: 1, height: 24, color: AppColors.background),
-                            _buildMiniStat('คงเหลือ', currencyFormat.format(loanDetails.remainingAmount)),
-                            Container(width: 1, height: 24, color: AppColors.background),
-                            _buildMiniStat('วงเงินกู้', currencyFormat.format(loanDetails.requestAmount)),
                           ],
                         ),
                       ],
@@ -186,58 +159,46 @@ class LoanContractDetailScreen extends StatelessWidget {
                   // Loan Details Section
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Product Name + ID
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              loanDetails.productName,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Text(
+                                loanDetails.productName,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 loan.applicationId,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        
+                        const SizedBox(height: 14),
+                        // Info Grid
                         Row(
                           children: [
-                            Expanded(child: _buildCompactInfo('ดอกเบี้ย', '${loanDetails.interestRate}% ต่อปี')),
-                            Expanded(child: _buildCompactInfo('ผ่อน/งวด', currencyFormat.format(loanDetails.installmentAmount))),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(child: _buildCompactInfo('วันที่กู้', dateFormat.format(loan.requestDate))),
-                            Expanded(child: _buildCompactInfo(
-                              'ครบกำหนด', 
-                              loanDetails.nextPaymentDate != null 
-                                  ? dateFormat.format(loanDetails.nextPaymentDate!)
-                                  : '-',
-                            )),
+                            _buildInfoChip('ดอกเบี้ย', '${loanDetails.interestRate}% ต่อปี'),
+                            const SizedBox(width: 10),
+                            _buildInfoChip('งวดละ', '${currencyFormat.format(loanDetails.installmentAmount)} บ.'),
+                            const SizedBox(width: 10),
+                            _buildInfoChip('ระยะเวลา', '${loanDetails.requestTerm} เดือน'),
                           ],
                         ),
                       ],
@@ -247,58 +208,96 @@ class LoanContractDetailScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   
                   // งวดถัดไป Card
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                  if (loanDetails.paidInstallments < loanDetails.requestTerm)
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(LucideIcons.bell, color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Column(
+                        children: [
+                          // Header row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'งวดถัดไป',
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('งวดถัดไป', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                  Text(
+                                    'งวดที่ ${loanDetails.paidInstallments + 1}',
+                                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'งวดที่ ${loanDetails.paidInstallments + 1} • ${loanDetails.nextPaymentDate != null ? dateFormat.format(loanDetails.nextPaymentDate!) : '-'}',
-                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text('ครบกำหนด', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                  Text(
+                                    loanDetails.nextPaymentDate != null ? dateFormat.format(loanDetails.nextPaymentDate!) : '-',
+                                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ),
-                        Text(
-                          currencyFormat.format(loanDetails.installmentAmount),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          const SizedBox(height: 14),
+                          // Breakdown row
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('เงินต้น ', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                      Text(
+                                        currencyFormat.format(loanDetails.requestAmount / loanDetails.requestTerm),
+                                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(width: 1, height: 20, color: Colors.white30),
+                                Expanded(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('ดอกเบี้ย ', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                      Text(
+                                        currencyFormat.format((loanDetails.requestAmount * loanDetails.interestRate / 100) / 12),
+                                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(width: 1, height: 20, color: Colors.white30),
+                                Expanded(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('รวม ', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                      Text(
+                                        currencyFormat.format(loanDetails.installmentAmount),
+                                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
                   
                   const SizedBox(height: 12),
                   
@@ -338,27 +337,95 @@ class LoanContractDetailScreen extends StatelessWidget {
                   
                   const SizedBox(height: 16),
 
-                  // Tab Bar
+                  // ประวัติการชำระ Section
                   Container(
-                    color: Colors.white,
-                    child: const TabBar(
-                      labelColor: AppColors.primary,
-                      unselectedLabelColor: AppColors.textSecondary,
-                      indicatorColor: AppColors.primary,
-                      tabs: [
-                        Tab(text: 'งวดรอชำระ'),
-                        Tab(text: 'ประวัติการชำระ'),
-                      ],
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-
-                  // Tab View
-                  SizedBox(
-                    height: 400,
-                    child: TabBarView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildScheduleList(context, loan: loan, isHistory: false),
-                        _buildScheduleList(context, loan: loan, isHistory: true),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Icon(LucideIcons.history, size: 20, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'ประวัติการชำระ',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (loan.paymentHistory.isNotEmpty)
+                                TextButton(
+                                  onPressed: () => context.push('/loan/payment-history/${loan.applicationId}'),
+                                  child: const Text('ดูทั้งหมด'),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (loan.paymentHistory.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  Icon(LucideIcons.fileText, size: 40, color: Colors.grey[300]),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'ยังไม่มีประวัติการชำระ',
+                                    style: TextStyle(color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          // แสดง 3 รายการล่าสุด
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            itemCount: loan.paymentHistory.length > 3 ? 3 : loan.paymentHistory.length,
+                            separatorBuilder: (context, index) => const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final payment = loan.paymentHistory[index];
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  backgroundColor: AppColors.success.withOpacity(0.1),
+                                  radius: 18,
+                                  child: Text(
+                                    '${payment.installmentNo}',
+                                    style: const TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                title: Text(
+                                  'งวดที่ ${payment.installmentNo}',
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                ),
+                                subtitle: Text(
+                                  dateFormat.format(payment.paidDate ?? payment.dueDate),
+                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      currencyFormat.format(payment.totalAmount),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(LucideIcons.checkCircle, size: 16, color: AppColors.success),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                       ],
                     ),
                   ),
@@ -367,8 +434,7 @@ class LoanContractDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        );
+          );
       },
     );
   }
@@ -382,6 +448,7 @@ class LoanContractDetailScreen extends StatelessWidget {
             fontSize: 11,
             color: AppColors.textSecondary,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 2),
         Text(
@@ -390,6 +457,36 @@ class LoanContractDetailScreen extends StatelessWidget {
             fontSize: 13,
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentBreakdownItem({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white70, size: 18),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '$value บาท',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],
@@ -406,6 +503,7 @@ class LoanContractDetailScreen extends StatelessWidget {
             fontSize: 12,
             color: AppColors.textSecondary,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
         Text(
@@ -415,8 +513,29 @@ class LoanContractDetailScreen extends StatelessWidget {
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
       ],
+    );
+  }
+
+  Widget _buildInfoChip(String label, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            const SizedBox(height: 3),
+            Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
     );
   }
 

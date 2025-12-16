@@ -60,6 +60,7 @@ class HomeHeader extends ConsumerWidget {
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -73,21 +74,7 @@ class HomeHeader extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  onPressed: () {
-                    // Logout Logic
-                    // 1. Invalidate Account Providers to prevent data leak
-                    ref.invalidate(depositAccountsAsyncProvider);
-                    ref.invalidate(totalDepositBalanceAsyncProvider);
-                    
-                    // 2. Clear User Session
-                    CurrentUser.setUser(
-                      newName: '',
-                      newId: '',
-                      newRole: UserRole.member,
-                      newIsMember: false,
-                    );
-                    context.go('/login');
-                  },
+                  onPressed: () => _showLogoutConfirmation(context, ref),
                   icon: const Icon(LucideIcons.logOut, color: AppColors.error),
                   tooltip: 'ออกจากระบบ',
                 ),
@@ -121,6 +108,38 @@ class HomeHeader extends ConsumerWidget {
                 ],
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ออกจากระบบ'),
+        content: const Text('คุณต้องการออกจากระบบใช่หรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Logout Logic
+              ref.invalidate(depositAccountsAsyncProvider);
+              ref.invalidate(totalDepositBalanceAsyncProvider);
+              CurrentUser.setUser(
+                newName: '',
+                newId: '',
+                newRole: UserRole.member,
+                newIsMember: false,
+              );
+              context.go('/login');
+            },
+            child: const Text('ยืนยัน', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),

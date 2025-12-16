@@ -113,7 +113,7 @@ class _DividendDetailScreenState extends State<DividendDetailScreen> {
           const Text('เงินปันผลโดยประมาณ', style: TextStyle(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 8),
           Text(
-            '฿${currencyFormat.format(_summary?.totalAmount ?? 0)}',
+            '${currencyFormat.format(_summary?.totalAmount ?? 0)}',
             style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -150,11 +150,11 @@ class _DividendDetailScreenState extends State<DividendDetailScreen> {
           const SizedBox(height: 16),
           _buildDetailRow('ปีบัญชี', '${_summary?.year ?? DateTime.now().year}'),
           const Divider(height: 24),
-          _buildDetailRow('มูลค่าหุ้นเฉลี่ย', '฿${currencyFormat.format(_summary?.averageShares ?? 0)}'),
+          _buildDetailRow('มูลค่าหุ้นเฉลี่ย', '${currencyFormat.format(_summary?.averageShares ?? 0)}'),
           const Divider(height: 24),
           _buildDetailRow('อัตราปันผล', '${_rate?.rate ?? 0}%'),
           const Divider(height: 24),
-          _buildDetailRow('เงินปันผล', '฿${currencyFormat.format(_summary?.totalAmount ?? 0)}', isHighlight: true),
+          _buildDetailRow('เงินปันผล', '${currencyFormat.format(_summary?.totalAmount ?? 0)}', isHighlight: true),
         ],
       ),
     );

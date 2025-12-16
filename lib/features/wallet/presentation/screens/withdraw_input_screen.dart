@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -19,21 +20,23 @@ class WithdrawInputScreen extends ConsumerStatefulWidget {
 
 class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _accountController = TextEditingController(); // Target bank account
+  final TextEditingController _accountController = TextEditingController();
+  
+  final FocusNode _accountFocusNode = FocusNode();
+  final FocusNode _amountFocusNode = FocusNode();
   
   String? _selectedBank;
-  final List<Map<String, String>> _banks = [
-    {'id': 'KBANK', 'name': 'ธนาคารกสิกรไทย', 'icon': 'assets/images/kbank.png'}, // Placeholder icons
-    {'id': 'SCB', 'name': 'ธนาคารไทยพาณิชย์', 'icon': 'assets/images/scb.png'},
-    {'id': 'BBL', 'name': 'ธนาคารกรุงเทพ', 'icon': 'assets/images/bbl.png'},
-    {'id': 'KTB', 'name': 'ธนาคารกรุงไทย', 'icon': 'assets/images/ktb.png'},
-  ];
+  List<Map<String, dynamic>> _banks = [];
+  bool _isLoadingBanks = true;
 
   String? _selectedSourceAccountId;
 
   @override
   void initState() {
     super.initState();
+    _loadBanks();
+    _accountFocusNode.addListener(() => setState(() {}));
+    _amountFocusNode.addListener(() => setState(() {}));
     // Pre-select first account
     ref.read(depositAccountsAsyncProvider.future).then((accounts) {
       if (accounts.isNotEmpty && mounted && _selectedSourceAccountId == null) {
@@ -44,10 +47,63 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
     });
   }
 
+  Future<void> _loadBanks() async {
+    try {
+      final jsonString = await rootBundle.loadString('assets/bank_logos/banks-logo.json');
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+      final List<Map<String, dynamic>> loadedBanks = [];
+      jsonData.forEach((key, value) {
+        // Skip PromptPay and TrueMoney for bank transfer
+        if (key != 'PromptPay' && key != 'TrueMoney') {
+          loadedBanks.add({
+            'id': key,
+            'name': value['name'] ?? key,
+            'icon': 'assets/bank_logos/$key.png',
+          });
+        }
+      });
+      // Sort: KTB first, then alphabetically by id
+      loadedBanks.sort((a, b) {
+        if (a['id'] == 'KTB') return -1;
+        if (b['id'] == 'KTB') return 1;
+        return (a['id'] as String).compareTo(b['id'] as String);
+      });
+      if (mounted) {
+        setState(() {
+          _banks = loadedBanks;
+          _isLoadingBanks = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading banks: $e');
+      if (mounted) {
+        setState(() => _isLoadingBanks = false);
+      }
+    }
+  }
+
+  void _showBankSelector() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _BankSelectorSheet(
+        banks: _banks,
+        selectedBank: _selectedBank,
+        onSelect: (bankId) {
+          setState(() => _selectedBank = bankId);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _amountController.dispose();
     _accountController.dispose();
+    _accountFocusNode.dispose();
+    _amountFocusNode.dispose();
     super.dispose();
   }
 
@@ -78,7 +134,7 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
     
     if (sourceAccount.balance < amount) {
        ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text('ยอดเงินไม่เพียงพอ (มี ฿${NumberFormat('#,##0.00').format(sourceAccount.balance)})'))
+         SnackBar(content: Text('ยอดเงินไม่เพียงพอ (มี ${NumberFormat('#,##0.00').format(sourceAccount.balance)})'))
        );
        return;
     }
@@ -112,13 +168,23 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
       );
 
       if (mounted) {
+        // Get source account info
+        final accounts = ref.read(depositAccountsProvider);
+        final sourceAccount = accounts.firstWhere(
+          (a) => a.id == _selectedSourceAccountId,
+          orElse: () => DepositAccount(id: '', accountNumber: '', accountName: '', accountType: AccountType.savings, balance: 0, interestRate: 0, accruedInterest: 0, openedDate: DateTime.now()),
+        );
+        
         // Go to Success Screen
         context.go('/transfer/success', extra: {
           'transaction_id': 'WTD-${DateTime.now().millisecondsSinceEpoch}',
           'amount': amount,
+          'from_name': '${sourceAccount.accountName}\n${sourceAccount.accountNumber}',
           'target_name': '${_banks.firstWhere((b) => b['id'] == _selectedBank)['name']}\n${_accountController.text}',
           'note': 'ถอนเงินสำเร็จ',
           'timestamp': DateTime.now().toIso8601String(),
+          'repeat_text': 'ถอนเงินอีกครั้ง',
+          'repeat_route': '/wallet/withdraw',
         });
       }
     } catch (e) {
@@ -184,7 +250,7 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
                         children: [
                           Flexible(child: Text('${account.accountName} (${account.accountNumber})', overflow: TextOverflow.ellipsis)),
                           Text(
-                            '฿${NumberFormat('#,##0.00').format(account.balance)}',
+                            '${NumberFormat('#,##0.00').format(account.balance)}',
                             style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
                           ),
                         ],
@@ -203,47 +269,73 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
             const Divider(height: 1),
             const SizedBox(height: 24),
 
-            const Text('เลือกบัญชีธนาคารปลายทาง', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('ธนาคาร', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: Column(
-                children: _banks.map((bank) {
-                  final isSelected = _selectedBank == bank['id'];
-                  return RadioListTile<String>(
-                    value: bank['id']!,
-                    groupValue: _selectedBank,
-                    onChanged: (val) => setState(() => _selectedBank = val),
-                    title: Text(bank['name']!),
-                    secondary: Container(
-                      width: 40, 
-                      height: 40,
+            _isLoadingBanks
+                ? const Center(child: CircularProgressIndicator())
+                : InkWell(
+                    onTap: () => _showBankSelector(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.divider),
                       ),
-                      // child: Image.asset(bank['icon']!), // Placeholder
-                      child: const Icon(Icons.account_balance, color: Colors.grey),
+                      child: Row(
+                        children: [
+                          if (_selectedBank != null) ...[
+                            Image.asset(
+                              'assets/bank_logos/$_selectedBank.png',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.account_balance, color: Colors.grey, size: 20),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _banks.firstWhere((b) => b['id'] == _selectedBank, orElse: () => {'name': ''})['name'] as String,
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  Text(
+                                    _selectedBank!,
+                                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            const Icon(Icons.account_balance, color: Colors.grey),
+                            const SizedBox(width: 12),
+                            const Expanded(child: Text('เลือกธนาคาร', style: TextStyle(color: Colors.grey))),
+                          ],
+                          const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                        ],
+                      ),
                     ),
-                    activeColor: AppColors.primary,
-                    selected: isSelected,
-                  );
-                }).toList(),
-              ),
-            ),
+                  ),
             
             const SizedBox(height: 24),
             const Text('เลขที่บัญชี', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
              TextField(
               controller: _accountController,
+              focusNode: _accountFocusNode,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                hintText: 'xxx-x-xxxxx-x',
+                hintText: _accountFocusNode.hasFocus ? null : 'xxx-x-xxxxx-x',
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -258,14 +350,15 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _amountController,
+              focusNode: _amountFocusNode,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                 CurrencyInputFormatter(),
               ],
               decoration: InputDecoration(
-                prefixText: '฿ ',
-                hintText: '0.00',
+                prefixText: '',
+                hintText: _amountFocusNode.hasFocus ? null : '0.00',
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -302,3 +395,141 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
     );
   }
 }
+
+/// Fullscreen bank selector modal with search
+class _BankSelectorSheet extends StatefulWidget {
+  final List<Map<String, dynamic>> banks;
+  final String? selectedBank;
+  final Function(String) onSelect;
+
+  const _BankSelectorSheet({
+    required this.banks,
+    required this.selectedBank,
+    required this.onSelect,
+  });
+
+  @override
+  State<_BankSelectorSheet> createState() => _BankSelectorSheetState();
+}
+
+class _BankSelectorSheetState extends State<_BankSelectorSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  List<Map<String, dynamic>> _filteredBanks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredBanks = widget.banks;
+    _searchFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _filterBanks(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredBanks = widget.banks;
+      } else {
+        final lowerQuery = query.toLowerCase();
+        _filteredBanks = widget.banks.where((bank) {
+          final name = (bank['name'] as String).toLowerCase();
+          final id = (bank['id'] as String).toLowerCase();
+          return name.contains(lowerQuery) || id.contains(lowerQuery);
+        }).toList();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'ธนาคาร',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          // Search
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              onChanged: _filterBanks,
+              decoration: InputDecoration(
+                hintText: _searchFocusNode.hasFocus ? null : 'ค้นหาธนาคาร...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          // Bank List
+          Expanded(
+            child: ListView.builder(
+              itemCount: _filteredBanks.length,
+              itemBuilder: (context, index) {
+                final bank = _filteredBanks[index];
+                final isSelected = widget.selectedBank == bank['id'];
+                return ListTile(
+                  leading: Image.asset(
+                    bank['icon'] as String,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.account_balance, color: Colors.grey, size: 20),
+                    ),
+                  ),
+                  title: Text(bank['name'] as String),
+                  subtitle: Text(bank['id'] as String, style: TextStyle(color: Colors.grey[600])),
+                  trailing: isSelected ? Icon(Icons.check, color: AppColors.primary) : null,
+                  onTap: () => widget.onSelect(bank['id'] as String),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

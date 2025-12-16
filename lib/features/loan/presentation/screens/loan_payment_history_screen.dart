@@ -40,11 +40,12 @@ class LoanPaymentHistoryScreen extends StatelessWidget {
                       Text('ยอดชำระทั้งหมด', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
                       const SizedBox(height: 4),
                       Text(
-                        NumberFormat.currency(symbol: '฿', decimalDigits: 2).format(15250),
+                        NumberFormat.currency(symbol: '', decimalDigits: 2).format(15250),
                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -123,9 +124,9 @@ class LoanPaymentHistoryScreen extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Text('ต้น ${NumberFormat('#,##0').format(t['principal'])}', style: const TextStyle(fontSize: 12)),
+                  Text('ต้น ${NumberFormat('#,##0').format(t['principal'])}', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
                   const SizedBox(width: 8),
-                  Text('ดอก ${NumberFormat('#,##0').format(t['interest'])}', style: const TextStyle(fontSize: 12, color: AppColors.error)),
+                  Text('ดอก ${NumberFormat('#,##0').format(t['interest'])}', style: const TextStyle(fontSize: 12, color: AppColors.error), overflow: TextOverflow.ellipsis),
                 ],
               ),
             ],
@@ -135,12 +136,13 @@ class LoanPaymentHistoryScreen extends StatelessWidget {
              crossAxisAlignment: CrossAxisAlignment.end,
              children: [
                Text(
-                 '- ฿${NumberFormat('#,##0').format(t['total'])}', 
+                 '- ${NumberFormat('#,##0.00').format(t['total'])}', 
                  style: const TextStyle(
                    color: AppColors.textPrimary, 
                    fontWeight: FontWeight.bold,
                    fontSize: 16
                   ),
+                 overflow: TextOverflow.ellipsis,
                ),
                const SizedBox(height: 4),
                 Container(

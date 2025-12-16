@@ -16,6 +16,8 @@ class TransferSuccessScreen extends StatelessWidget {
     final txnId = args['transaction_id'] as String;
     final timestamp = DateTime.parse(args['timestamp'] as String);
     final note = args['note'] as String?;
+    final repeatText = args['repeat_text'] as String? ?? 'ทำรายการอีกครั้ง';
+    final repeatRoute = args['repeat_route'] as String? ?? '/home';
 
     return Scaffold(
       backgroundColor: AppColors.primary,
@@ -65,7 +67,7 @@ class TransferSuccessScreen extends StatelessWidget {
                        padding: const EdgeInsets.all(24),
                        child: Column(
                          children: [
-                           _buildDetailRow('จาก', 'Wallet ของคุณ'),
+                           _buildDetailRow('จาก', args['from_name'] as String? ?? 'Wallet ของคุณ'),
                            const SizedBox(height: 16),
                            _buildDetailRow('ไปยัง', targetName),
                            const SizedBox(height: 16),
@@ -78,8 +80,9 @@ class TransferSuccessScreen extends StatelessWidget {
                              children: [
                                const Text('จำนวนเงิน'),
                                Text(
-                                 '฿ ${NumberFormat('#,##0.00').format(amount)}',
+                                 '${NumberFormat('#,##0.00').format(amount)}',
                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                 overflow: TextOverflow.ellipsis,
                                ),
                              ],
                            ),
@@ -92,7 +95,7 @@ class TransferSuccessScreen extends StatelessWidget {
                                  children: [
                                    const Icon(Icons.edit_note, size: 16, color: AppColors.textSecondary),
                                    const SizedBox(width: 8),
-                                   Text(note, style: const TextStyle(color: AppColors.textSecondary)),
+                                   Text(note, style: const TextStyle(color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
                                  ],
                                ),
                              )
@@ -104,18 +107,34 @@ class TransferSuccessScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => context.go('/home'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => context.go(repeatRoute),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: Text(repeatText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
                   ),
-                  child: const Text('กลับสู่หน้าหลัก', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => context.go('/home'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white, width: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('กลับหน้าหลัก', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                ],
               )
             ],
           ),
@@ -129,7 +148,7 @@ class TransferSuccessScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(color: AppColors.textSecondary)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600), textAlign: TextAlign.end, overflow: TextOverflow.ellipsis)),
       ],
     );
   }

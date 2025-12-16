@@ -127,6 +127,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                     Text(
                       product!.name,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       'ดอกเบี้ย ${product!.interestRate}% ต่อปี',
@@ -153,7 +154,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
                 fontWeight: FontWeight.bold,
               ),
               decoration: InputDecoration(
-                prefixText: '฿ ',
+                prefixText: '',
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -234,11 +235,11 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow(context, 'ค่างวดต่อเดือน', NumberFormat.currency(symbol: '฿').format(_monthlyPayment), isHighlight: true),
+                  _buildSummaryRow(context, 'ค่างวดต่อเดือน', NumberFormat.currency(symbol: '').format(_monthlyPayment), isHighlight: true),
                   const Divider(height: 32),
-                  _buildSummaryRow(context, 'ดอกเบี้ยรวมโดยประมาณ', NumberFormat.currency(symbol: '฿').format(_totalInterest)),
+                  _buildSummaryRow(context, 'ดอกเบี้ยรวมโดยประมาณ', NumberFormat.currency(symbol: '').format(_totalInterest)),
                   const SizedBox(height: 16),
-                  _buildSummaryRow(context, 'ยอดชำระคืนทั้งหมด', NumberFormat.currency(symbol: '฿').format(_totalPayment)),
+                  _buildSummaryRow(context, 'ยอดชำระคืนทั้งหมด', NumberFormat.currency(symbol: '').format(_totalPayment)),
                 ],
               ),
             ),
@@ -291,14 +292,17 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
             color: AppColors.textSecondary,
           ),
         ),
-        Text(
-          value,
-          style: isHighlight
-              ? Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  )
-              : Theme.of(context).textTheme.titleMedium,
+        Flexible(
+          child: Text(
+            value,
+            style: isHighlight
+                ? Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    )
+                : Theme.of(context).textTheme.titleMedium,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

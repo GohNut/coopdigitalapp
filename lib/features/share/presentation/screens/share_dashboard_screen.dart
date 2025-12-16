@@ -223,7 +223,7 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> with Widget
            Row(
              crossAxisAlignment: CrossAxisAlignment.end,
              children: [
-               Text('฿${currency.format(data.totalValue)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary)),
+               Text('${currency.format(data.totalValue)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary), overflow: TextOverflow.ellipsis),
                const SizedBox(width: 8),
                Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -327,7 +327,7 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> with Widget
                      getTooltipItems: (touchedSpots) {
                        return touchedSpots.map((spot) {
                          return LineTooltipItem(
-                           '฿${currency.format(spot.y)}',
+                           '${currency.format(spot.y)}',
                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                          );
                        }).toList();
@@ -374,7 +374,7 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> with Widget
            const SizedBox(height: 12),
            Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
            const SizedBox(height: 4),
-           Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+           Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -414,8 +414,10 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> with Widget
                 children: [
                   const Text('เงินปันผลโดยประมาณ', style: TextStyle(color: Colors.white70, fontSize: 12)),
                   const SizedBox(height: 4),
-                  Text('฿${currency.format(dividend.totalAmount)}', 
-                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text('${currency.format(dividend.totalAmount)}', 
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

@@ -22,11 +22,15 @@ class TransferInputScreen extends ConsumerStatefulWidget {
 class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
+  final FocusNode _noteFocusNode = FocusNode();
+  bool _isAmountFocused = false;
   String? _selectedSourceAccountId;
   
   @override
   void initState() {
     super.initState();
+    _noteFocusNode.addListener(() => setState(() {}));
     // Pre-select first account
     ref.read(depositAccountsAsyncProvider.future).then((accounts) {
       if (accounts.isNotEmpty && mounted && _selectedSourceAccountId == null) {
@@ -41,6 +45,8 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
   void dispose() {
     _amountController.dispose();
     _noteController.dispose();
+    _amountFocusNode.dispose();
+    _noteFocusNode.dispose();
     super.dispose();
   }
 
@@ -104,7 +110,7 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
           const SizedBox(height: 12),
           _buildDetailRow('ไปยัง', '$destName\n$destNo'),
           const SizedBox(height: 12),
-          _buildDetailRow('จำนวนเงิน', '฿ ${NumberFormat('#,##0.00').format(amount)}', isBold: true),
+          _buildDetailRow('จำนวนเงิน', '${NumberFormat('#,##0.00').format(amount)}', isBold: true),
           if (_noteController.text.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildDetailRow('บันทึกช่วยจำ', _noteController.text),
@@ -146,6 +152,7 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
               color: AppColors.textPrimary,
               fontSize: isBold ? 18 : 14,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -169,13 +176,23 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
       );
 
       if (mounted) {
+        // Get source account info
+        final accounts = ref.read(depositAccountsProvider);
+        final sourceAccount = accounts.firstWhere(
+          (a) => a.id == _selectedSourceAccountId,
+          orElse: () => _emptyAccount(),
+        );
+        
         // Go to Success Screen
         context.go('/transfer/success', extra: {
           'transaction_id': 'TRF-${DateTime.now().millisecondsSinceEpoch}',
           'amount': amount,
+          'from_name': '${sourceAccount.accountName}\n${sourceAccount.accountNumber}',
           'target_name': widget.account['accountname'],
           'note': _noteController.text,
           'timestamp': DateTime.now().toIso8601String(),
+          'repeat_text': 'โอนเงินอีกครั้ง',
+          'repeat_route': '/transfer',
         });
       }
     } catch (e) {
@@ -280,8 +297,8 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(destName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text('$destNo ($destId)', style: const TextStyle(color: AppColors.textSecondary)),
+                        Text(destName, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                        Text('$destNo ($destId)', style: const TextStyle(color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
                       ],
                     )
                   )
@@ -291,29 +308,33 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
             const SizedBox(height: 24),
             
             // Amount Input
-            TextField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                CurrencyInputFormatter(),
-              ],
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary),
-              decoration: const InputDecoration(
-                hintText: '0.00',
-                border: InputBorder.none,
-                prefixText: '฿ ',
-                prefixStyle: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary),
+            Focus(
+              onFocusChange: (hasFocus) => setState(() => _isAmountFocused = hasFocus),
+              child: TextField(
+                controller: _amountController,
+                focusNode: _amountFocusNode,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  CurrencyInputFormatter(),
+                ],
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary),
+                decoration: InputDecoration(
+                  hintText: _isAmountFocused ? null : '0.00',
+                  hintStyle: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary.withOpacity(0.3)),
+                  border: InputBorder.none,
+                ),
               ),
             ),
-            Text('ยอดเงินในบัญชี: ฿ $sourceBalanceStr', style: const TextStyle(color: AppColors.textSecondary)),
+            Text('ยอดเงินในบัญชี: $sourceBalanceStr', style: const TextStyle(color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
             
             const SizedBox(height: 32),
             TextField(
               controller: _noteController,
+              focusNode: _noteFocusNode,
               decoration: InputDecoration(
-                hintText: 'บันทึกช่วยจำ (ถ้ามี)',
+                hintText: _noteFocusNode.hasFocus ? null : 'บันทึกช่วยจำ (ถ้ามี)',
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(

@@ -204,6 +204,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               'ยอดคงเหลือ ${selectedSource.displayBalance}',
@@ -211,6 +212,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                                 color: Colors.grey[600],
                                 fontSize: 14,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),

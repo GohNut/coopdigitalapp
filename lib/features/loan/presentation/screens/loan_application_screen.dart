@@ -272,6 +272,7 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
               Text(
                 '฿ ${NumberFormat("#,##0.00").format(installment)}',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -599,12 +600,12 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
              ListTile(
                contentPadding: EdgeInsets.zero,
                title: const Text('ยอดขอกู้'),
-               trailing: Text('${NumberFormat("#,##0").format(_requestAmount)} บ.'),
+               trailing: Text('${NumberFormat("#,##0").format(_requestAmount)} บ.', overflow: TextOverflow.ellipsis),
              ),
              ListTile(
                contentPadding: EdgeInsets.zero,
                title: const Text('จำนวนงวด'),
-               trailing: Text('$_months งวด'),
+               trailing: Text('$_months งวด', overflow: TextOverflow.ellipsis),
              ),
               if (product.requireGuarantor) ...[
                  const Divider(),
@@ -613,14 +614,14 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
                    ListTile(
                      contentPadding: EdgeInsets.zero,
                      title: const Text('สมาชิกสหกรณ์'),
-                     trailing: Text(_guarantorController.text.isNotEmpty ? 'รหัส ${_guarantorController.text}' : '-'),
+                     trailing: Text(_guarantorController.text.isNotEmpty ? 'รหัส ${_guarantorController.text}' : '-', overflow: TextOverflow.ellipsis),
                    )
                  else
                    ListTile(
                      contentPadding: EdgeInsets.zero,
                      title: const Text('บุคคลภายนอก'),
-                     subtitle: Text('ความสัมพันธ์: ${_guarantorRelationController.text}'),
-                     trailing: Text(_guarantorNameController.text.isNotEmpty ? _guarantorNameController.text : '-'),
+                     subtitle: Text('ความสัมพันธ์: ${_guarantorRelationController.text}', overflow: TextOverflow.ellipsis),
+                     trailing: SizedBox(width: 100, child: Text(_guarantorNameController.text.isNotEmpty ? _guarantorNameController.text : '-', overflow: TextOverflow.ellipsis, textAlign: TextAlign.end,),),
                    ),
               ],
               const Divider(),

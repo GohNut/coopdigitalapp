@@ -103,12 +103,13 @@ class _WithdrawReviewScreenState extends State<WithdrawReviewScreen> {
                   const Text('ยอดถอนเงิน', style: TextStyle(color: AppColors.textSecondary)),
                   const SizedBox(height: 8),
                   Text(
-                    '฿ ${NumberFormat('#,##0.00').format(amount)}',
+                    '${NumberFormat('#,##0.00').format(amount)}',
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 24),
                   const Divider(),
@@ -117,13 +118,13 @@ class _WithdrawReviewScreenState extends State<WithdrawReviewScreen> {
                   const SizedBox(height: 12),
                   _buildDetailRow('เลขที่บัญชี', accountNo),
                   const SizedBox(height: 12),
-                  _buildDetailRow('ค่าธรรมเนียม', '฿ 0.00'),
+                  _buildDetailRow('ค่าธรรมเนียม', '0.00'),
                   const SizedBox(height: 12),
                   const Divider(),
                   const SizedBox(height: 12),
                   _buildDetailRow(
                     'ยอดหักบัญชี', 
-                    '฿ ${NumberFormat('#,##0.00').format(amount)}',
+                    '${NumberFormat('#,##0.00').format(amount)}',
                     isBold: true,
                   ),
                 ],
@@ -161,6 +162,7 @@ class _WithdrawReviewScreenState extends State<WithdrawReviewScreen> {
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             color: AppColors.textPrimary,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

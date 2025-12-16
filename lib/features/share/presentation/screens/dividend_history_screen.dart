@@ -134,8 +134,10 @@ class _DividendHistoryScreenState extends State<DividendHistoryScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('฿${currencyFormat.format(item.amount)}', 
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
+              Text('${currencyFormat.format(item.amount)}', 
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green),
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: 4),
               Text('${item.rate}%', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
             ],

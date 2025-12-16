@@ -337,6 +337,7 @@ class _ShareHistoryScreenState extends State<ShareHistoryScreen> {
                   fontSize: 16,
                   color: color,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 '${transaction.units} หุ้น',

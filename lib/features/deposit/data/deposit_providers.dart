@@ -54,6 +54,30 @@ final totalDepositBalanceAsyncProvider = FutureProvider<double>((ref) async {
   return total;
 });
 
+/// Provider สำหรับยอดเงินฝากรวม ไม่รวมบัญชีเงินกู้ (async)
+final totalDepositExcludingLoanAsyncProvider = FutureProvider<double>((ref) async {
+  final accountsAsync = await ref.watch(depositAccountsAsyncProvider.future);
+  double total = 0.0;
+  for (final account in accountsAsync) {
+    if (account.accountType != AccountType.loan) {
+      total += account.balance;
+    }
+  }
+  return total;
+});
+
+/// Provider สำหรับยอดบัญชีเงินกู้ (async)
+final loanAccountBalanceAsyncProvider = FutureProvider<double>((ref) async {
+  final accountsAsync = await ref.watch(depositAccountsAsyncProvider.future);
+  double total = 0.0;
+  for (final account in accountsAsync) {
+    if (account.accountType == AccountType.loan) {
+      total += account.balance;
+    }
+  }
+  return total;
+});
+
 /// Provider สำหรับดึงบัญชีตาม ID (async)
 final depositAccountByIdAsyncProvider = FutureProvider.family<DepositAccount?, String>((ref, accountId) async {
   final data = await DynamicDepositApiService.getAccountById(accountId);
@@ -252,6 +276,8 @@ AccountType _parseAccountType(String? type) {
       return AccountType.fixed;
     case 'special':
       return AccountType.special;
+    case 'loan':
+      return AccountType.loan;
     default:
       return AccountType.savings;
   }

@@ -14,7 +14,7 @@ class AccountBookScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accounts = ref.watch(depositAccountsProvider);
     final totalBalance = ref.watch(totalDepositBalanceProvider);
-    final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '฿');
+    final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -184,12 +184,13 @@ class _AccountCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      account.accountName,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      Text(
+                        account.accountName,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
                     const SizedBox(height: 2),
                     Text(
                       account.accountNumber,
@@ -211,6 +212,7 @@ class _AccountCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: color,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -248,6 +250,8 @@ class _AccountCard extends StatelessWidget {
         return LucideIcons.lock;
       case AccountType.special:
         return LucideIcons.star;
+      case AccountType.loan:
+        return LucideIcons.banknote;
     }
   }
 }

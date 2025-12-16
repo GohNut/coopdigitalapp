@@ -158,8 +158,12 @@ class _LoanProductCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12)),
-        Text(value, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary)),
+        Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12), overflow: TextOverflow.ellipsis),
+        Text(
+          value, 
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }

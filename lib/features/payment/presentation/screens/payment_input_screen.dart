@@ -17,6 +17,7 @@ class PaymentInputScreen extends ConsumerStatefulWidget {
 
 class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
   final TextEditingController _amountController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
   bool _isLoading = false;
 
   PaymentSource? get _selectedSource => widget.args['selectedSource'] as PaymentSource?;
@@ -27,6 +28,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
   @override
   void initState() {
     super.initState();
+    _amountFocusNode.addListener(() => setState(() {}));
     if (_fixedAmount != null) {
       _amountController.text = _fixedAmount!.toStringAsFixed(2);
     }
@@ -35,6 +37,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
   @override
   void dispose() {
     _amountController.dispose();
+    _amountFocusNode.dispose();
     super.dispose();
   }
 
@@ -172,6 +175,9 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -215,6 +221,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _amountController,
+                    focusNode: _amountFocusNode,
                     enabled: _fixedAmount == null,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textAlign: TextAlign.center,
@@ -224,14 +231,14 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
                       color: AppColors.primary,
                     ),
                     decoration: InputDecoration(
-                      hintText: '0.00',
+                      hintText: _amountFocusNode.hasFocus ? null : '0.00',
                       hintStyle: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey[300],
                       ),
                       border: InputBorder.none,
-                      prefixText: '฿ ',
+                      prefixText: '',
                       prefixStyle: const TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
@@ -300,6 +307,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           'ยอดคงเหลือ ${source.displayBalance}',
@@ -307,6 +315,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
                             fontSize: 14,
                             color: Colors.grey[600],
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),

@@ -17,6 +17,7 @@ class CreateAccountScreen extends ConsumerStatefulWidget {
 class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   AccountType? _selectedType;
   final _nameController = TextEditingController();
+  final _nameFocusNode = FocusNode();
   int _fixedTermMonths = 12; // Default 12 months for fixed deposit
   bool _isCreating = false;
 
@@ -42,8 +43,15 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _nameFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
+    _nameFocusNode.dispose();
     super.dispose();
   }
 
@@ -124,8 +132,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: _nameController,
+                focusNode: _nameFocusNode,
                 decoration: InputDecoration(
-                  hintText: 'เช่น ออมเพื่ออนาคต, ฝากประจำ 12 เดือน',
+                  hintText: _nameFocusNode.hasFocus ? null : 'เช่น ออมเพื่ออนาคต, ฝากประจำ 12 เดือน',
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -388,7 +397,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
           if (type == AccountType.fixed)
             _buildSummaryRow('ระยะเวลาฝาก', '$_fixedTermMonths เดือน'),
           _buildSummaryRow('อัตราดอกเบี้ย', '$interestRate% ต่อปี'),
-          _buildSummaryRow('ยอดเปิดบัญชี', '฿0.00'),
+          _buildSummaryRow('ยอดเปิดบัญชี', '0.00'),
         ],
       ),
     );
@@ -437,6 +446,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
           break;
         case AccountType.special:
           accountName = 'เงินฝากออมทรัพย์พิเศษ';
+          break;
+        case AccountType.loan:
+          accountName = 'เงินกู้สหกรณ์';
           break;
       }
     }

@@ -89,7 +89,7 @@ class _WealthCalculatorDialogState extends State<WealthCalculatorDialog> {
                    const Text('เงินจะมีมูลค่ารวม', style: TextStyle(color: Colors.white70)),
                    const SizedBox(height: 4),
                    Text(
-                     '฿${currencyFormat.format(futureValue)}',
+                     '${currencyFormat.format(futureValue)}',
                      style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
                    ),
                    const SizedBox(height: 8),
