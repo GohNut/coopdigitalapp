@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class DynamicShareApiService {
   // Base URL สำหรับ API หุ้นสหกรณ์
-  static const String _baseUrl = 'https://coopapi.vercel.app/api/v1/loan';
+  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
   
   /// ดึงข้อมูลหุ้นสหกรณ์ของสมาชิก
   /// Returns: Map containing share info for the member

@@ -2,23 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/loan_repository_impl.dart';
 import '../../domain/loan_application_model.dart';
+import 'additional_document_review_screen.dart';
 
-class LoanContractDetailScreen extends StatelessWidget {
+class LoanContractDetailScreen extends StatefulWidget {
   final String contractId;
 
   const LoanContractDetailScreen({super.key, required this.contractId});
 
   @override
+  State<LoanContractDetailScreen> createState() => _LoanContractDetailScreenState();
+}
+
+class _LoanContractDetailScreenState extends State<LoanContractDetailScreen> {
+  final _repository = LoanRepositoryImpl();
+  List<PlatformFile> _pickedFiles = [];
+  bool _isSubmitting = false;
+
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'png', 'pdf'],
+    );
+
+    if (result != null) {
+      setState(() {
+        _pickedFiles.addAll(result.files);
+      });
+    }
+  }
+
+  void _removeFile(int index) {
+    setState(() {
+      _pickedFiles.removeAt(index);
+    });
+  }
+  
+  void _goToReviewScreen(String applicationId, String officerNote) {
+    if (_pickedFiles.isEmpty) return;
+    
+    context.push(
+      '/loan/additional-document-review',
+      extra: AdditionalDocumentArgs(
+        applicationId: applicationId,
+        officerNote: officerNote,
+        files: _pickedFiles,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final repository = LoanRepositoryImpl();
     final currencyFormat = NumberFormat.currency(symbol: '', decimalDigits: 0);
     final dateFormat = DateFormat('dd MMM yyyy', 'th');
 
     return FutureBuilder<List<LoanApplication>>(
-      future: repository.getLoanApplications(),
+      future: _repository.getLoanApplications(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
@@ -36,11 +79,15 @@ class LoanContractDetailScreen extends StatelessWidget {
 
         final applications = snapshot.data ?? [];
         final loan = applications.firstWhere(
-          (app) => app.applicationId == contractId,
+          (app) => app.applicationId == widget.contractId,
           orElse: () => applications.first,
         );
 
         final loanDetails = loan.loanDetails;
+        
+        // Loan status approved check
+        final isApproved = loan.status == LoanApplicationStatus.approved;
+        final isWaitingForDocs = loan.status == LoanApplicationStatus.waitingForDocs;
         final progress = loanDetails.requestAmount > 0 
             ? loanDetails.paidAmount / loanDetails.requestAmount 
             : 0.0;
@@ -115,8 +162,8 @@ class LoanContractDetailScreen extends StatelessWidget {
                     ),
                   ),
                   
-                  // Officer Comment Section (Visible if exists)
-                  if (loan.officerComment != null && loan.officerComment!.isNotEmpty)
+                  // Officer Comment Section (Visible if exists OR waiting for docs)
+                  if ((loan.officerComment != null && loan.officerComment!.isNotEmpty) || isWaitingForDocs)
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       padding: const EdgeInsets.all(16),
@@ -133,23 +180,84 @@ class LoanContractDetailScreen extends StatelessWidget {
                               Icon(LucideIcons.messageSquare, size: 18, color: AppColors.info),
                               const SizedBox(width: 8),
                               Text(
-                                'ความเห็นเจ้าหน้าที่',
-                                style: const TextStyle(
+                                isWaitingForDocs ? 'แจ้งเตือนจากเจ้าหน้าที่' : 'ความเห็นเจ้าหน้าที่',
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.info,
+                                  color: isWaitingForDocs ? AppColors.warning : AppColors.info,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            loan.officerComment!,
-                            style: const TextStyle(
+                            isWaitingForDocs 
+                                ? (loan.officerRequestNote ?? loan.officerComment ?? 'กรุณาส่งเอกสารเพิ่มเติม') 
+                                : loan.officerComment!,
+                            style: TextStyle(
+                              color: isWaitingForDocs ? Colors.orange[800] : AppColors.textSecondary,
                               fontSize: 14,
-                              color: AppColors.textPrimary,
                             ),
                           ),
+                          if (isWaitingForDocs) ...[
+                            const SizedBox(height: 12),
+                            
+                            // Picked Files List
+                            if (_pickedFiles.isNotEmpty) ...[
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: _pickedFiles.length,
+                                  separatorBuilder: (_, __) => const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    final file = _pickedFiles[index];
+                                    return ListTile(
+                                      visualDensity: VisualDensity.compact,
+                                      leading: const Icon(LucideIcons.file, size: 20, color: AppColors.primary),
+                                      title: Text(file.name, style: const TextStyle(fontSize: 13)),
+                                      trailing: IconButton(
+                                        icon: const Icon(LucideIcons.x, size: 16, color: Colors.grey),
+                                        onPressed: () => _removeFile(index),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isSubmitting ? null : _pickFiles,
+                                    icon: const Icon(LucideIcons.plus, size: 16),
+                                    label: const Text('เพิ่มเอกสาร'),
+                                  ),
+                                ),
+                                if (_pickedFiles.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: () => _goToReviewScreen(
+                                        loan.applicationId, 
+                                        loan.officerRequestNote ?? loan.officerComment ?? '',
+                                      ),
+                                      icon: const Icon(LucideIcons.arrowRight, size: 16),
+                                      label: const Text('ต่อไป'),
+                                      style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

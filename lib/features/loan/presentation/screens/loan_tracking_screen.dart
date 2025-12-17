@@ -145,6 +145,7 @@ class _LoanTrackingCard extends StatelessWidget {
       case LoanApplicationStatus.approved:
         return loan.loanDetails.remainingAmount <= 0 ? AppColors.success : AppColors.primary;
       case LoanApplicationStatus.pending: return AppColors.warning;
+      case LoanApplicationStatus.waitingForDocs: return Colors.orange;
       case LoanApplicationStatus.rejected: return Colors.red;
     }
   }
@@ -154,6 +155,7 @@ class _LoanTrackingCard extends StatelessWidget {
       case LoanApplicationStatus.approved:
          return loan.loanDetails.remainingAmount <= 0 ? 'ชำระครบแล้ว' : 'กำลังชำระ';
       case LoanApplicationStatus.pending: return 'รออนุมัติ';
+      case LoanApplicationStatus.waitingForDocs: return 'รอเอกสารเพิ่ม';
       case LoanApplicationStatus.rejected: return 'ไม่อนุมัติ';
     }
   }

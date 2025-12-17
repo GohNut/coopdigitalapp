@@ -1,5 +1,6 @@
 enum LoanApplicationStatus {
   pending,
+  waitingForDocs,
   approved,
   rejected;
 
@@ -9,6 +10,9 @@ enum LoanApplicationStatus {
         return LoanApplicationStatus.approved;
       case 'rejected':
         return LoanApplicationStatus.rejected;
+      case 'waitingfordocs':
+      case 'waiting_for_docs':
+        return LoanApplicationStatus.waitingForDocs;
       default:
         return LoanApplicationStatus.pending;
     }
@@ -17,6 +21,7 @@ enum LoanApplicationStatus {
   String toDisplayString() {
     switch (this) {
       case LoanApplicationStatus.pending: return 'รอพิจารณา';
+      case LoanApplicationStatus.waitingForDocs: return 'รอเอกสารเพิ่ม';
       case LoanApplicationStatus.approved: return 'อนุมัติ';
       case LoanApplicationStatus.rejected: return 'ปฏิเสธ';
     }
@@ -391,6 +396,11 @@ class LoanApplication {
   // Officer comment
   final String? officerComment;
 
+  // New fields for Document Request
+  final DateTime? additionalDocRequestDate;
+  final String? officerRequestNote;
+  final List<LoanDocument> additionalDocuments;
+
   // Helpers for backward compatibility or easy access
   String get id => applicationId;
   String get applicantName => applicant.fullName;
@@ -415,6 +425,9 @@ class LoanApplication {
     this.depositAccountNumber,
     this.depositAccountName,
     this.officerComment,
+    this.additionalDocRequestDate,
+    this.officerRequestNote,
+    this.additionalDocuments = const [],
   });
 
   factory LoanApplication.fromJson(Map<String, dynamic> json) {
@@ -475,6 +488,15 @@ class LoanApplication {
       depositAccountNumber: json['depositaccountnumber'] ?? json['depositAccountNumber'],
       depositAccountName: json['depositaccountname'] ?? json['depositAccountName'],
       officerComment: json['officercomment'] ?? json['officerComment'],
+      additionalDocRequestDate: json['additional_doc_request_date'] != null 
+          ? DateTime.parse(json['additional_doc_request_date']) 
+          : null,
+      officerRequestNote: json['officer_request_note'],
+      additionalDocuments: (json['additional_documents'] is List)
+          ? (json['additional_documents'] as List<dynamic>)
+              .map((e) => LoanDocument.fromJson(e))
+              .toList()
+          : [],
     );
   }
 
@@ -494,6 +516,9 @@ class LoanApplication {
       'depositaccountnumber': depositAccountNumber,
       'depositaccountname': depositAccountName,
       'officercomment': officerComment,
+      'additional_doc_request_date': additionalDocRequestDate?.toIso8601String(),
+      'officer_request_note': officerRequestNote,
+      'additional_documents': additionalDocuments.map((e) => e.toJson()).toList(),
     };
   }
 

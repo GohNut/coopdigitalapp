@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 /// API Service สำหรับจัดการเงินปันผลสหกรณ์
 class DynamicDividendApiService {
-  static const String _baseUrl = 'https://coopapi.vercel.app/api/v1/loan';
+  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
 
   /// ดึงอัตราปันผลล่าสุด
   static Future<Map<String, dynamic>> getDividendRates() async {

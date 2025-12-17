@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 /// API Service สำหรับจัดการบัญชีเงินฝาก (เชื่อมต่อ MongoDB)
 class DynamicDepositApiService {
-  static const String _baseUrl = 'https://coopapi.vercel.app/api/v1/loan';
+  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
 
   /// ดึงข้อมูลสมาชิกจากเลขบัตรประชาชน (Member ID)
   static Future<Map<String, dynamic>?> getMember(String citizenId) async {
@@ -32,18 +32,30 @@ class DynamicDepositApiService {
     required String citizenId, // ใช้เป็น memberid
     required String nameTh,
     required String mobile,
-    required String pin, // Added PIN
+    String? email,
+    String? password, // For new registration
+    String? pin, // PIN for transactions
+    Map<String, dynamic>? additionalData, // For storing occupation, address, etc.
   }) async {
     final now = DateTime.now();
     
-    final data = {
+    final data = <String, dynamic>{
       'memberid': citizenId,
       'name_th': nameTh,
       'mobile': mobile,
-      'pin': pin, // Added PIN
       'role': 'member',
       'created_at': now.toIso8601String(),
     };
+
+    // Add optional fields
+    if (email != null && email.isNotEmpty) data['email'] = email;
+    if (password != null && password.isNotEmpty) data['password'] = password;
+    if (pin != null && pin.isNotEmpty) data['pin'] = pin;
+    
+    // Merge additional data (occupation, spouse info, etc.)
+    if (additionalData != null) {
+      data.addAll(additionalData);
+    }
 
     final response = await http.post(
       Uri.parse('$_baseUrl/create'),

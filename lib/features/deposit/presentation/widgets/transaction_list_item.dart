@@ -159,6 +159,8 @@ class TransactionListItem extends StatelessWidget {
         return LucideIcons.sparkles;
       case TransactionType.fee:
         return LucideIcons.receipt;
+      case TransactionType.payment:
+        return LucideIcons.qrCode;
     }
   }
 }

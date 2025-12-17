@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/notification/presentation/screens/notification_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/screens/main_layout_screen.dart';
+import '../../features/home/presentation/screens/profile_screen.dart';
 import '../../features/wallet/presentation/screens/account_book_screen.dart';
 import '../../features/deposit/presentation/screens/deposit_account_list_screen.dart';
 import '../../features/deposit/presentation/screens/deposit_account_detail_screen.dart';
@@ -27,7 +29,7 @@ import '../../features/loan/presentation/screens/loan_document_screen.dart';
 import '../../features/loan/presentation/screens/loan_review_screen.dart';
 import '../../features/auth/presentation/screens/pin_verification_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/auth/presentation/screens/register/register_wizard_screen.dart';
 import '../../features/loan/presentation/screens/loan_success_screen.dart';
 import '../../features/loan/presentation/screens/loan_tracking_screen.dart';
 import '../../features/loan/presentation/screens/loan_contract_detail_screen.dart';
@@ -49,6 +51,7 @@ import '../../features/share/presentation/screens/dividend_history_screen.dart';
 import '../../features/share/presentation/screens/dividend_request_screen.dart';
 import '../../features/loan/presentation/screens/loan_products_management_screen.dart';
 import '../../features/loan/presentation/screens/loan_product_form_screen.dart';
+import '../../features/loan/presentation/screens/additional_document_review_screen.dart';
 import '../../features/loan/domain/loan_product_model.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -66,7 +69,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => const RegisterWizardScreen(),
+      ),
+      GoRoute(
+        path: '/notifications', // Changed from '/notification' to match standard plural
+        builder: (context, state) => const NotificationScreen(),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
       ),
       
       StatefulShellRoute.indexedStack(
@@ -282,6 +293,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
                final applicationId = state.pathParameters['applicationId'] ?? '';
                return LoanPaymentScreen(applicationId: applicationId);
+            },
+          ),
+          GoRoute(
+            path: 'additional-document-review',
+            builder: (context, state) {
+               final args = state.extra as AdditionalDocumentArgs;
+               return AdditionalDocumentReviewScreen(args: args);
             },
           ),
         ],

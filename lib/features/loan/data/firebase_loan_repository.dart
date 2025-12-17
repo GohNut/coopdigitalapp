@@ -124,4 +124,13 @@ class FirebaseLoanRepository implements LoanRepository {
     // TODO: Implement payment recording in Firestore
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> submitAdditionalDocuments({
+    required String applicationId,
+    required List<String> fileNames,
+  }) async {
+    // TODO: Implement document submission in Firestore
+    throw UnimplementedError();
+  }
 }

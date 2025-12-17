@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -5,9 +6,11 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_application_model.dart';
 import '../../data/loan_repository_impl.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../notification/domain/notification_model.dart';
 import '../../../auth/domain/user_role.dart';
 
-class OfficerLoanDetailScreen extends StatefulWidget {
+class OfficerLoanDetailScreen extends ConsumerStatefulWidget {
   final LoanApplication application;
 
   const OfficerLoanDetailScreen({
@@ -16,10 +19,10 @@ class OfficerLoanDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<OfficerLoanDetailScreen> createState() => _OfficerLoanDetailScreenState();
+  ConsumerState<OfficerLoanDetailScreen> createState() => _OfficerLoanDetailScreenState();
 }
 
-class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
+class _OfficerLoanDetailScreenState extends ConsumerState<OfficerLoanDetailScreen> {
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
   late LoanApplicationStatus _currentStatus;
@@ -67,11 +70,15 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
             content: Text(
               newStatus == LoanApplicationStatus.approved 
                   ? 'อนุมัติสินเชื่อเรียบร้อยแล้ว' 
-                  : 'ปฏิเสธสินเชื่อเรียบร้อยแล้ว'
+                  : (newStatus == LoanApplicationStatus.waitingForDocs 
+                      ? 'ส่งคำขอเอกสารเพิ่มเติมแล้ว' 
+                      : 'ปฏิเสธสินเชื่อเรียบร้อยแล้ว')
             ),
             backgroundColor: newStatus == LoanApplicationStatus.approved 
                 ? AppColors.success 
-                : AppColors.error,
+                : (newStatus == LoanApplicationStatus.waitingForDocs 
+                    ? Colors.orange 
+                    : AppColors.error),
           ),
         );
         
@@ -122,6 +129,10 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
             const SizedBox(height: 20),
             _buildDocumentsInfo(),
             const SizedBox(height: 20),
+            if (widget.application.additionalDocuments.isNotEmpty) ...[
+              _buildAdditionalDocumentsInfo(),
+              const SizedBox(height: 20),
+            ],
             if (_currentStatus == LoanApplicationStatus.pending && CurrentUser.isOfficerOrApprover)
                _buildActionSection(),
             if (_currentStatus != LoanApplicationStatus.pending)
@@ -148,10 +159,22 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
         statusText = 'ปฏิเสธแล้ว';
         statusIcon = LucideIcons.xCircle;
         break;
+      case LoanApplicationStatus.waitingForDocs:
+        statusColor = Colors.orange;
+        statusText = 'รอเอกสารเพิ่มเติม';
+        statusIcon = LucideIcons.fileQuestion;
+        break;
       default:
-        statusColor = AppColors.warning;
-        statusText = 'รอการพิจารณา';
-        statusIcon = LucideIcons.clock;
+        // Check if re-submitted
+        if (widget.application.additionalDocuments.isNotEmpty) {
+           statusColor = Colors.purple;
+           statusText = 'รอตรวจสอบเอกสารเพิ่ม';
+           statusIcon = LucideIcons.fileSearch;
+        } else {
+           statusColor = AppColors.warning;
+           statusText = 'รอการพิจารณา';
+           statusIcon = LucideIcons.clock;
+        }
     }
 
     return Container(
@@ -270,7 +293,7 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
     final documents = widget.application.documents;
     
     return _buildCard(
-      title: 'เอกสารประกอบ',
+      title: 'เอกสารประกอบ (เดิม)',
       icon: LucideIcons.fileText,
       children: [
         if (documents.isNotEmpty) ...[
@@ -286,6 +309,63 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildAdditionalDocumentsInfo() {
+    final documents = widget.application.additionalDocuments;
+    
+    return _buildCard(
+      title: 'เอกสารเพิ่มเติม (ใหม่)',
+      icon: LucideIcons.files,
+      children: [
+        ...documents.map((doc) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(LucideIcons.filePlus, color: Colors.purple, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      doc.name,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      'ส่งเมื่อ: ${widget.application.additionalDocRequestDate != null ? DateFormat('dd/MM/yy HH:mm').format(new DateTime.now()) : "-"}', // Mock time
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'ใหม่',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.info,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )),
       ],
     );
   }
@@ -390,6 +470,32 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
           children: [
             Expanded(
               child: SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showRequestDocsDialog(),
+                  icon: const Icon(LucideIcons.fileQuestion, size: 20),
+                  label: const Text(
+                    'ขอเอกสารเพิ่ม',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 1,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
                 height: 60,
                 child: ElevatedButton.icon(
                   onPressed: () => _showConfirmationDialog(LoanApplicationStatus.rejected),
@@ -441,6 +547,68 @@ class _OfficerLoanDetailScreenState extends State<OfficerLoanDetailScreen> {
     );
   }
 
+  void _showRequestDocsDialog() {
+    final noteController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ขอเอกสารเพิ่มเติม'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('ระบุเอกสารหรือข้อมูลที่ต้องการเพิ่มเติม:'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: noteController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'เช่น ขอสำเนาบัตรประชาชนใหม่ เนื่องจากภาพไม่ชัด',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (noteController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('กรุณาระบุรายละเอียด')),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              
+              // Update status with note
+              _commentController.text = noteController.text; 
+              await _updateStatus(LoanApplicationStatus.waitingForDocs);
+
+              // Create Notification using Provider
+              ref.read(notificationProvider.notifier).addNotification(
+                NotificationModel(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: 'ขอเอกสารเพิ่มเติม',
+                  message: 'เจ้าหน้าที่ต้องการเอกสารเพิ่มเติมสำหรับคำขอสินเชื่อ #${widget.application.id}: ${noteController.text}',
+                  timestamp: DateTime.now(),
+                  type: NotificationType.warning,
+                  route: '/loan/contract/${widget.application.id}',
+                  isRead: false,
+                ),
+              );
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+  }
 
   
   Widget _buildResultSection() {

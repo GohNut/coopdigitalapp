@@ -38,4 +38,9 @@ abstract class LoanRepository {
     int installmentCount = 1,
     String? slipImagePath,
   });
+
+  Future<void> submitAdditionalDocuments({
+    required String applicationId,
+    required List<String> fileNames,
+  });
 }

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class DynamicLoanApiService {
   // เปลี่ยนเป็น IP ของเครื่อง Server หรือ localhost (สำหรับ Android Emulator ใช้ 10.0.2.2)
-  static const String _baseUrl = 'https://coopapi.vercel.app/api/v1/loan';
+  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
   
   static Future<Map<String, dynamic>> createLoan(Map<String, dynamic> data) async {
     final response = await http.post(
@@ -327,6 +327,50 @@ class DynamicLoanApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to delete loan product: ${response.body}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> submitAdditionalDocuments(String applicationId, List<Map<String, dynamic>> newDocs) async {
+    // 1. Fetch current to get existing
+    final getResponse = await http.post(
+      Uri.parse('$_baseUrl/get'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'loan_applications',
+        'filter': {'applicationid': applicationId},
+      }),
+    );
+
+    List<dynamic> existingDocs = [];
+    if (getResponse.statusCode == 200) {
+      final json = jsonDecode(getResponse.body);
+      if (json['status'] == 'success' && json['data'] is List && (json['data'] as List).isNotEmpty) {
+        final loan = (json['data'] as List).first;
+        existingDocs = loan['additional_documents'] ?? [];
+      }
+    }
+
+    // 2. Append new docs
+    final updatedDocs = [...existingDocs, ...newDocs];
+
+    // 3. Update
+    final response = await http.post(
+      Uri.parse('$_baseUrl/update'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'loan_applications',
+        'filter': {'applicationid': applicationId},
+        'data': {
+          'additional_documents': updatedDocs,
+          'status': 'pending', // Reset status to pending for review
+        },
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to submit documents: ${response.body}');
     }
   }
 }

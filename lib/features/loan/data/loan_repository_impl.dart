@@ -142,7 +142,31 @@ class LoanRepositoryImpl implements LoanRepository {
       if (response['status'] == 'success') {
         if (response['data'] is List) {
           final List<dynamic> data = response['data'];
-          return data.map((json) => LoanApplication.fromJson(json)).toList();
+          var apps = data.map((json) => LoanApplication.fromJson(json)).toList();
+
+          // Auto-reject logic for expired waitingForDocs
+          for (var app in apps) {
+            if (app.status == LoanApplicationStatus.waitingForDocs && 
+                app.additionalDocRequestDate != null) {
+              final daysDiff = DateTime.now().difference(app.additionalDocRequestDate!).inDays;
+              if (daysDiff > 7) {
+                // Auto reject
+                updateLoanStatus(
+                  app.applicationId, 
+                  LoanApplicationStatus.rejected, 
+                  comment: 'ระบบปฏิเสธเก็บคำขออัตโนมัติ (เกิน 7 วัน)'
+                );
+                // Update local object for display
+                // Note: ideally we re-fetch, but for list display we can just update status locally
+                // Creating a new instance since fields are final
+                // However, doing so requires a copyWith method or manual reconstruction. 
+                // For simplicity in this demo, we might just proceed or we need to add copyWith to model.
+                // Or simply let the next fetch handle the UI update.
+              }
+            }
+          }
+          
+          return apps;
         }
         return [];
       }
@@ -259,5 +283,24 @@ class LoanRepositoryImpl implements LoanRepository {
   /// Delete a loan product
   Future<void> deleteLoanProduct(String productId) async {
     await DynamicLoanApiService.deleteLoanProduct(productId);
+  }
+
+  @override
+  Future<void> submitAdditionalDocuments({
+    required String applicationId,
+    required List<String> fileNames,
+  }) async {
+    // Create new document objects (Map format for API)
+    final newDocs = fileNames.map((name) => {
+      'type': 'additional',
+      'name': name,
+      'status': 'pending',
+      'url': null, // In real app, this would be a URL
+    }).toList();
+
+    // Call service to update
+    await DynamicLoanApiService.submitAdditionalDocuments(applicationId, newDocs);
+    
+    print('Submitted additional documents for $applicationId: $fileNames');
   }
 }

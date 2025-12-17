@@ -22,7 +22,7 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -71,6 +71,7 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
           dividerColor: Colors.transparent,
           tabs: const [
             Tab(text: 'รอพิจารณา'),
+            Tab(text: 'รอแก้ไขเอกสาร'),
             Tab(text: 'อนุมัติแล้ว'),
             Tab(text: 'ปฏิเสธ'),
           ],
@@ -80,6 +81,7 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
         controller: _tabController,
         children: [
           _buildLoanList(LoanApplicationStatus.pending),
+          _buildLoanList(LoanApplicationStatus.waitingForDocs),
           _buildLoanList(LoanApplicationStatus.approved),
           _buildLoanList(LoanApplicationStatus.rejected),
         ],
@@ -205,6 +207,7 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
   Color _getStatusColor(LoanApplicationStatus status) {
     switch (status) {
       case LoanApplicationStatus.pending: return AppColors.warning;
+      case LoanApplicationStatus.waitingForDocs: return Colors.orange;
       case LoanApplicationStatus.approved: return AppColors.success;
       case LoanApplicationStatus.rejected: return AppColors.error;
     }
@@ -213,6 +216,7 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
   String _getStatusText(LoanApplicationStatus status) {
     switch (status) {
       case LoanApplicationStatus.pending: return 'รอพิจารณา';
+      case LoanApplicationStatus.waitingForDocs: return 'รอเอกสารเพิ่ม';
       case LoanApplicationStatus.approved: return 'อนุมัติ';
       case LoanApplicationStatus.rejected: return 'ปฏิเสธ';
     }

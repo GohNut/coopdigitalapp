@@ -322,6 +322,8 @@ class _LoanStatusCard extends StatelessWidget {
         return loan.loanDetails.remainingAmount <= 0 ? AppColors.success : AppColors.primary;
       case LoanApplicationStatus.pending:
         return AppColors.warning;
+      case LoanApplicationStatus.waitingForDocs:
+        return Colors.orange;
       case LoanApplicationStatus.rejected:
         return Colors.red;
     }
@@ -333,6 +335,8 @@ class _LoanStatusCard extends StatelessWidget {
         return loan.loanDetails.remainingAmount <= 0 ? LucideIcons.checkCircle : LucideIcons.banknote;
       case LoanApplicationStatus.pending:
         return LucideIcons.clock;
+      case LoanApplicationStatus.waitingForDocs:
+        return LucideIcons.fileQuestion;
       case LoanApplicationStatus.rejected:
         return LucideIcons.xCircle;
     }
@@ -344,6 +348,8 @@ class _LoanStatusCard extends StatelessWidget {
         return loan.loanDetails.remainingAmount <= 0 ? 'ชำระครบแล้ว' : 'กำลังชำระ';
       case LoanApplicationStatus.pending:
         return 'รออนุมัติ';
+      case LoanApplicationStatus.waitingForDocs:
+        return 'รอเอกสารเพิ่ม';
       case LoanApplicationStatus.rejected:
         return 'ไม่อนุมัติ';
     }

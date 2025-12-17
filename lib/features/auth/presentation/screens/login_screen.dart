@@ -18,19 +18,25 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _idCardController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _idCardFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
 
   @override
   void initState() {
     super.initState();
     _idCardFocusNode.addListener(() => setState(() {}));
+    _passwordFocusNode.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
     _idCardController.dispose();
+    _passwordController.dispose();
     _idCardFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -111,6 +117,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               
+              const SizedBox(height: 16),
+
+              // Password Input
+              TextFormField(
+                controller: _passwordController,
+                focusNode: _passwordFocusNode,
+                obscureText: !_isPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: _passwordFocusNode.hasFocus ? null : 'รหัสผ่าน',
+                  hintText: _passwordFocusNode.hasFocus ? null : 'กรอกรหัสผ่าน (สำหรับสมาชิกใหม่)',
+                  prefixIcon: const Icon(LucideIcons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
+                    ),
+                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Text(
+                  'หมายเหตุ: สมาชิกเก่าสามารถเข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+              
               const SizedBox(height: 24),
 
               // Login Button
@@ -172,6 +225,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _handleLogin() async {
     final idCard = _idCardController.text.trim();
+    final password = _passwordController.text.trim();
+    
     if (idCard.length != 13) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณากรอกเลขบัตรประชาชนให้ครบ 13 หลัก')),
@@ -188,7 +243,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
 
       if (memberData != null) {
-        // Found Member -> Update CurrentUser
+        // Check if member has password
+        final storedPassword = memberData['password'] as String?;
+        
+        if (storedPassword != null && storedPassword.isNotEmpty) {
+          // New member with password - validate password
+          if (password.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('กรุณากรอกรหัสผ่าน'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            setState(() => _isLoading = false);
+            return;
+          }
+          
+          if (password != storedPassword) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('รหัสผ่านไม่ถูกต้อง'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+            setState(() => _isLoading = false);
+            return;
+          }
+        }
+        // If storedPassword is null/empty, it's an old member - allow login without password
+        
+        // Login successful - Update CurrentUser
         CurrentUser.setUser(
           newName: memberData['name_th'] ?? 'สมาชิกสหกรณ์',
           newId: idCard, // Use ID Card as ID
