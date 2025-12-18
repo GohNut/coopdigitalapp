@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/token_provider.dart';
 import '../../features/notification/presentation/screens/notification_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/screens/main_layout_screen.dart';
@@ -103,6 +104,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/home',
+                redirect: (context, state) {
+                  // ดักจับ token จาก query parameter
+                  final token = state.uri.queryParameters['token'];
+                  if (token != null && token.isNotEmpty) {
+                    // บันทึก token ลง provider
+                    final container = ProviderScope.containerOf(context);
+                    container.read(tokenProvider.notifier).setToken(token);
+                  }
+                  return null; // ดำเนินการต่อไปยังหน้า home ตามปกติ
+                },
                 builder: (context, state) => const HomeScreen(),
               ),
             ],

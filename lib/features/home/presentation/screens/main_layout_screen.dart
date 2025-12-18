@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/token_provider.dart';
 
-class MainLayoutScreen extends StatelessWidget {
+class MainLayoutScreen extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainLayoutScreen({
@@ -15,7 +15,7 @@ class MainLayoutScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: navigationShell,
       floatingActionButton: Container(
@@ -59,6 +59,7 @@ class MainLayoutScreen extends StatelessWidget {
             Expanded(
               child: _buildBottomBarItem(
                 context,
+                ref,
                 index: 0,
                 icon: LucideIcons.book,
                 label: 'สมุดบัญชี',
@@ -70,6 +71,7 @@ class MainLayoutScreen extends StatelessWidget {
             Expanded(
               child: _buildBottomBarItem(
                 context,
+                ref,
                 index: 1,
                 icon: LucideIcons.layoutGrid,
                 label: 'iLife',
@@ -81,7 +83,7 @@ class MainLayoutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomBarItem(BuildContext context, {
+  Widget _buildBottomBarItem(BuildContext context, WidgetRef ref, {
     required int index,
     required IconData icon,
     required String label,
@@ -92,28 +94,15 @@ class MainLayoutScreen extends StatelessWidget {
     return InkWell(
       onTap: () async {
         if (index == 1) {
-          String token = 'XXXX';
-          try {
-            // Check if Firebase is initialized before accessing instance
-            if (Firebase.apps.isNotEmpty) {
-               final user = FirebaseAuth.instance.currentUser;
-               if (user != null) {
-                 final idToken = await user.getIdToken();
-                 if (idToken != null) {
-                   token = idToken;
-                 }
-               }
-            }
-          } catch (e) {
-            debugPrint('Error getting token: $e');
-            // Fallback to 'XXXX' is already set
-          }
+          // ใช้ token จาก provider แทน Firebase token
+          final storedToken = ref.read(tokenProvider);
+          final token = storedToken ?? 'XXXX'; // ถ้าไม่มี token ใช้ค่า default
 
           try {
             final url = Uri.parse(
                 'https://care.ilife.co.th/cus/page1?lang=th&token=$token');
             if (await canLaunchUrl(url)) {
-              await launchUrl(url, mode: LaunchMode.inAppWebView);
+              await launchUrl(url, mode: LaunchMode.externalApplication);
             }
           } catch (e) {
             debugPrint('Error launching iLife URL: $e');

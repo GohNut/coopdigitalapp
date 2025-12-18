@@ -40,9 +40,6 @@ dependencies:
   google_fonts: ^6.3.3
   intl: ^0.20.2
   lucide_icons: ^0.257.0
-  firebase_core: ^4.2.1
-  cloud_firestore: ^6.1.0
-  firebase_auth: ^6.1.2
   flutter_localizations:
     sdk: flutter
   fl_chart: ^1.1.1

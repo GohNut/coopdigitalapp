@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:coop_digital_app/core/router/router_provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -14,12 +13,6 @@ void main() async {
   // Load saved user session
   await CurrentUser.loadUser();
 
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    debugPrint('Firebase Initialization Failed: $e');
-    // Continue running app even if Firebase fails (for UI/Demo purpose)
-  }
   runApp(const ProviderScope(child: CoopDigitalApp()));
 }
 
