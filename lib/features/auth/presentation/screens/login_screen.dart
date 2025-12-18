@@ -199,15 +199,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Officer Button (Small/Ghost)
               Center(
                 child: TextButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
                     // Simulate Officer Login (Still Mock for now, but using MEM001 ID)
-                    CurrentUser.setUser(
+                    await CurrentUser.setUser(
                       newName: 'จนท. ใจดี',
                       newId: 'MEM001', 
                       newRole: UserRole.officer,
                       newIsMember: true,
                     );
-                    context.go('/home');
+                    if (context.mounted) context.go('/home');
                   },
                   icon: const Icon(LucideIcons.shieldCheck, size: 16),
                   label: const Text('เข้าสู่ระบบเจ้าหน้าที่ (สำหรับทดสอบ)'),
@@ -273,7 +273,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         // If storedPassword is null/empty, it's an old member - allow login without password
         
         // Login successful - Update CurrentUser
-        CurrentUser.setUser(
+        await CurrentUser.setUser(
           newName: memberData['name_th'] ?? 'สมาชิกสหกรณ์',
           newId: idCard, // Use ID Card as ID
           newRole: UserRole.member,
@@ -291,6 +291,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
              );
              // Update local user state
              CurrentUser.pin = '123456';
+             await CurrentUser.saveUser(); // Persist the new PIN
              debugPrint('Auto-migrated user PIN to 123456');
            } catch (e) {
              debugPrint('Failed to migrate PIN: $e');

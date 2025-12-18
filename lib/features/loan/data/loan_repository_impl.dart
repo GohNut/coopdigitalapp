@@ -262,7 +262,29 @@ class LoanRepositoryImpl implements LoanRepository {
     required String paymentType,
     int installmentCount = 1,
     String? slipImagePath,
+    String? sourceAccountId,
   }) async {
+    // 1. If paying from account, deduct balance first
+    if (paymentMethod == 'account_book') {
+      if (sourceAccountId == null) {
+        throw Exception('กรุณาระบุบัญชีต้นทาง');
+      }
+
+      final accountData = await DynamicDepositApiService.getAccountById(sourceAccountId);
+      if (accountData == null) throw Exception('ไม่พบข้อมูลบัญชี');
+       
+      final currentBalance = (accountData['balance'] ?? 0.0).toDouble();
+      
+      // Use payment method instead of withdraw to properly categorize transaction
+      await DynamicDepositApiService.payment(
+         accountId: sourceAccountId,
+         amount: amount,
+         currentBalance: currentBalance,
+         description: 'ชำระสินเชื่อ $applicationId งวดที่ $installmentNo',
+      );
+    }
+
+    // 2. Record payment
     await DynamicLoanApiService.recordPayment(
       applicationId: applicationId,
       memberId: CurrentUser.id,

@@ -120,6 +120,7 @@ class FirebaseLoanRepository implements LoanRepository {
     required String paymentType,
     int installmentCount = 1,
     String? slipImagePath,
+    String? sourceAccountId,
   }) async {
     // TODO: Implement payment recording in Firestore
     throw UnimplementedError();

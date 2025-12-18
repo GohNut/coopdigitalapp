@@ -49,7 +49,7 @@ class _AdditionalDocumentReviewScreenState extends State<AdditionalDocumentRevie
           ),
         );
         // Pop back to loan detail, then potentially to dashboard
-        context.go('/loan/dashboard');
+        context.go('/loan');
       }
     } catch (e) {
       if (mounted) {

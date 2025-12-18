@@ -104,7 +104,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> with SingleTi
                 elevation: 0,
                 leading: IconButton(
                   icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
-                  onPressed: () => context.pop(),
+                  onPressed: () => context.go('/home'),
                 ),
                 actions: [
                   IconButton(

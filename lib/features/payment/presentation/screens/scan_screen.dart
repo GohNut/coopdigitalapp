@@ -146,7 +146,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                     children: [
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white, size: 32),
-                        onPressed: () => context.pop(),
+                        onPressed: () => context.go('/home'),
                       ),
                       const Text(
                         'สแกน QR Code',

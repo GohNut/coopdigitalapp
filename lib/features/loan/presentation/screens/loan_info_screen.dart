@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
 import '../../domain/loan_request_args.dart';
+import '../../../../services/dynamic_deposit_api.dart'; // Import API Service
 
 class LoanInfoScreen extends ConsumerStatefulWidget {
   final LoanRequestArgs args;
@@ -17,9 +19,10 @@ class LoanInfoScreen extends ConsumerStatefulWidget {
 
 class _LoanInfoScreenState extends ConsumerState<LoanInfoScreen> {
   final TextEditingController _objectiveController = TextEditingController();
-  final TextEditingController _guarantorController = TextEditingController();
+  final TextEditingController _guarantorIdCardController = TextEditingController();
   final TextEditingController _guarantorNameController = TextEditingController();
   final TextEditingController _guarantorRelationController = TextEditingController();
+  final TextEditingController _guarantorPhoneController = TextEditingController(); // Phone Controller
   
   String _guarantorType = 'member'; // 'member' or 'external'
   DepositAccount? _selectedAccount;
@@ -27,9 +30,10 @@ class _LoanInfoScreenState extends ConsumerState<LoanInfoScreen> {
   @override
   void dispose() {
     _objectiveController.dispose();
-    _guarantorController.dispose();
+    _guarantorIdCardController.dispose();
     _guarantorNameController.dispose();
     _guarantorRelationController.dispose();
+    _guarantorPhoneController.dispose();
     super.dispose();
   }
 
@@ -43,15 +47,52 @@ class _LoanInfoScreenState extends ConsumerState<LoanInfoScreen> {
     
     final updatedArgs = widget.args.copyWith(
       objective: _objectiveController.text.isEmpty ? null : _objectiveController.text,
-      guarantorMemberId: _guarantorType == 'member' ? (_guarantorController.text.isEmpty ? null : _guarantorController.text) : null,
+      guarantorMemberId: _guarantorIdCardController.text.isEmpty ? null : _guarantorIdCardController.text,
       guarantorType: _guarantorType,
-      guarantorName: _guarantorType == 'external' ? (_guarantorNameController.text.isEmpty ? null : _guarantorNameController.text) : null,
-      guarantorRelationship: _guarantorType == 'external' ? (_guarantorRelationController.text.isEmpty ? null : _guarantorRelationController.text) : null,
+      guarantorName: _guarantorNameController.text.isEmpty ? null : _guarantorNameController.text,
+      guarantorRelationship: _guarantorRelationController.text.isEmpty ? null : _guarantorRelationController.text,
+      guarantorPhone: _guarantorPhoneController.text.isEmpty ? null : _guarantorPhoneController.text,
       depositAccountId: _selectedAccount!.id,
       depositAccountNumber: _selectedAccount!.accountNumber,
       depositAccountName: _selectedAccount!.accountName,
     );
     context.push('/loan/document', extra: updatedArgs);
+  }
+
+  bool _isSearching = false;
+  bool _memberFound = false;
+
+  Future<void> _searchMember() async {
+    final idCard = _guarantorIdCardController.text;
+    if (idCard.length != 13) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกเลขบัตรประชาชน 13 หลัก')));
+      return;
+    }
+
+    setState(() => _isSearching = true);
+
+    try {
+      final member = await DynamicDepositApiService.getMember(idCard);
+      setState(() {
+         _isSearching = false;
+         if (member != null) {
+           _guarantorNameController.text = member['name_th'] ?? '';
+           _guarantorPhoneController.text = member['mobile'] ?? '';
+           _guarantorRelationController.text = 'สมาชิกสหกรณ์'; 
+           _memberFound = true;
+         } else {
+           _memberFound = false;
+           // Clear fields if not found or keep them empty? User didn't specify. Assuming clear or show error.
+           _guarantorNameController.clear();
+           _guarantorPhoneController.clear();
+           _guarantorRelationController.clear();
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบข้อมูลสมาชิก')));
+         }
+      });
+    } catch (e) {
+      setState(() => _isSearching = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+    }
   }
 
   @override
@@ -162,7 +203,10 @@ class _LoanInfoScreenState extends ConsumerState<LoanInfoScreen> {
                     const SizedBox(height: 12),
                     ref.watch(depositAccountsAsyncProvider).when(
                       data: (accounts) {
-                        if (accounts.isEmpty) {
+                        // Filter for only 'loan' type accounts
+                        final loanAccounts = accounts.where((a) => a.accountType == AccountType.loan).toList();
+
+                        if (loanAccounts.isEmpty) {
                           return Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -184,8 +228,9 @@ class _LoanInfoScreenState extends ConsumerState<LoanInfoScreen> {
                           );
                         }
                         
+                        
                         return Column(
-                          children: accounts.map((account) {
+                          children: loanAccounts.map((account) {
                             final isSelected = _selectedAccount?.id == account.id;
                             return GestureDetector(
                               onTap: () => setState(() => _selectedAccount = account),
@@ -385,83 +430,135 @@ class _LoanInfoScreenState extends ConsumerState<LoanInfoScreen> {
                       const SizedBox(height: 20),
                       
                       // ฟอร์มกรอกข้อมูลตามประเภท
-                      if (_guarantorType == 'member') ...[
-                        const Text('รหัสสมาชิกผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _guarantorController,
-                          style: const TextStyle(fontSize: 16),
-                          decoration: InputDecoration(
-                            hintText: 'เช่น MEM002',
-                            prefixIcon: const Icon(Icons.search),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
+                      // 1. เลขบัตรประชาชน (แสดงเสมอ)
+                      const Text('เลขบัตรประชาชนผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      // If member: Row with Search Button
+                      // If external: TextField only
+                        if (_guarantorType == 'member') ...[
+                          Row(
                             children: [
-                              Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
-                              const SizedBox(width: 8),
                               Expanded(
-                                child: Text(
-                                  'ระบบจะดึงชื่อ-สกุลจากฐานข้อมูลสมาชิกอัตโนมัติ',
-                                  style: TextStyle(fontSize: 13, color: Colors.blue.shade700),
+                                child: TextField(
+                                  controller: _guarantorIdCardController,
+                                  style: const TextStyle(fontSize: 16),
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 13,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  decoration: InputDecoration(
+                                    hintText: 'กรอกเลขบัตรประชาชน 13 หลัก',
+                                    prefixIcon: const Icon(Icons.credit_card),
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    counterText: "",
+                                  ),
                                 ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _isSearching ? null : _searchMember,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                child: _isSearching 
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                                  : const Icon(Icons.search, color: Colors.white),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                        ] else ...[
+                          TextField(
+                            controller: _guarantorIdCardController,
+                            style: const TextStyle(fontSize: 16),
+                            keyboardType: TextInputType.number,
+                            maxLength: 13,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            decoration: InputDecoration(
+                              hintText: 'กรอกเลขบัตรประชาชน 13 หลัก',
+                              prefixIcon: const Icon(Icons.credit_card),
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              counterText: "",
+                            ),
+                          ),
+                        ],
+                      const SizedBox(height: 16),
                       
-                      if (_guarantorType == 'external') ...[
-                        const Text('ชื่อ - นามสกุล ผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _guarantorNameController,
-                          style: const TextStyle(fontSize: 16),
-                          decoration: InputDecoration(
-                            hintText: 'กรอกชื่อ-นามสกุล',
-                            prefixIcon: const Icon(Icons.person),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      // Show fields for both Member (Auto-filled/Locked) and External (Editable)
+                      // If type is member and not found yet, maybe hide? But user said show 4 fields.
+                      // Let's show them always, but change readOnly state.
+                      
+                      const Text('ชื่อ - นามสกุล ผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _guarantorNameController,
+                        readOnly: _guarantorType == 'member' && _memberFound,
+                        style: const TextStyle(fontSize: 16),
+                        decoration: InputDecoration(
+                          hintText: 'กรอกชื่อ-นามสกุล',
+                          prefixIcon: const Icon(Icons.person),
+                          filled: true,
+                          fillColor: (_guarantorType == 'member' && _memberFound) ? Colors.grey.shade200 : Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
                           ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
-                        const SizedBox(height: 16),
-                        const Text('ความสัมพันธ์กับผู้กู้', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _guarantorRelationController,
-                          style: const TextStyle(fontSize: 16),
-                          decoration: InputDecoration(
-                            hintText: 'เช่น บิดา, มารดา, พี่น้อง, เพื่อน',
-                            prefixIcon: const Icon(Icons.family_restroom),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      const Text('เบอร์โทรศัพท์', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _guarantorPhoneController,
+                        readOnly: _guarantorType == 'member' && _memberFound,
+                        keyboardType: TextInputType.phone,
+                        style: const TextStyle(fontSize: 16),
+                        decoration: InputDecoration(
+                          hintText: 'กรอกเบอร์โทรศัพท์',
+                          prefixIcon: const Icon(Icons.phone),
+                          filled: true,
+                          fillColor: (_guarantorType == 'member' && _memberFound) ? Colors.grey.shade200 : Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
                           ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      const Text('ความสัมพันธ์กับผู้กู้', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _guarantorRelationController,
+                        readOnly: _guarantorType == 'member' && _memberFound,
+                        style: const TextStyle(fontSize: 16),
+                        decoration: InputDecoration(
+                          hintText: 'เช่น บิดา, มารดา, พี่น้อง, เพื่อน',
+                          prefixIcon: const Icon(Icons.family_restroom),
+                          filled: true,
+                          fillColor: (_guarantorType == 'member' && _memberFound) ? Colors.grey.shade200 : Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -32,10 +32,17 @@ class LoanPaymentSuccessScreen extends StatelessWidget {
         paymentTypeText = 'ชำระงวดปกติ';
     }
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(32),
             child: Column(
@@ -164,6 +171,7 @@ class LoanPaymentSuccessScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }

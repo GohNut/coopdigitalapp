@@ -46,6 +46,26 @@ extension TransactionTypeExtension on TransactionType {
   }
 }
 
+/// สถานะรายการเดินบัญชี
+enum TransactionStatus {
+  pending,      // รอดำเนินการ
+  completed,    // สำเร็จ
+  rejected,     // ปฏิเสธ/ยกเลิก
+}
+
+extension TransactionStatusExtension on TransactionStatus {
+  String get displayName {
+    switch (this) {
+      case TransactionStatus.pending:
+        return 'รอดำเนินการ';
+      case TransactionStatus.completed:
+        return 'สำเร็จ';
+      case TransactionStatus.rejected:
+        return 'ยกเลิก';
+    }
+  }
+}
+
 /// Model สำหรับรายการเดินบัญชี
 class DepositTransaction {
   final String id;
@@ -56,6 +76,7 @@ class DepositTransaction {
   final DateTime dateTime;
   final String? description;
   final String? referenceNo;
+  final TransactionStatus status;
 
   const DepositTransaction({
     required this.id,
@@ -66,5 +87,6 @@ class DepositTransaction {
     required this.dateTime,
     this.description,
     this.referenceNo,
+    this.status = TransactionStatus.completed, // Default to completed for backward compatibility
   });
 }

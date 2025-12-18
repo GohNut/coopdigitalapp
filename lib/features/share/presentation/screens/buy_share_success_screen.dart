@@ -8,9 +8,17 @@ class BuyShareSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          // After pop, navigate to home
+          Future.microtask(() => context.go('/home'));
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
           child: Column(
@@ -40,7 +48,7 @@ class BuyShareSuccessScreen extends StatelessWidget {
                  children: [
                    Expanded(
                      child: ElevatedButton(
-                       onPressed: () => context.go('/share/buy'),
+                       onPressed: () => context.replace('/share/buy'),
                        style: ElevatedButton.styleFrom(
                          backgroundColor: AppColors.primary,
                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -68,6 +76,7 @@ class BuyShareSuccessScreen extends StatelessWidget {
             ],
           ),
         ),
+       ),
       ),
     );
   }

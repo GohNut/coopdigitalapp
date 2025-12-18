@@ -18,8 +18,9 @@ class TransactionListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPending = transaction.status == TransactionStatus.pending;
     final isCredit = transaction.type.isCredit;
-    final amountColor = isCredit ? AppColors.success : AppColors.error;
+    final amountColor = isPending ? Colors.grey : (isCredit ? AppColors.success : AppColors.error);
     final amountPrefix = isCredit ? '+' : '-';
     final dateFormat = DateFormat('d MMM', 'th');
     final timeFormat = DateFormat('HH:mm');
@@ -52,7 +53,7 @@ class TransactionListItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  _getTransactionIcon(transaction.type),
+                  isPending ? LucideIcons.clock : _getTransactionIcon(transaction.type),
                   color: amountColor,
                   size: 20,
                 ),
@@ -65,10 +66,12 @@ class TransactionListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      transaction.description ?? transaction.type.displayName,
+                      isPending 
+                        ? 'รอตรวจสอบสลิป'
+                        : (transaction.description ?? transaction.type.displayName),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: isPending ? Colors.grey : AppColors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -107,6 +110,14 @@ class TransactionListItem extends StatelessWidget {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (isPending)
+                    Text(
+                      'รอดำเนินการ',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                        fontSize: 10,
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -130,10 +141,10 @@ class TransactionListItem extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  currencyFormat.format(transaction.balanceAfter),
+                  isPending ? '(รอปรับยอด)' : currencyFormat.format(transaction.balanceAfter),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: isPending ? Colors.grey : AppColors.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

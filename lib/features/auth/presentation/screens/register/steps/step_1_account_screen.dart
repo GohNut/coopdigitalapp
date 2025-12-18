@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../../../providers/registration_provider.dart';
 import '../../../../domain/models/registration_form_model.dart';
@@ -196,15 +197,30 @@ class _Step1AccountScreenState extends ConsumerState<Step1AccountScreen> {
 
             const SizedBox(height: 32),
             
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: state.isLoading ? null : _onNext,
-                child: state.isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('ถัดไป'),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: OutlinedButton(
+                      onPressed: () => context.go('/login'),
+                      child: const Text('กลับ'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: state.isLoading ? null : _onNext,
+                      child: state.isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('ถัดไป'),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

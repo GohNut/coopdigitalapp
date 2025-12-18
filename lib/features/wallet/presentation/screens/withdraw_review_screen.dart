@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/withdraw_service.dart';
+import '../../../deposit/data/deposit_providers.dart';
 
-class WithdrawReviewScreen extends StatefulWidget {
+class WithdrawReviewScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
 
   const WithdrawReviewScreen({super.key, required this.args});
 
   @override
-  State<WithdrawReviewScreen> createState() => _WithdrawReviewScreenState();
+  ConsumerState<WithdrawReviewScreen> createState() => _WithdrawReviewScreenState();
 }
 
-class _WithdrawReviewScreenState extends State<WithdrawReviewScreen> {
+class _WithdrawReviewScreenState extends ConsumerState<WithdrawReviewScreen> {
   bool _isLoading = false;
 
   Future<void> _processWithdrawal() async {
@@ -30,6 +32,10 @@ class _WithdrawReviewScreenState extends State<WithdrawReviewScreen> {
           accountNo: widget.args['accountNo'],
           amount: widget.args['amount'],
         );
+
+        // Invalidate providers to refresh data immediately
+        ref.invalidate(depositAccountsAsyncProvider);
+        ref.invalidate(totalDepositBalanceAsyncProvider);
 
         if (mounted) {
           // 3. Show Success

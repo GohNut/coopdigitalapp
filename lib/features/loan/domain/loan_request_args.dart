@@ -15,6 +15,7 @@ class LoanRequestArgs {
   final String? guarantorMemberId;
   final String? guarantorName;
   final String? guarantorRelationship;
+  final String? guarantorPhone;
   
   // Document step data
   final String? idCardFileName;
@@ -38,6 +39,7 @@ class LoanRequestArgs {
     this.guarantorMemberId,
     this.guarantorName,
     this.guarantorRelationship,
+    this.guarantorPhone,
     this.idCardFileName,
     this.salarySlipFileName,
     this.otherFileName,
@@ -59,6 +61,7 @@ class LoanRequestArgs {
     String? guarantorMemberId,
     String? guarantorName,
     String? guarantorRelationship,
+    String? guarantorPhone,
     String? idCardFileName,
     String? salarySlipFileName,
     String? otherFileName,
@@ -78,6 +81,7 @@ class LoanRequestArgs {
       guarantorMemberId: guarantorMemberId ?? this.guarantorMemberId,
       guarantorName: guarantorName ?? this.guarantorName,
       guarantorRelationship: guarantorRelationship ?? this.guarantorRelationship,
+      guarantorPhone: guarantorPhone ?? this.guarantorPhone,
       idCardFileName: idCardFileName ?? this.idCardFileName,
       salarySlipFileName: salarySlipFileName ?? this.salarySlipFileName,
       otherFileName: otherFileName ?? this.otherFileName,

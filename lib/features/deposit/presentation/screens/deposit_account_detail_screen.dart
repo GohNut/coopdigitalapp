@@ -500,8 +500,9 @@ class _TransactionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPending = transaction.status == TransactionStatus.pending;
     final isCredit = transaction.type.isCredit;
-    final color = isCredit ? AppColors.success : AppColors.error;
+    final color = isPending ? Colors.grey : (isCredit ? AppColors.success : AppColors.error);
     final dateFormat = DateFormat('dd MMM', 'th');
     final timeFormat = DateFormat('HH:mm');
 
@@ -524,7 +525,7 @@ class _TransactionItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              _getTransactionIcon(transaction.type),
+              isPending ? LucideIcons.clock : _getTransactionIcon(transaction.type),
               color: color,
               size: 20,
             ),
@@ -536,10 +537,11 @@ class _TransactionItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transaction.type.displayName,
-                  style: const TextStyle(
+                  isPending ? 'รอตรวจสอบสลิป' : transaction.type.displayName,
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
+                    color: isPending ? Colors.grey : AppColors.textPrimary,
                   ),
                 ),
                 if (transaction.description != null) ...[

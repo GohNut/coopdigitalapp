@@ -24,7 +24,7 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   // Controller สำหรับ TextField
   late TextEditingController _amountController;
   final TextEditingController _objectiveController = TextEditingController();
-  final TextEditingController _guarantorController = TextEditingController(); // For member ID
+  final TextEditingController _guarantorIdCardController = TextEditingController(); // For ID Card
   
   // Guarantor Info
   String _guarantorType = 'member'; // 'member' or 'external'
@@ -53,7 +53,7 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
   void dispose() {
     _amountController.dispose();
     _objectiveController.dispose();
-    _guarantorController.dispose();
+    _guarantorIdCardController.dispose();
     _guarantorNameController.dispose();
     _guarantorRelationController.dispose();
     super.dispose();
@@ -426,16 +426,20 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
                   
                   // ฟอร์มกรอกข้อมูลตามประเภท
                   if (_guarantorType == 'member') ...[
-                    const Text('รหัสสมาชิกผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                    const Text('เลขบัตรประชาชนผู้ค้ำประกัน', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
                     const SizedBox(height: 8),
                     TextFormField(
-                      controller: _guarantorController,
+                      controller: _guarantorIdCardController,
                       style: const TextStyle(fontSize: 16),
+                      keyboardType: TextInputType.number,
+                      maxLength: 13,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(
-                        hintText: 'เช่น MEM002',
-                        prefixIcon: const Icon(Icons.search),
+                        hintText: 'กรอกเลขบัตรประชาชน 13 หลัก',
+                        prefixIcon: const Icon(Icons.credit_card),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        counterText: "", 
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -614,7 +618,7 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
                    ListTile(
                      contentPadding: EdgeInsets.zero,
                      title: const Text('สมาชิกสหกรณ์'),
-                     trailing: Text(_guarantorController.text.isNotEmpty ? 'รหัส ${_guarantorController.text}' : '-', overflow: TextOverflow.ellipsis),
+                     trailing: Text(_guarantorIdCardController.text.isNotEmpty ? 'รหัส ${_guarantorIdCardController.text}' : '-', overflow: TextOverflow.ellipsis),
                    )
                  else
                    ListTile(
@@ -699,7 +703,7 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
         objective: _objectiveController.text.isEmpty ? null : _objectiveController.text,
         // Guarantor Info
         guarantorType: _guarantorType,
-        guarantorMemberId: _guarantorController.text.isEmpty ? null : _guarantorController.text,
+        guarantorMemberId: _guarantorIdCardController.text.isEmpty ? null : _guarantorIdCardController.text,
         guarantorName: _guarantorNameController.text.isEmpty ? null : _guarantorNameController.text,
         guarantorRelationship: _guarantorRelationController.text.isEmpty ? null : _guarantorRelationController.text,
         // Documents
@@ -715,7 +719,7 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
       print('- Amount: $_requestAmount');
       print('- Months: $_months');
       print('- Objective: ${_objectiveController.text}');
-      if (product.requireGuarantor) print('- Guarantor: ${_guarantorController.text}');
+      if (product.requireGuarantor) print('- Guarantor: ${_guarantorIdCardController.text}');
       print('Attached Files:');
       if (_idCardFile != null) print('- ID Card: ${_idCardFile!.name} (${_idCardFile!.size} bytes)');
       if (_salarySlipFile != null) print('- Salary Slip: ${_salarySlipFile!.name} (${_salarySlipFile!.size} bytes)');

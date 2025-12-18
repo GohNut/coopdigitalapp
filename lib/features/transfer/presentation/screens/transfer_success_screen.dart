@@ -19,9 +19,16 @@ class TransferSuccessScreen extends StatelessWidget {
     final repeatText = args['repeat_text'] as String? ?? 'ทำรายการอีกครั้ง';
     final repeatRoute = args['repeat_route'] as String? ?? '/home';
 
-    return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: SafeArea(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.primary,
+        body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -139,6 +146,7 @@ class TransferSuccessScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

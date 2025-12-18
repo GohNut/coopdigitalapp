@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class MainLayoutScreen extends StatelessWidget {
@@ -87,7 +90,38 @@ class MainLayoutScreen extends StatelessWidget {
     final color = isSelected ? AppColors.primary : Colors.grey;
 
     return InkWell(
-      onTap: () => navigationShell.goBranch(index),
+      onTap: () async {
+        if (index == 1) {
+          String token = 'XXXX';
+          try {
+            // Check if Firebase is initialized before accessing instance
+            if (Firebase.apps.isNotEmpty) {
+               final user = FirebaseAuth.instance.currentUser;
+               if (user != null) {
+                 final idToken = await user.getIdToken();
+                 if (idToken != null) {
+                   token = idToken;
+                 }
+               }
+            }
+          } catch (e) {
+            debugPrint('Error getting token: $e');
+            // Fallback to 'XXXX' is already set
+          }
+
+          try {
+            final url = Uri.parse(
+                'https://care.ilife.co.th/cus/page1?lang=th&token=$token');
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url, mode: LaunchMode.inAppWebView);
+            }
+          } catch (e) {
+            debugPrint('Error launching iLife URL: $e');
+          }
+        } else {
+          navigationShell.goBranch(index);
+        }
+      },
       borderRadius: BorderRadius.circular(12),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -7,9 +7,17 @@ class LoanSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          // After pop, navigate to home
+          Future.microtask(() => context.go('/home'));
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
@@ -42,7 +50,7 @@ class LoanSuccessScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => context.go('/loan'),
+                      onPressed: () => context.replace('/loan'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 18),
@@ -71,6 +79,7 @@ class LoanSuccessScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

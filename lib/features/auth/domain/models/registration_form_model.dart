@@ -141,7 +141,16 @@ class Address {
       provinceId: provinceId ?? this.provinceId,
       districtId: districtId ?? this.districtId,
       subDistrictId: subDistrictId ?? this.subDistrictId,
-      zipCode: zipCode ?? this.zipCode,
+    );
+  }
+
+  factory Address.fromMap(Map<String, dynamic> map, String prefix) {
+    return Address(
+      details: map['${prefix}_details'] ?? '',
+      provinceId: map['${prefix}_province_id'],
+      districtId: map['${prefix}_district_id'],
+      subDistrictId: map['${prefix}_subdistrict_id'],
+      zipCode: map['${prefix}_zipcode'] ?? '',
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dynamic_notification_api.dart';
 
 /// API Service สำหรับจัดการบัญชีเงินฝาก (เชื่อมต่อ MongoDB)
 class DynamicDepositApiService {
@@ -418,6 +419,184 @@ class DynamicDepositApiService {
 
     if (response.statusCode != 200) {
       throw Exception('Failed to update member: ${response.body}');
+    }
+  }
+
+  /// สร้างรายการฝากเงิน (รอดำเนินการ)พร้อมแนบสลิป
+  static Future<void> createDepositRequest({
+    required String accountId,
+    required double amount,
+    required String slipImagePath, // ใน API จริงอาจจะเป็น URL หรือ Base64, ในที่นี้สมมติส่ง path ไปก่อน
+    String? referenceNo, // เช่น transaction Id ของ QR
+  }) async {
+    final now = DateTime.now();
+    
+    // เราจะสร้าง transaction สถานะ pending
+    // ยังไม่ปรับยอดเงินในบัญชี
+    
+    // ดึง account เพื่อเอา balance ปัจจุบัน (แม้จะยังไม่ปรับยอด แต่เก็บไว้ใน record ได้)
+    final account = await getAccountById(accountId);
+    if (account == null) throw Exception('ไม่พบข้อมูลบัญชี');
+    final currentBalance = (account['balance'] ?? 0.0).toDouble();
+
+    final data = {
+      'transactionid': 'txn_${now.millisecondsSinceEpoch}',
+      'accountid': accountId,
+      'type': 'deposit',
+      'amount': amount,
+      'balanceafter': currentBalance, // ยอดคงเหลือเท่าเดิมเพราะยังไม่ confirm
+      'datetime': now.toIso8601String(),
+      'description': 'ฝากเงิน (รอตรวจสอบ)',
+      'referenceno': referenceNo,
+      'status': 'pending',
+      'slip_image': slipImagePath,
+    };
+
+    final response = await http.post(
+      Uri.parse('$_baseUrl/create'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'deposit_transactions',
+        'data': data,
+      }),
+    );
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception('Failed to create deposit request: ${response.body}');
+    }
+  }
+
+  /// ดึงรายการที่สถานะ pending ทั้งหมด (สำหรับเจ้าหน้าที่)
+  static Future<List<Map<String, dynamic>>> getPendingDeposits() async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/get'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'deposit_transactions',
+        'filter': {'status': 'pending'},
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final result = jsonDecode(response.body);
+      if (result['status'] == 'success' && result['data'] is List) {
+        return List<Map<String, dynamic>>.from(result['data']);
+      }
+      return [];
+    } else {
+      throw Exception('Failed to get pending deposits: ${response.body}');
+    }
+  }
+
+  /// อนุมัติรายการฝากเงิน
+  static Future<void> approveDeposit(String transactionId) async {
+    // 1. ดึงรายการ transaction มาเพื่อดู details
+    final txResponse = await http.post(
+      Uri.parse('$_baseUrl/get'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'deposit_transactions',
+        'filter': {'transactionid': transactionId},
+      }),
+    );
+    
+    if (txResponse.statusCode != 200) throw Exception('Failed to fetch transaction details');
+    final txResult = jsonDecode(txResponse.body);
+    final txList = txResult['data'] as List;
+    if (txList.isEmpty) throw Exception('Transaction not found');
+    final transaction = txList.first;
+    
+    if (transaction['status'] != 'pending') throw Exception('Transaction is not pending');
+    
+    final accountId = transaction['accountid'];
+    final amount = (transaction['amount'] ?? 0.0).toDouble();
+    
+    // 2. ดึง Account เพื่อ update balance
+    final account = await getAccountById(accountId);
+    if (account == null) throw Exception('Account not found');
+    final currentBalance = (account['balance'] ?? 0.0).toDouble();
+    final newBalance = currentBalance + amount;
+    
+    // 3. Update Transaction status -> completed & update balanceAfter
+    await http.post(
+      Uri.parse('$_baseUrl/update'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'deposit_transactions',
+        'filter': {'transactionid': transactionId},
+        'data': {
+          'status': 'completed',
+          'description': 'ฝากเงิน (ยืนยันแล้ว)',
+          'balanceafter': newBalance, // Update balance snapshot
+        },
+      }),
+    );
+    
+    // 4. Update Account Balance
+    await updateAccountBalance(accountId: accountId, newBalance: newBalance);
+
+    // 5. Create Notification
+    try {
+      if (account['memberid'] != null) {
+        await DynamicNotificationApiService.createNotification(
+          memberId: account['memberid'],
+          title: 'เงินฝากได้รับอนุมัติ',
+          message: 'รายการฝากเงินของคุณได้รับการยืนยันแล้ว สามารถตรวจสอบยอดเงินได้ในบัญชี',
+          type: 'success',
+        );
+      }
+    } catch (e) {
+      // Ignore notification error to avoid blocking the transaction
+      print('Failed to send notification: $e');
+    }
+  }
+
+  /// ปฏิเสธรายการฝากเงิน
+  /// Logic:
+  /// 1. ปรับรายการฝากให้เป็น "completed" (เงินเข้า)
+  /// 2. สร้างรายการ "withdrawal" (เงินออก) ทันที
+  /// เพื่อให้เห็นเส้นทางการเงินตามที่ User process
+  static Future<void> rejectDeposit(String transactionId, {String? reason}) async {
+    // 1. Approve it first (Deposit In)
+    await approveDeposit(transactionId);
+    
+    // 2. Fetch transaction again to get info for withdrawal
+    final txResponse = await http.post(
+      Uri.parse('$_baseUrl/get'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'deposit_transactions',
+        'filter': {'transactionid': transactionId},
+      }),
+    );
+    final transaction = (jsonDecode(txResponse.body)['data'] as List).first;
+    final accountId = transaction['accountid'];
+    final amount = (transaction['amount'] ?? 0.0).toDouble();
+    
+    // 3. Perform Withdrawal (Money Out)
+    final account = await getAccountById(accountId);
+    final currentBalance = (account!['balance'] ?? 0.0).toDouble();
+    
+    // เรียก method withdraw ที่มีอยู่แล้ว
+    await withdraw(
+      accountId: accountId,
+      amount: amount,
+      currentBalance: currentBalance,
+      description: 'ยกเลิกรายการฝาก - ${reason ?? "ข้อมูลไม่ถูกต้อง"}',
+    );
+    
+    // 4. Create Notification
+    try {
+      if (account['memberid'] != null) {
+        await DynamicNotificationApiService.createNotification(
+          memberId: account['memberid'],
+          title: 'รายการฝากเงินถูกปฏิเสธ',
+          message: 'รายการฝากเงินถูกยกเลิกเนื่องจาก: ${reason ?? "ข้อมูลไม่ถูกต้อง"}',
+          type: 'error',
+        );
+      }
+    } catch (e) {
+      print('Failed to send notification: $e');
     }
   }
 }

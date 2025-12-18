@@ -88,11 +88,10 @@ class RegistrationNotifier extends Notifier<RegistrationState> {
   Future<bool> checkDuplicate(String citizenId, String mobile) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // Mock API Check
-      await Future.delayed(const Duration(seconds: 1));
+      // Real API Check
+      final existingMember = await DynamicDepositApiService.getMember(citizenId);
       
-      // Simulate duplicate check (For testing: ID ending with 9 is duplicate)
-      if (citizenId.endsWith('9')) {
+      if (existingMember != null) {
         throw 'เลขบัตรประชาชนนี้มีในระบบแล้ว';
       }
       

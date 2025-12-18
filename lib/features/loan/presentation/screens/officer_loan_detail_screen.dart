@@ -9,6 +9,7 @@ import '../../data/loan_repository_impl.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../../notification/domain/notification_model.dart';
 import '../../../auth/domain/user_role.dart';
+import '../../../deposit/data/deposit_providers.dart';
 
 class OfficerLoanDetailScreen extends ConsumerStatefulWidget {
   final LoanApplication application;
@@ -60,6 +61,13 @@ class _OfficerLoanDetailScreenState extends ConsumerState<OfficerLoanDetailScree
       if (mounted) {
         // Dismiss loading
         Navigator.of(context, rootNavigator: true).pop(); 
+        
+        // Invalidate providers to refresh data immediately
+        // เมื่ออนุมัติสินเชื่อ ระบบจะโอนเงินเข้าบัญชีเงินฝากของสมาชิก
+        if (newStatus == LoanApplicationStatus.approved) {
+          ref.invalidate(depositAccountsAsyncProvider);
+          ref.invalidate(totalDepositBalanceAsyncProvider);
+        }
         
         setState(() {
           _currentStatus = newStatus;

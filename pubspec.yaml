@@ -50,6 +50,8 @@ dependencies:
   qr_flutter: ^4.1.0
   image_picker: ^1.0.7
   mask_text_input_formatter: ^2.9.0
+  url_launcher: ^6.3.2
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +79,7 @@ flutter:
   assets:
     - assets/mock_data/
     - assets/bank_logos/
+    - assets/json/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

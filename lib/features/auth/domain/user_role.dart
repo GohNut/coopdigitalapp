@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 enum UserRole {
   member,
   officer,
@@ -5,13 +7,14 @@ enum UserRole {
 }
 
 class CurrentUser {
-  // For demo/development purposes, we can toggle this to test different views
-  static UserRole role = UserRole.officer; // Default to officer for dev, but will be set by login
-  static String name = 'สมาชิก ใจดี (จนท.)';
-  static String id = 'MEM001';
+  // Default state: Not logged in (or guest)
+  // Was: static UserRole role = UserRole.officer;
+  static UserRole role = UserRole.member; 
+  static String name = '';
+  static String id = '';
   
   // Set to true if the user has successfully registered as a coop member
-  static bool isMember = true; 
+  static bool isMember = false; 
 
   static String? pin; // Added PIN field
 
@@ -21,17 +24,68 @@ class CurrentUser {
   static bool get isApprover => role == UserRole.approver;
 
   // Helper to reset/set user (Simulate Login)
-  static void setUser({
+  static Future<void> setUser({
     required String newName, 
     required String newId, 
     required UserRole newRole,
     required bool newIsMember,
     String? newPin, // Added PIN parameter
-  }) {
+  }) async {
     name = newName;
     id = newId;
     role = newRole;
     isMember = newIsMember;
     pin = newPin;
+    
+    await saveUser(); // Auto-save when setting user
+  }
+
+  // Save current user state to SharedPreferences
+  static Future<void> saveUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_name', name);
+    await prefs.setString('user_id', id);
+    await prefs.setString('user_role', role.name); // Store enum as string
+    await prefs.setBool('user_is_member', isMember);
+    if (pin != null) {
+      await prefs.setString('user_pin', pin!);
+    } else {
+      await prefs.remove('user_pin');
+    }
+  }
+
+  // Load user state from SharedPreferences
+  static Future<void> loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Check if we have a saved session
+    if (!prefs.containsKey('user_id') || prefs.getString('user_id') == '') {
+      return; // No saved user, keep defaults
+    }
+
+    name = prefs.getString('user_name') ?? '';
+    id = prefs.getString('user_id') ?? '';
+    
+    final roleString = prefs.getString('user_role') ?? 'member';
+    role = UserRole.values.firstWhere(
+      (e) => e.name == roleString, 
+      orElse: () => UserRole.member
+    );
+    
+    isMember = prefs.getBool('user_is_member') ?? false;
+    pin = prefs.getString('user_pin');
+  }
+
+  // Clear user state (Logout)
+  static Future<void> clearUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Or remove specific keys if preferred
+    
+    // Reset to defaults
+    name = '';
+    id = '';
+    role = UserRole.member;
+    isMember = false;
+    pin = null;
   }
 }

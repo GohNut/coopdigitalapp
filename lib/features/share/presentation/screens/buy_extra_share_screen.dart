@@ -73,7 +73,7 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
-          onPressed: () => context.go('/share'), // Safe back
+          onPressed: () => context.go('/home'),
         ),
       ),
       body: SingleChildScrollView(

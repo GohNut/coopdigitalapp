@@ -2,23 +2,28 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/top_up_service.dart';
+import '../../../deposit/data/deposit_providers.dart';
+import '../../../../services/dynamic_deposit_api.dart';
 
-class TopUpQrScreen extends StatefulWidget {
-  final double amount;
 
-  const TopUpQrScreen({super.key, required this.amount});
+
+class TopUpQrScreen extends ConsumerStatefulWidget {
+  final Map<String, dynamic> params; // Changed from amount to params
+
+  const TopUpQrScreen({super.key, required this.params});
 
   @override
-  State<TopUpQrScreen> createState() => _TopUpQrScreenState();
+  ConsumerState<TopUpQrScreen> createState() => _TopUpQrScreenState();
 }
 
-class _TopUpQrScreenState extends State<TopUpQrScreen> {
+class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
   Future<Map<String, dynamic>>? _qrFuture;
   Timer? _timer;
   int _timeLeft = 900; // 15 minutes in seconds
@@ -28,7 +33,8 @@ class _TopUpQrScreenState extends State<TopUpQrScreen> {
   @override
   void initState() {
     super.initState();
-    _qrFuture = topUpServiceProvider.generateQr(widget.amount);
+    final amount = (widget.params['amount'] as num).toDouble();
+    _qrFuture = topUpServiceProvider.generateQr(amount);
     _startTimer();
   }
 
@@ -171,8 +177,21 @@ class _TopUpQrScreenState extends State<TopUpQrScreen> {
     });
 
     try {
-      // TODO: Upload slip to server and create pending deposit request
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+      final amount = (widget.params['amount'] as num).toDouble();
+      final accountId = widget.params['accountId'] as String;
+      
+      // Create pending deposit request using real API
+      await DynamicDepositApiService.createDepositRequest(
+        accountId: accountId,
+        amount: amount,
+        slipImagePath: _slipImage!.path,
+        referenceNo: refNo,
+      );
+      
+      // Invalidate providers to refresh data
+      ref.invalidate(depositAccountsAsyncProvider);
+      ref.invalidate(totalDepositBalanceAsyncProvider);
+      ref.invalidate(depositTransactionsAsyncProvider(accountId));
       
       if (mounted) {
         // Show success dialog
@@ -316,7 +335,7 @@ class _TopUpQrScreenState extends State<TopUpQrScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '${NumberFormat('#,##0.00').format(widget.amount)}',
+                        '${NumberFormat('#,##0.00').format((widget.params['amount'] as num).toDouble())}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,

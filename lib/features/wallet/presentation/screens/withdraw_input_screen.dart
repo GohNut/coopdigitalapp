@@ -202,6 +202,10 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
         title: const Text('ถอนเงิน'),
         centerTitle: true,
         backgroundColor: AppColors.primary,
@@ -334,6 +338,7 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
               controller: _accountController,
               focusNode: _accountFocusNode,
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: InputDecoration(
                 hintText: _accountFocusNode.hasFocus ? null : 'xxx-x-xxxxx-x',
                 filled: true,

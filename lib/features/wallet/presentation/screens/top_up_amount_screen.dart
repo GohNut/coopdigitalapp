@@ -68,8 +68,18 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
       return;
     }
 
-    // Navigate to QR Screen with amount
-    context.push('/wallet/topup/qr', extra: amount);
+    // Navigate to QR Screen with amount and accountId
+    if (_selectedAccountId == null) {
+      setState(() {
+        _errorText = 'กรุณาเลือกบัญชีรับเงิน';
+      });
+      return;
+    }
+    
+    context.push('/wallet/topup/qr', extra: {
+      'amount': amount,
+      'accountId': _selectedAccountId!,
+    });
   }
 
   Future<void> _performRealDeposit() async {
@@ -118,6 +128,8 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
             'target_name': 'บัญชีเงินฝากของฉัน',
             'note': 'ฝากเงินสำเร็จ',
             'timestamp': DateTime.now().toIso8601String(),
+            'repeat_text': 'ฝากเงินอีกครั้ง',
+            'repeat_route': '/wallet/topup',
           });
       }
     } catch (e) {
@@ -137,6 +149,10 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
         title: const Text('ฝากเงิน'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

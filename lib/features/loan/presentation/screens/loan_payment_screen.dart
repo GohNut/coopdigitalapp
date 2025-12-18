@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/loan_repository_impl.dart';
 import '../../domain/loan_application_model.dart';
+import '../../../../services/dynamic_deposit_api.dart';
+import '../../../deposit/data/deposit_providers.dart';
 
-class LoanPaymentScreen extends StatefulWidget {
+class LoanPaymentScreen extends ConsumerStatefulWidget {
   final String applicationId;
 
   const LoanPaymentScreen({super.key, required this.applicationId});
 
   @override
-  State<LoanPaymentScreen> createState() => _LoanPaymentScreenState();
+  ConsumerState<LoanPaymentScreen> createState() => _LoanPaymentScreenState();
 }
 
-class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
+class _LoanPaymentScreenState extends ConsumerState<LoanPaymentScreen> {
   final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 0);
   final dateFormat = DateFormat('dd MMM yyyy', 'th');
   
@@ -27,10 +28,11 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
   bool _isLoading = false;
   bool _isSubmitting = false;
   
-  // Slip file for QR payment
-  PlatformFile? _slipFile;
+
   
   LoanApplication? _loan;
+  Map<String, dynamic>? _sourceAccount;
+  bool _isLoadingAccount = false;
 
 
   @override
@@ -52,6 +54,11 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
         _loan = loan;
         _isLoading = false;
       });
+      
+      // Load account info
+      if (loan.applicant.memberId.isNotEmpty) {
+        _loadSourceAccount(loan.applicant.memberId);
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -81,35 +88,32 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
     return _loan!.loanDetails.paidInstallments + 1;
   }
 
-  // Mock QR data for PromptPay
-  String get _qrData {
-    // Mock PromptPay payload format: |promtpay|amount|ref|
-    return '00020101021129370016A000000677010111011300668123456785405${_totalAmount.toStringAsFixed(2)}5802TH5303764540${_totalAmount.toStringAsFixed(2)}6304';
-  }
 
-  Future<void> _pickSlipFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-    );
-    if (result != null && result.files.isNotEmpty) {
-      setState(() => _slipFile = result.files.first);
+  Future<void> _loadSourceAccount(String memberId) async {
+    setState(() => _isLoadingAccount = true);
+    try {
+      final accounts = await DynamicDepositApiService.getAccounts(memberId);
+      // Find savings account
+      final savings = accounts.firstWhere(
+        (a) => a['accounttype'] == 'loan',
+        orElse: () => accounts.isNotEmpty ? accounts.first : {},
+      );
+      
+      if (savings.isNotEmpty) {
+        setState(() => _sourceAccount = savings);
+      }
+    } catch (e) {
+      print('Error loading account: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingAccount = false);
     }
   }
+
 
   Future<void> _processPayment() async {
     if (_loan == null) return;
 
-    // Validate slip if QR payment
-    if (_paymentMethod == 'qr_promptpay' && _slipFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาแนบสลิปการโอนเงินก่อนยืนยัน'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+
 
     // Navigate to PIN verification
     final pinSuccess = await context.push<bool>('/pin');
@@ -127,7 +131,14 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
         paymentMethod: _paymentMethod,
         paymentType: _paymentType,
         installmentCount: _paymentType == 'advance' ? _advanceInstallments : 1,
+        sourceAccountId: _sourceAccount?['accountid'],
       );
+
+      // Invalidate providers to refresh data immediately
+      ref.invalidate(depositAccountsAsyncProvider);
+      ref.invalidate(depositAccountByIdAsyncProvider(_sourceAccount?['accountid'] ?? ''));
+      ref.invalidate(totalDepositBalanceAsyncProvider);
+      ref.invalidate(loanAccountBalanceAsyncProvider);
 
       if (mounted) {
         context.push('/loan/payment/success', extra: {
@@ -190,7 +201,7 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/home'),
         ),
       ),
       body: SingleChildScrollView(
@@ -324,227 +335,14 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
             
             _buildPaymentMethodOption(
               value: 'account_book',
-              title: 'หักจากสมุดบัญชีสหกรณ์',
-              subtitle: 'บัญชีเงินฝากออมทรัพย์',
+              title: 'ชำระจากสมุดเงินกู้',
+              subtitle: _sourceAccount != null 
+                  ? '${_sourceAccount!['accountname']}\n${_sourceAccount!['accountnumber']}\nยอดเงินคงเหลือ: ${currencyFormat.format(_sourceAccount!['balance'])}'
+                  : 'กำลังโหลด...',
               icon: LucideIcons.wallet,
+              isError: _sourceAccount != null && (_sourceAccount!['balance'] ?? 0) < _totalAmount,
             ),
-            const SizedBox(height: 8),
-            _buildPaymentMethodOption(
-              value: 'qr_promptpay',
-              title: 'ชำระผ่าน QR PromptPay',
-              subtitle: 'สแกน QR แล้วแนบหลักฐาน',
-              icon: LucideIcons.qrCode,
-            ),
-
-            // QR Code and Slip Upload Section (show when QR selected)
-            if (_paymentMethod == 'qr_promptpay') ...[
-              const SizedBox(height: 24),
-              
-              // QR Code Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(LucideIcons.qrCode, color: AppColors.primary, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          'QR Code สำหรับชำระเงิน',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // QR Code
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: QrImageView(
-                        data: _qrData,
-                        version: QrVersions.auto,
-                        size: 200,
-                        backgroundColor: Colors.white,
-                        errorCorrectionLevel: QrErrorCorrectLevel.M,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Account Info
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('ชื่อบัญชี', style: TextStyle(color: Colors.grey)),
-                              const Text('สหกรณ์ออมทรัพย์ จำกัด', style: TextStyle(fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('ยอดชำระ', style: TextStyle(color: Colors.grey)),
-                              Text(
-                                currencyFormat.format(_totalAmount),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    Text(
-                      'กรุณาโอนเงินตามยอดที่แสดง แล้วแนบสลิปด้านล่าง',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Slip Upload Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _slipFile != null ? Colors.green : Colors.grey.shade300,
-                    width: _slipFile != null ? 2 : 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _slipFile != null ? LucideIcons.checkCircle : LucideIcons.upload,
-                          color: _slipFile != null ? Colors.green : AppColors.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'แนบสลิปการโอนเงิน',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: _slipFile != null ? Colors.green : AppColors.textPrimary,
-                          ),
-                        ),
-                        if (_slipFile == null) ...[
-                          const Text(' *', style: TextStyle(color: Colors.red, fontSize: 16)),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    if (_slipFile != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(LucideIcons.image, color: Colors.green),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _slipFile!.name,
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    '${(_slipFile!.size / 1024).toStringAsFixed(1)} KB',
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setState(() => _slipFile = null),
-                              icon: const Icon(LucideIcons.x, color: Colors.red),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: _pickSlipFile,
-                        icon: const Icon(LucideIcons.refreshCw, size: 16),
-                        label: const Text('เปลี่ยนไฟล์'),
-                      ),
-                    ] else ...[
-                      GestureDetector(
-                        onTap: _pickSlipFile,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 32),
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(LucideIcons.uploadCloud, size: 40, color: AppColors.primary),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'แตะเพื่อเลือกรูปสลิป',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'รองรับไฟล์ JPG, PNG',
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-
+            
             const SizedBox(height: 32),
 
 
@@ -599,7 +397,9 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _processPayment,
+                onPressed: (_isSubmitting || (_sourceAccount != null && (_sourceAccount!['balance'] ?? 0) < _totalAmount)) 
+                    ? null 
+                    : _processPayment,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.success,
                   foregroundColor: Colors.white,
@@ -731,6 +531,7 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
     required IconData icon,
     bool isEnabled = true,
     String? badge,
+    bool isError = false,
   }) {
     final isSelected = _paymentMethod == value && isEnabled;
     
@@ -744,7 +545,7 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? AppColors.success : Colors.transparent,
+              color: isError ? Colors.red : (isSelected ? AppColors.success : Colors.transparent),
               width: 2,
             ),
           ),
@@ -805,6 +606,15 @@ class _LoanPaymentScreenState extends State<LoanPaymentScreen> {
                         color: AppColors.textSecondary,
                       ),
                     ),
+                    if (isError)
+                      Text(
+                        'ยอดเงินไม่เพียงพอ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                   ],
                 ),
               ),

@@ -5,10 +5,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:coop_digital_app/core/router/router_provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'features/auth/domain/user_role.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('th_TH', null);
+  
+  // Load saved user session
+  await CurrentUser.loadUser();
+
   try {
     await Firebase.initializeApp();
   } catch (e) {

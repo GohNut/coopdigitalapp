@@ -8,7 +8,9 @@ import '../../features/home/presentation/screens/profile_screen.dart';
 import '../../features/wallet/presentation/screens/account_book_screen.dart';
 import '../../features/deposit/presentation/screens/deposit_account_list_screen.dart';
 import '../../features/deposit/presentation/screens/deposit_account_detail_screen.dart';
+
 import '../../features/deposit/presentation/screens/create_account_screen.dart';
+import '../../features/deposit/presentation/screens/officer_deposit_check_screen.dart';
 import '../../features/loan/presentation/screens/loan_products_screen.dart';
 import '../../features/loan/presentation/screens/loan_application_screen.dart';
 import '../../features/wallet/presentation/screens/top_up_amount_screen.dart';
@@ -18,6 +20,7 @@ import '../../features/wallet/presentation/screens/withdraw_review_screen.dart';
 import '../../features/transfer/presentation/screens/transfer_search_screen.dart';
 import '../../features/transfer/presentation/screens/transfer_input_screen.dart';
 import '../../features/transfer/presentation/screens/transfer_success_screen.dart';
+import '../../features/transfer/presentation/screens/transfer_own_accounts_screen.dart';
 import '../../features/payment/presentation/screens/scan_screen.dart';
 import '../../features/payment/presentation/screens/payment_input_screen.dart';
 import '../../features/payment/presentation/screens/payment_success_screen.dart';
@@ -142,8 +145,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'qr',
                 builder: (context, state) {
-                  final amount = state.extra as double? ?? 0.0;
-                  return TopUpQrScreen(amount: amount);
+                  final params = state.extra as Map<String, dynamic>? ?? {'amount': 0.0, 'accountId': ''};
+                  return TopUpQrScreen(params: params);
                 },
               ),
             ],
@@ -173,6 +176,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               final account = state.extra as Map<String, dynamic>;
               return TransferInputScreen(account: account);
             },
+          ),
+          GoRoute(
+            path: 'own',
+            builder: (context, state) => const TransferOwnAccountsScreen(),
           ),
           GoRoute(
             path: 'success',
@@ -391,6 +398,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+
+
+      // Officer Routes
+      GoRoute(
+        path: '/officer/deposit-check',
+        builder: (context, state) => const OfficerDepositCheckScreen(),
       ),
     ],
   );

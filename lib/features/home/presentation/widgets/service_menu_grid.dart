@@ -112,6 +112,15 @@ class ServiceMenuGrid extends StatelessWidget {
                 ),
                 _buildSmallMenuItem(
                   context, 
+                  LucideIcons.receipt, 
+                  'ตรวจสอบสลิป', 
+                  const Color(0xFF10B981), // Green
+                  onTap: () {
+                    context.push('/officer/deposit-check');
+                  },
+                ),
+                _buildSmallMenuItem(
+                  context, 
                   LucideIcons.settings2, 
                   'ประเภทเงินกู้', 
                   Colors.orange, 

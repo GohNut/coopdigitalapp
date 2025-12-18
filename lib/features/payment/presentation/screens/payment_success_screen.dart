@@ -20,9 +20,16 @@ class PaymentSuccessScreen extends StatelessWidget {
             ? 'วงเงินสินเชื่อ: $sourceName'
             : sourceName;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(32),
@@ -96,6 +103,7 @@ class PaymentSuccessScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }

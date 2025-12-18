@@ -73,6 +73,13 @@ class _ShareConfirmationScreenState extends ConsumerState<ShareConfirmationScree
         paymentSourceId: paymentSourceId ?? '',
       );
 
+      // Invalidate providers to refresh data immediately
+      ref.invalidate(depositAccountsAsyncProvider);
+      if (paymentSourceId != null && paymentSourceId.isNotEmpty) {
+        ref.invalidate(depositAccountByIdAsyncProvider(paymentSourceId));
+      }
+      ref.invalidate(totalDepositBalanceAsyncProvider);
+
       if (mounted) {
          // Go to Step 4: Success
          context.go('/share/buy/success');

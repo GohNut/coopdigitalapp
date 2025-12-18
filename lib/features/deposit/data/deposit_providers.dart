@@ -40,8 +40,14 @@ final depositTransactionsAsyncProvider = FutureProvider.family<List<DepositTrans
     dateTime: DateTime.tryParse(data['datetime'] ?? '') ?? DateTime.now(),
     description: data['description'],
     referenceNo: data['referenceno'],
+    status: _parseTransactionStatus(data['status']),
   )).toList()
-    ..sort((a, b) => b.dateTime.compareTo(a.dateTime)); // Sort newest first
+    // Sort logic: Pending first, then by date descending
+    ..sort((a, b) {
+      if (a.status == TransactionStatus.pending && b.status != TransactionStatus.pending) return -1;
+      if (a.status != TransactionStatus.pending && b.status == TransactionStatus.pending) return 1;
+      return b.dateTime.compareTo(a.dateTime);
+    });
 });
 
 /// Provider สำหรับยอดเงินฝากรวม (async)
@@ -303,6 +309,19 @@ TransactionType _parseTransactionType(String? type) {
       return TransactionType.fee;
     default:
       return TransactionType.deposit;
+  }
+}
+
+TransactionStatus _parseTransactionStatus(String? status) {
+  switch (status?.toLowerCase()) {
+    case 'pending':
+      return TransactionStatus.pending;
+    case 'completed':
+      return TransactionStatus.completed;
+    case 'rejected':
+      return TransactionStatus.rejected;
+    default:
+      return TransactionStatus.completed;
   }
 }
 
