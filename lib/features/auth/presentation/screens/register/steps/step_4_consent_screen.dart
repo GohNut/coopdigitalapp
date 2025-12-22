@@ -157,7 +157,7 @@ class _Step4ConsentScreenState extends ConsumerState<Step4ConsentScreen> {
     if (!mounted) return;
     
     // Navigate to PIN setup
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => PinSetupScreen(
@@ -167,27 +167,31 @@ class _Step4ConsentScreenState extends ConsumerState<Step4ConsentScreen> {
             // Submit registration with PIN
             final success = await notifier.submitRegistration(pin: pin);
             if (success && mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('สมัครสมาชิกสำเร็จ'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              // Use GoRouter to navigate back to login
-              if (mounted) {
-                Navigator.of(context).pop(); // Close PIN screen first
-                context.go('/login'); // Then navigate to login
-              }
+              // Don't pop - just use context.go to replace the entire stack
+              // This avoids the GoRouter error about popping the last page
+              context.go('/login');
+              
+              // Show success message after navigation
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('สมัครสมาชิกสำเร็จ'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              });
             } else if (mounted) {
-              // Show error
+              // Show error and close PIN screen
               final error = ref.read(registrationProvider).error ?? 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+              Navigator.of(context).pop(); // Only pop on error
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(error),
                   backgroundColor: Colors.red,
                 ),
               );
-              Navigator.of(context).pop(); // Close PIN screen
             }
           },
         ),

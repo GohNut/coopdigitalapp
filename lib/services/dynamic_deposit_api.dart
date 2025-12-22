@@ -1,15 +1,16 @@
 import 'dart:convert';
+import 'dart:typed_data'; // For Uint8List (web-compatible)
 import 'package:http/http.dart' as http;
+import '../../core/config/api_config.dart';
 import 'dynamic_notification_api.dart';
 
 /// API Service สำหรับจัดการบัญชีเงินฝาก (เชื่อมต่อ MongoDB)
 class DynamicDepositApiService {
-  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
-
+  
   /// ดึงข้อมูลสมาชิกจากเลขบัตรประชาชน (Member ID)
   static Future<Map<String, dynamic>?> getMember(String citizenId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'members',
@@ -59,7 +60,7 @@ class DynamicDepositApiService {
     }
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'members',
@@ -106,7 +107,7 @@ class DynamicDepositApiService {
     }
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_accounts',
@@ -125,7 +126,7 @@ class DynamicDepositApiService {
   /// ดึงบัญชีทั้งหมดของสมาชิก
   static Future<List<Map<String, dynamic>>> getAccounts(String memberId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_accounts',
@@ -147,7 +148,7 @@ class DynamicDepositApiService {
   /// ดึงบัญชีตาม ID
   static Future<Map<String, dynamic>?> getAccountById(String accountId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_accounts',
@@ -169,7 +170,7 @@ class DynamicDepositApiService {
   /// ดึงบัญชีตาม Account Number
   static Future<Map<String, dynamic>?> getAccountByNumber(String accountNumber) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_accounts',
@@ -191,7 +192,7 @@ class DynamicDepositApiService {
   /// ดึงรายการเดินบัญชี
   static Future<List<Map<String, dynamic>>> getTransactions(String accountId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_transactions',
@@ -234,7 +235,7 @@ class DynamicDepositApiService {
     };
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_transactions',
@@ -264,7 +265,7 @@ class DynamicDepositApiService {
     }
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/update'),
+      Uri.parse('${ApiConfig.baseUrl}/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_accounts',
@@ -408,7 +409,7 @@ class DynamicDepositApiService {
     Map<String, dynamic>? data,
   }) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/update'),
+      Uri.parse('${ApiConfig.baseUrl}/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'members',
@@ -421,6 +422,70 @@ class DynamicDepositApiService {
       throw Exception('Failed to update member: ${response.body}');
     }
   }
+
+  /// อัปโหลดรูปโปรไฟล์สมาชิก (Web-compatible)
+  static Future<Map<String, dynamic>> uploadProfileImage({
+    required String memberId,
+    required Uint8List imageBytes,
+    required String filename,
+  }) async {
+    // ใช้ endpoint เดียวกับ Backend ที่แก้ไป: v1.POST("/upload-profile-image", ...)
+    // ดังนั้น path คือ /api/v1/upload-profile-image
+    final uri = Uri.parse('${ApiConfig.baseUrl}/upload-profile-image');
+    var request = http.MultipartRequest('POST', uri);
+    
+    // Add member ID as a field
+    request.fields['memberid'] = memberId;
+    
+    // Add image bytes (web-compatible)
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      imageBytes,
+      filename: filename,
+    ));
+    
+    final response = await request.send();
+    final responseBody = await response.stream.bytesToString();
+    
+    if (response.statusCode == 200) {
+      final result = jsonDecode(responseBody);
+      return result;
+    } else {
+      throw Exception('Failed to upload profile image: $responseBody');
+    }
+  }
+
+  /// ดึง URL รูปโปรไฟล์สมาชิก ผ่าน backend proxy เพื่อหลีกเลี่ยง CORS
+  static Future<Map<String, dynamic>?> getProfileImageUrl(String memberId) async {
+    try {
+      // 1. เรียก API ตรวจสอบข้อมูลรูปภาพ (ใช้ GET endpoint เดิมที่ return JSON)
+      // v1.GET("/member/profile-image", ...) -> /api/v1/member/profile-image
+      final checkUrl = '${ApiConfig.baseUrl}/member/profile-image?memberid=$memberId';
+      final response = await http.get(Uri.parse(checkUrl));
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        
+        if (result['status'] == 'success') {
+           // ได้ข้อมูลรูปภาพมาแล้ว ดึง version
+           final version = result['version'];
+           
+           // สร้าง Proxy URL สำหรับแสดงผล (เพื่อแก้ CORS)
+           // v1.GET("/member/profile-image/proxy", ...)
+           final proxyUrl = '${ApiConfig.baseUrl}/member/profile-image/proxy?memberid=$memberId&v=$version';
+           
+           return {
+             'url': proxyUrl,
+             'version': version,
+           };
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Failed to get profile image: $e');
+      return null;
+    }
+  } 
 
   /// สร้างรายการฝากเงิน (รอดำเนินการ)พร้อมแนบสลิป
   static Future<void> createDepositRequest({
@@ -453,7 +518,7 @@ class DynamicDepositApiService {
     };
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_transactions',
@@ -469,7 +534,7 @@ class DynamicDepositApiService {
   /// ดึงรายการที่สถานะ pending ทั้งหมด (สำหรับเจ้าหน้าที่)
   static Future<List<Map<String, dynamic>>> getPendingDeposits() async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_transactions',
@@ -492,7 +557,7 @@ class DynamicDepositApiService {
   static Future<void> approveDeposit(String transactionId) async {
     // 1. ดึงรายการ transaction มาเพื่อดู details
     final txResponse = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_transactions',
@@ -519,7 +584,7 @@ class DynamicDepositApiService {
     
     // 3. Update Transaction status -> completed & update balanceAfter
     await http.post(
-      Uri.parse('$_baseUrl/update'),
+      Uri.parse('${ApiConfig.baseUrl}/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_transactions',
@@ -562,7 +627,7 @@ class DynamicDepositApiService {
     
     // 2. Fetch transaction again to get info for withdrawal
     final txResponse = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'deposit_transactions',

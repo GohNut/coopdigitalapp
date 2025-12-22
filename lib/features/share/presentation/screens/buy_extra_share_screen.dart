@@ -5,6 +5,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'share_payment_method_screen.dart';
+import '../../data/repositories/share_repository_impl.dart';
+import '../../domain/models/share_type.dart';
 
 class BuyExtraShareScreen extends StatefulWidget {
   const BuyExtraShareScreen({super.key});
@@ -20,10 +22,39 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
   double _pricePerUnit = 50.0;
   int _units = 10;
 
+  // Dynamic Share Types
+  List<ShareType> _shareTypes = [];
+  ShareType? _selectedShareType;
+  bool _isLoading = true;
+  final _repository = ShareRepositoryImpl();
+
   @override
   void initState() {
     super.initState();
     _unitsController.addListener(_calculateTotal);
+    _loadShareTypes();
+  }
+
+  Future<void> _loadShareTypes() async {
+    try {
+      final types = await _repository.getShareTypes();
+      if (mounted) {
+        setState(() {
+          _shareTypes = types.where((t) => t.status == 'active').toList();
+          if (_shareTypes.isNotEmpty) {
+            _selectedShareType = _shareTypes.first;
+            _pricePerUnit = _selectedShareType!.price;
+            _calculateTotal();
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      print('Error loading share types: $e');
+    }
   }
 
   @override
@@ -93,16 +124,30 @@ class _BuyExtraShareScreenState extends State<BuyExtraShareScreen> {
                    borderRadius: BorderRadius.circular(12),
                    border: Border.all(color: Colors.grey.shade300),
                  ),
-                 child: DropdownButtonHideUnderline(
-                   child: DropdownButton<String>(
-                     value: 'ordinary',
-                     isExpanded: true,
-                     items: const [
-                       DropdownMenuItem(value: 'ordinary', child: Text('หุ้นสามัญ (Ordinary Share)')),
-                     ], 
-                     onChanged: (val) {},
-                   ),
-                 ),
+                   child: DropdownButtonHideUnderline(
+                    child: _isLoading 
+                      ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                      : DropdownButton<ShareType>(
+                      value: _selectedShareType,
+                      isExpanded: true,
+                      hint: const Text('เลือกประเภทหุ้น'),
+                      items: _shareTypes.map((type) {
+                        return DropdownMenuItem<ShareType>(
+                          value: type,
+                          child: Text('${type.name} (${type.price} บาท)'),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            _selectedShareType = val;
+                            _pricePerUnit = val.price;
+                            _calculateTotal();
+                          });
+                        }
+                      },
+                    ),
+                  ),
                ),
                const SizedBox(height: 24),
 

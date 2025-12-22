@@ -139,59 +139,21 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
        return;
     }
 
-    // Perform withdrawal - with PIN verification
-    _verifyPinThenWithdraw(amount);
-  }
-
-  Future<void> _verifyPinThenWithdraw(double amount) async {
-    //  PIN Verification
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (c) => const PinVerificationScreen()),
-    );
-
-    if (result != true) {
-      // PIN failed or cancelled
-      return;
-    }
-
-    // PIN success, proceed
+    // Navigate to review directly (PIN check is on the next screen)
     _performRealWithdrawal(amount);
   }
 
   Future<void> _performRealWithdrawal(double amount) async {
-    try {
-      await ref.read(depositActionProvider.notifier).withdraw(
-        accountId: _selectedSourceAccountId!,
-        amount: amount,
-        description: 'ถอนเงินเข้าบัญชี ${_banks.firstWhere((b) => b['id'] == _selectedBank)['name']} (${_accountController.text})',
-      );
+    // Navigate to Review Screen
+    final bankName = _banks.firstWhere((b) => b['id'] == _selectedBank)['name'];
+    final accountNo = _accountController.text;
 
-      if (mounted) {
-        // Get source account info
-        final accounts = ref.read(depositAccountsProvider);
-        final sourceAccount = accounts.firstWhere(
-          (a) => a.id == _selectedSourceAccountId,
-          orElse: () => DepositAccount(id: '', accountNumber: '', accountName: '', accountType: AccountType.savings, balance: 0, interestRate: 0, accruedInterest: 0, openedDate: DateTime.now()),
-        );
-        
-        // Go to Success Screen
-        context.go('/transfer/success', extra: {
-          'transaction_id': 'WTD-${DateTime.now().millisecondsSinceEpoch}',
-          'amount': amount,
-          'from_name': '${sourceAccount.accountName}\n${sourceAccount.accountNumber}',
-          'target_name': '${_banks.firstWhere((b) => b['id'] == _selectedBank)['name']}\n${_accountController.text}',
-          'note': 'ถอนเงินสำเร็จ',
-          'timestamp': DateTime.now().toIso8601String(),
-          'repeat_text': 'ถอนเงินอีกครั้ง',
-          'repeat_route': '/wallet/withdraw',
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
-      }
-    }
+    context.push('/wallet/withdraw/confirm', extra: {
+      'accountId': _selectedSourceAccountId,
+      'amount': amount,
+      'bankName': bankName,
+      'accountNo': accountNo,
+    });
   }
 
   @override

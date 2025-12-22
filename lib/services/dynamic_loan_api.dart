@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../core/config/api_config.dart';
 
 class DynamicLoanApiService {
-  // เปลี่ยนเป็น IP ของเครื่อง Server หรือ localhost (สำหรับ Android Emulator ใช้ 10.0.2.2)
-  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
   
   static Future<Map<String, dynamic>> createLoan(Map<String, dynamic> data) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_applications',
@@ -34,7 +33,7 @@ class DynamicLoanApiService {
     }
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'), // Using create for upsert
+      Uri.parse('${ApiConfig.baseUrl}/create'), // Using create for upsert
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_applications',
@@ -60,7 +59,7 @@ class DynamicLoanApiService {
     if (skip != null) body['skip'] = skip;
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
@@ -74,7 +73,7 @@ class DynamicLoanApiService {
 
   static Future<Map<String, dynamic>> getLoanProducts() async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_products',
@@ -107,7 +106,7 @@ class DynamicLoanApiService {
     
     // 1. Get current loan application first
     final getLoanResponse = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_applications',
@@ -161,7 +160,7 @@ class DynamicLoanApiService {
       
       // Create payment record in loan_payments collection
       await http.post(
-        Uri.parse('$_baseUrl/create'),
+        Uri.parse('${ApiConfig.baseUrl}/create'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'collection': 'loan_payments',
@@ -182,7 +181,7 @@ class DynamicLoanApiService {
       
       // Update loan as CLOSED
       await http.post(
-        Uri.parse('$_baseUrl/update'),
+        Uri.parse('${ApiConfig.baseUrl}/update'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'collection': 'loan_applications',
@@ -222,7 +221,7 @@ class DynamicLoanApiService {
         
         // Create individual payment record in loan_payments collection
         await http.post(
-          Uri.parse('$_baseUrl/create'),
+          Uri.parse('${ApiConfig.baseUrl}/create'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'collection': 'loan_payments',
@@ -248,7 +247,7 @@ class DynamicLoanApiService {
       
       // Update loan application
       await http.post(
-        Uri.parse('$_baseUrl/update'),
+        Uri.parse('${ApiConfig.baseUrl}/update'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'collection': 'loan_applications',
@@ -274,7 +273,7 @@ class DynamicLoanApiService {
   /// Get payments for a loan application
   static Future<Map<String, dynamic>> getPayments(String applicationId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_payments',
@@ -295,7 +294,7 @@ class DynamicLoanApiService {
     final productId = data['productid'];
     
     final response = await http.post(
-      Uri.parse('$_baseUrl/update'),
+      Uri.parse('${ApiConfig.baseUrl}/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_products',
@@ -315,7 +314,7 @@ class DynamicLoanApiService {
   /// Delete a loan product
   static Future<Map<String, dynamic>> deleteLoanProduct(String productId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/delete'),
+      Uri.parse('${ApiConfig.baseUrl}/delete'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_products',
@@ -333,7 +332,7 @@ class DynamicLoanApiService {
   static Future<Map<String, dynamic>> submitAdditionalDocuments(String applicationId, List<Map<String, dynamic>> newDocs) async {
     // 1. Fetch current to get existing
     final getResponse = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_applications',
@@ -355,7 +354,7 @@ class DynamicLoanApiService {
 
     // 3. Update
     final response = await http.post(
-      Uri.parse('$_baseUrl/update'),
+      Uri.parse('${ApiConfig.baseUrl}/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'loan_applications',

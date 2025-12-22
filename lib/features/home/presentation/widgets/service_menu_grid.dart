@@ -37,7 +37,7 @@ class ServiceMenuGrid extends StatelessWidget {
                   context,
                   icon: LucideIcons.trendingUp,
                   label: 'หุ้นสหกรณ์',
-                  subtitle: 'ซื้อ-โอนหุ้น ปันผล',
+                  subtitle: 'ซื้อหุ้น ปันผล',
                   color: const Color(0xFF2563EB), // Deep Blue
                   onTap: () => context.push('/share'),
                 ),
@@ -79,6 +79,13 @@ class ServiceMenuGrid extends StatelessWidget {
               _buildSmallMenuItem(context, LucideIcons.barChart3, 'ปันผล', Colors.purple),
               _buildSmallMenuItem(context, LucideIcons.fileText, 'เอกสาร', Colors.blueGrey),
               _buildSmallMenuItem(context, LucideIcons.headphones, 'ช่วยเหลือ', Colors.teal),
+              _buildSmallMenuItem(
+                context, 
+                LucideIcons.shieldCheck, 
+                'ยืนยันตัวตน', 
+                const Color(0xFF10B981), // Green
+                onTap: () => context.push('/kyc'),
+              ),
             ],
           ),
 
@@ -113,7 +120,7 @@ class ServiceMenuGrid extends StatelessWidget {
                 _buildSmallMenuItem(
                   context, 
                   LucideIcons.receipt, 
-                  'ตรวจสอบสลิป', 
+                  'ตรวจสอบ', 
                   const Color(0xFF10B981), // Green
                   onTap: () {
                     context.push('/officer/deposit-check');
@@ -126,6 +133,33 @@ class ServiceMenuGrid extends StatelessWidget {
                   Colors.orange, 
                   onTap: () {
                     context.push('/loan-products-management');
+                  },
+                ),
+                _buildSmallMenuItem(
+                  context, 
+                  LucideIcons.arrowUpRight, 
+                  'อนุมัติถอนเงิน', 
+                  Colors.redAccent, 
+                  onTap: () {
+                    context.push('/officer/withdrawal-check');
+                  },
+                ),
+                _buildSmallMenuItem(
+                  context, 
+                  LucideIcons.shieldCheck, 
+                  'ยืนยันตัวตน', 
+                  Colors.blue, 
+                  onTap: () {
+                    context.push('/officer/kyc-check');
+                  },
+                ),
+                 _buildSmallMenuItem(
+                  context, 
+                  LucideIcons.candlestickChart, 
+                  'ประเภทหุ้น', 
+                  Colors.purple, 
+                  onTap: () {
+                    context.push('/officer/share-type');
                   },
                 ),
               ],

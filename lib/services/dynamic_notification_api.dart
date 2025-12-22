@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../core/config/api_config.dart';
 
 class DynamicNotificationApiService {
-  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
-
+  
   /// ดึงการแจ้งเตือนของสมาชิก
   static Future<List<Map<String, dynamic>>> getNotifications(String memberId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'notifications',
@@ -45,7 +45,7 @@ class DynamicNotificationApiService {
     };
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'notifications',
@@ -61,7 +61,7 @@ class DynamicNotificationApiService {
   /// อ่านการแจ้งเตือนแล้ว
   static Future<void> markAsRead(String notificationId) async {
     await http.post(
-      Uri.parse('$_baseUrl/update'),
+      Uri.parse('${ApiConfig.baseUrl}/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'notifications',

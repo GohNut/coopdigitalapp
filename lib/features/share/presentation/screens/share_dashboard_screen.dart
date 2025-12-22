@@ -109,11 +109,7 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> with Widget
              _buildPortfolioSummary(data, currencyFormat, unitsFormat),
              const SizedBox(height: 24),
 
-            // 2. Share Info Card (Price)
-            _buildShareInfoRow(currencyFormat, data),
-            const SizedBox(height: 24),
-
-            // 3. Dividend Card
+            // 2. Dividend Card
             _buildDividendCard(currencyFormat),
             const SizedBox(height: 24),
 
@@ -341,43 +337,6 @@ class _ShareDashboardScreenState extends State<ShareDashboardScreen> with Widget
          ],
        ),
      );
-  }
-
-  Widget _buildShareInfoRow(NumberFormat currency, ShareModel data) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildInfoCard('ราคาต่อหุ้น', '${currency.format(data.shareParValue)} บาท', LucideIcons.tag, Colors.blue),
-        ),
-      ],
-    );
-  }
-
-    Widget _buildInfoCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-         color: Colors.white,
-         borderRadius: BorderRadius.circular(16),
-         boxShadow: [
-           BoxShadow(
-             color: Colors.black.withOpacity(0.04),
-             blurRadius: 8,
-             offset: const Offset(0, 4),
-           )
-         ]
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-           Icon(icon, color: color, size: 20),
-           const SizedBox(height: 12),
-           Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-           const SizedBox(height: 4),
-           Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis),
-        ],
-      ),
-    );
   }
 
   Widget _buildDividendCard(NumberFormat currency) {

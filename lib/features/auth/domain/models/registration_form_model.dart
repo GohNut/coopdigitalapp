@@ -161,6 +161,7 @@ class OccupationInfo {
   final double? income;
   final Address workplaceAddress;
   final GovDetails? govDetails;
+  final bool useCurrentAddress;
 
   OccupationInfo({
     this.occupationType = 'company_employee',
@@ -168,6 +169,7 @@ class OccupationInfo {
     this.income,
     required this.workplaceAddress,
     this.govDetails,
+    this.useCurrentAddress = false,
   });
 
   OccupationInfo copyWith({
@@ -176,6 +178,7 @@ class OccupationInfo {
     double? income,
     Address? workplaceAddress,
     GovDetails? govDetails,
+    bool? useCurrentAddress,
   }) {
     return OccupationInfo(
       occupationType: occupationType ?? this.occupationType,
@@ -183,6 +186,7 @@ class OccupationInfo {
       income: income ?? this.income,
       workplaceAddress: workplaceAddress ?? this.workplaceAddress,
       govDetails: govDetails ?? this.govDetails,
+      useCurrentAddress: useCurrentAddress ?? this.useCurrentAddress,
     );
   }
 }

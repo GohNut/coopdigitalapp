@@ -537,7 +537,7 @@ class _TransactionItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isPending ? 'รอตรวจสอบสลิป' : transaction.type.displayName,
+                  isPending ? 'รอตรวจสอบ' : transaction.type.displayName,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,

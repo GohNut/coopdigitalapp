@@ -1,5 +1,6 @@
 import '../domain/models/share_model.dart';
 import '../domain/models/share_transaction.dart';
+import '../domain/models/share_type.dart';
 
 /// Abstract interface สำหรับ Share Repository
 /// กำหนดเมธอดที่จำเป็นสำหรับการจัดการหุ้นสหกรณ์
@@ -23,4 +24,16 @@ abstract class ShareRepository {
 
   /// เปลี่ยนยอดส่งรายเดือน (ยังไม่ได้ implement)
   Future<bool> changeMonthlySubscription(double amount);
+
+  /// ดึงข้อมูลประเภทหุ้นทั้งหมด
+  Future<List<ShareType>> getShareTypes();
+
+  /// สร้างประเภทหุ้น
+  Future<void> createShareType(ShareType shareType);
+
+  /// แก้ไขประเภทหุ้น
+  Future<void> updateShareType(ShareType shareType);
+
+  /// ลบประเภทหุ้น
+  Future<void> deleteShareType(String id);
 }

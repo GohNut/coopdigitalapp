@@ -5,6 +5,8 @@ import 'package:coop_digital_app/core/router/router_provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'features/auth/domain/user_role.dart';
+import 'package:camera/camera.dart';
+import 'core/providers/camera_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +15,20 @@ void main() async {
   // Load saved user session
   await CurrentUser.loadUser();
 
-  runApp(const ProviderScope(child: CoopDigitalApp()));
+  // Initialize Cameras
+  List<CameraDescription> cameras = [];
+  try {
+    cameras = await availableCameras();
+  } catch (e) {
+    debugPrint('Failed to initialize cameras: $e');
+  }
+
+  runApp(ProviderScope(
+    overrides: [
+      cameraProvider.overrideWithValue(cameras),
+    ],
+    child: const CoopDigitalApp(),
+  ));
 }
 
 class CoopDigitalApp extends ConsumerWidget {

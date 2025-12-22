@@ -67,7 +67,7 @@ class TransactionListItem extends StatelessWidget {
                   children: [
                     Text(
                       isPending 
-                        ? 'รอตรวจสอบสลิป'
+                        ? 'รอตรวจสอบ'
                         : (transaction.description ?? transaction.type.displayName),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,

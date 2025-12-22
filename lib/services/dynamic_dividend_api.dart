@@ -1,14 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../core/config/api_config.dart';
 
 /// API Service สำหรับจัดการเงินปันผลสหกรณ์
 class DynamicDividendApiService {
-  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
-
   /// ดึงอัตราปันผลล่าสุด
   static Future<Map<String, dynamic>> getDividendRates() async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'dividend_rates',
@@ -41,7 +40,7 @@ class DynamicDividendApiService {
     };
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'dividend_rates',
@@ -60,7 +59,7 @@ class DynamicDividendApiService {
   static Future<Map<String, dynamic>> calculateDividend(String memberId, int year) async {
     // 1. ดึงอัตราปันผลของปี
     final rateResponse = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'dividend_rates',
@@ -78,7 +77,7 @@ class DynamicDividendApiService {
 
     // 2. ดึงข้อมูลหุ้นของสมาชิก
     final shareResponse = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'share_accounts',
@@ -103,7 +102,7 @@ class DynamicDividendApiService {
 
     // 4. ตรวจสอบว่ารับปันผลไปแล้วหรือยัง
     final historyResponse = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'dividend_payments',
@@ -131,7 +130,7 @@ class DynamicDividendApiService {
   /// ดึงประวัติรับปันผล
   static Future<List<Map<String, dynamic>>> getDividendHistory(String memberId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'dividend_payments',
@@ -175,7 +174,7 @@ class DynamicDividendApiService {
     };
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'dividend_payments',

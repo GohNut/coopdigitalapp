@@ -3,6 +3,7 @@ import '../../../auth/domain/user_role.dart';
 import '../../domain/share_repository.dart';
 import '../../domain/models/share_model.dart';
 import '../../domain/models/share_transaction.dart';
+import '../../domain/models/share_type.dart';
 
 /// Implementation ของ ShareRepository ที่เชื่อมต่อกับ API จริง
 class ShareRepositoryImpl implements ShareRepository {
@@ -104,5 +105,31 @@ class ShareRepositoryImpl implements ShareRepository {
     print('changeMonthlySubscription called with amount: $amount');
     await Future.delayed(const Duration(seconds: 1)); // Simulate API call
     return true; // Return success for now
+  }
+
+  @override
+  Future<List<ShareType>> getShareTypes() async {
+    try {
+      final list = await DynamicShareApiService.getShareTypes();
+      return list.map((json) => ShareType.fromJson(json)).toList();
+    } catch (e) {
+      print('Error getting share types: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<void> createShareType(ShareType shareType) async {
+    await DynamicShareApiService.createShareType(shareType.toJson());
+  }
+
+  @override
+  Future<void> updateShareType(ShareType shareType) async {
+    await DynamicShareApiService.updateShareType(shareType.id, shareType.toJson());
+  }
+
+  @override
+  Future<void> deleteShareType(String id) async {
+    await DynamicShareApiService.deleteShareType(id);
   }
 }

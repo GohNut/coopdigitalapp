@@ -17,6 +17,7 @@ class CurrentUser {
   static bool isMember = false; 
 
   static String? pin; // Added PIN field
+  static String? profileImageUrl; // Added profile image URL field
 
   static bool get isOfficerOrApprover => 
       role == UserRole.officer || role == UserRole.approver;
@@ -30,12 +31,14 @@ class CurrentUser {
     required UserRole newRole,
     required bool newIsMember,
     String? newPin, // Added PIN parameter
+    String? newProfileImageUrl, // Added profile image URL parameter
   }) async {
     name = newName;
     id = newId;
     role = newRole;
     isMember = newIsMember;
     pin = newPin;
+    profileImageUrl = newProfileImageUrl;
     
     await saveUser(); // Auto-save when setting user
   }
@@ -51,6 +54,11 @@ class CurrentUser {
       await prefs.setString('user_pin', pin!);
     } else {
       await prefs.remove('user_pin');
+    }
+    if (profileImageUrl != null) {
+      await prefs.setString('user_profile_image_url', profileImageUrl!);
+    } else {
+      await prefs.remove('user_profile_image_url');
     }
   }
 
@@ -74,6 +82,7 @@ class CurrentUser {
     
     isMember = prefs.getBool('user_is_member') ?? false;
     pin = prefs.getString('user_pin');
+    profileImageUrl = prefs.getString('user_profile_image_url');
   }
 
   // Clear user state (Logout)
@@ -87,5 +96,6 @@ class CurrentUser {
     role = UserRole.member;
     isMember = false;
     pin = null;
+    profileImageUrl = null;
   }
 }

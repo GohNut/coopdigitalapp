@@ -44,11 +44,17 @@ class HomeHeader extends ConsumerWidget {
                       colors: [AppColors.primary, AppColors.secondary],
                     ),
                   ),
-                  child: const CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white,
-                    child: Icon(LucideIcons.user, color: AppColors.primary, size: 24),
-                  ),
+                  child: CurrentUser.profileImageUrl != null && CurrentUser.profileImageUrl!.isNotEmpty
+                      ? CircleAvatar(
+                          radius: 22,
+                          backgroundImage: NetworkImage(CurrentUser.profileImageUrl!),
+                          backgroundColor: Colors.white,
+                        )
+                      : const CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Colors.white,
+                          child: Icon(LucideIcons.user, color: AppColors.primary, size: 24),
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Column(

@@ -28,6 +28,7 @@ class _Step3OccupationScreenState extends ConsumerState<Step3OccupationScreen> {
   final TextEditingController _affiliationController = TextEditingController();
   
   late Address _workplaceAddress;
+  bool _useCurrentAddress = false;
 
   @override
   void initState() {
@@ -38,7 +39,9 @@ class _Step3OccupationScreenState extends ConsumerState<Step3OccupationScreen> {
     _occupationType = occupation.occupationType;
     _otherOccupationController.text = occupation.otherOccupation;
     _incomeController.text = occupation.income?.toString() ?? '';
+    _incomeController.text = occupation.income?.toString() ?? '';
     _workplaceAddress = occupation.workplaceAddress;
+    _useCurrentAddress = occupation.useCurrentAddress;
 
     if (occupation.occupationType == 'government' && occupation.govDetails != null) {
       _unitNameController.text = occupation.govDetails!.unitName;
@@ -117,11 +120,23 @@ class _Step3OccupationScreenState extends ConsumerState<Step3OccupationScreen> {
             
             // Workplace Address (Common)
             const Text('ที่อยู่ที่ทำงาน', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            AddressFormWidget(
-              initialAddress: _workplaceAddress,
-              onChanged: (addr) => _workplaceAddress = addr,
+            CheckboxListTile(
+              title: const Text('ใช้ที่อยู่เดียวกับที่อยู่ปัจจุบัน'),
+              value: _useCurrentAddress,
+              onChanged: (val) {
+                setState(() {
+                  _useCurrentAddress = val ?? false;
+                });
+              },
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
             ),
+            const SizedBox(height: 16),
+            if (!_useCurrentAddress)
+              AddressFormWidget(
+                initialAddress: _workplaceAddress,
+                onChanged: (addr) => _workplaceAddress = addr,
+              ),
 
             const SizedBox(height: 32),
 
@@ -258,13 +273,21 @@ class _Step3OccupationScreenState extends ConsumerState<Step3OccupationScreen> {
          otherOcc = _workplaceNameController.text;
       }
       
+      // Logic to copy address if checked
+      Address finalWorkplaceAddress = _workplaceAddress;
+      if (_useCurrentAddress) {
+        final personalInfo = ref.read(registrationProvider).form.personalInfo;
+        finalWorkplaceAddress = personalInfo.currentAddress;
+      }
+
       notifier.updateOccupationInfo(
         OccupationInfo(
           occupationType: _occupationType,
           otherOccupation: otherOcc, // Mapping Workplace Name here for simplicity
           income: double.tryParse(_incomeController.text),
-          workplaceAddress: _workplaceAddress,
+          workplaceAddress: finalWorkplaceAddress,
           govDetails: govDetails,
+          useCurrentAddress: _useCurrentAddress,
         )
       );
       notifier.nextStep();

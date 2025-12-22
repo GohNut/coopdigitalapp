@@ -233,15 +233,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           interestRate: 0.25,
         );
 
-        // 3. Auto-create Loan Account (บัญชีเงินกู้สหกรณ์)
-        final loanAccountNo = '5${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}-${(10000 + DateTime.now().microsecond % 90000).toString()}';
-        await DynamicDepositApiService.createAccount(
-          memberId: idCard,
-          accountNumber: loanAccountNo,
-          accountName: 'บัญชีเงินกู้สหกรณ์ - $name',
-          accountType: 'loan',
-          interestRate: 0.0, // ดอกเบี้ยคิดตามสัญญากู้
-        );
+        // 3. Loan Account creation removed as per requirement
 
         if (!mounted) return;
 

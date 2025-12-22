@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import '../../../../features/kyc/data/kyc_service.dart';
+import 'dart:typed_data'; // For Uint8List (web-compatible)
+import 'package:image_picker/image_picker.dart'; // For image selection
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/dynamic_deposit_api.dart';
 import '../../../auth/domain/user_role.dart';
@@ -10,6 +13,7 @@ import '../../../auth/domain/user_role.dart';
 import '../../../../core/constants/address_data.dart';
 import '../../../auth/presentation/widgets/address_form_widget.dart';
 import '../../../auth/domain/models/registration_form_model.dart'; // For Address model
+import '../../../../core/utils/string_extensions.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -40,6 +44,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String? _maritalStatus;
   DateTime? _spouseBirthDate;
   String? _occupationType;
+  
+  // Profile Image
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes; // For web preview
+  String? _profileImageUrl;
   
   // Addresses
   Address _currentAddress = Address();
@@ -158,6 +167,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       subDistrictId: _memberData!['workplace_address_subdistrict_id'],
       zipCode: _memberData!['workplace_address_zipcode'] ?? '',
     );
+    
+    // Profile Image - Get presigned URL
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    try {
+      final imageData = await DynamicDepositApiService.getProfileImageUrl(CurrentUser.id);
+      if (mounted && imageData != null) {
+        final url = imageData['url'];
+        final version = imageData['version'];
+        setState(() {
+          // เพิ่ม version เป็น query parameter สำหรับ cache busting
+          _profileImageUrl = url != null && version != null 
+              ? '$url&v=$version' 
+              : url;
+        });
+      }
+    } catch (e) {
+      print('Failed to load profile image: $e');
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -166,6 +196,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _isSaving = true);
     
     try {
+      String? uploadedImageUrl;
+      
+      // Upload profile image if selected
+      if (_selectedImage != null && _selectedImageBytes != null) {
+        await DynamicDepositApiService.uploadProfileImage(
+          memberId: CurrentUser.id,
+          imageBytes: _selectedImageBytes!,
+          filename: _selectedImage!.name,
+        );
+        // หลังอัพโหลดสำเร็จ ใช้ proxy URL พร้อม cache busting
+        final version = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        uploadedImageUrl = 'https://member.rspcoop.com/member/profile-image/proxy?memberid=${CurrentUser.id}&v=$version';
+        
+        // อัพเดทรูปในหน้า Profile ทันที
+        setState(() {
+          _profileImageUrl = uploadedImageUrl;
+        });
+      }
+      
       final data = <String, dynamic>{
         'name_th': _nameController.text,
         'email': _emailController.text,
@@ -173,6 +222,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         'birth_date': _birthDate?.toIso8601String(),
         'marital_status': _maritalStatus,
       };
+      
+      // Add profile image URL if uploaded (optional - สำหรับ fallback)
+      if (uploadedImageUrl != null) {
+        data['profile_image_url'] = uploadedImageUrl;
+      }
 
       if (_maritalStatus == 'married') {
         data['spouse_name'] = _spouseNameController.text;
@@ -207,13 +261,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         data: data,
       );
 
-      // Reload data
+      // Update CurrentUser with new profile image URL
+      if (uploadedImageUrl != null) {
+        CurrentUser.profileImageUrl = uploadedImageUrl;
+        await CurrentUser.saveUser();
+      }
+
+      // Reload data (จะโหลด member data ใหม่)
       await _loadMemberData();
       
       if (mounted) {
         setState(() {
           _isEditing = false;
           _isSaving = false;
+          _selectedImage = null; // Clear selected image
+          _selectedImageBytes = null; // Clear image bytes
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('บันทึกข้อมูลเรียบร้อย')),
@@ -249,6 +311,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    
+    // Show dialog to choose between camera or gallery
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('เลือกรูปโปรไฟล์'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(LucideIcons.camera),
+              title: const Text('ถ่ายรูป'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(LucideIcons.image),
+              title: const Text('เลือกจากคลัง'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    
+    if (source != null) {
+      final XFile? image = await picker.pickImage(source: source);
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImage = image;
+          _selectedImageBytes = bytes;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -262,6 +362,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           onPressed: () => context.pop(),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.shieldCheck),
+            tooltip: 'ยืนยันตัวตน KYC',
+            onPressed: () => context.push('/kyc'),
+          ),
           if (!_isLoading && _error == null)
             IconButton(
               icon: Icon(_isEditing ? Icons.save : Icons.edit),
@@ -283,7 +388,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Header Section (Same as before)
+          // Header Section with Profile Image
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -291,10 +396,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 16),
-                Text(
-                  _memberData?['name_th'] ?? CurrentUser.name,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                // Profile Image Circle
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                  ),
+                  child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                      ? CircleAvatar(
+                          radius: 50,
+                          backgroundImage: NetworkImage(_profileImageUrl!),
+                          backgroundColor: Colors.white,
+                        )
+                      : const CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.white,
+                          child: Icon(LucideIcons.user, size: 50, color: AppColors.primary),
+                        ),
                 ),
+                const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _memberData?['name_th'] ?? CurrentUser.name,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      if (_memberData?['kyc_status'] == 'verified' || _memberData?['kyc_status'] == 'approved') ...[
+                        const SizedBox(width: 8),
+                        const Icon(LucideIcons.badgeCheck, color: Colors.blueAccent, size: 24), // Or Gold
+                      ],
+                    ],
+                  ),
                 const SizedBox(height: 8),
                 Text(
                   _formatRole(_memberData?['role']),
@@ -311,7 +445,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                  _buildInfoSection('ข้อมูลบัญชี', [
-                    _buildInfoTile(LucideIcons.creditCard, 'เลขบัตรประชาชน', _memberData?['memberid']),
+                    _buildInfoTile(LucideIcons.creditCard, 'เลขบัตรประชาชน', _memberData?['memberid']?.toString().formatCitizenId()),
                     _buildInfoTile(LucideIcons.mail, 'อีเมล', _memberData?['email']),
                     _buildInfoTile(LucideIcons.phone, 'เบอร์โทรศัพท์', _memberData?['mobile']),
                  ]),
@@ -369,10 +503,67 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             if (_isSaving) const LinearProgressIndicator(),
             const SizedBox(height: 16),
             
+            // Profile Image Editor
+            Center(
+              child: Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary, width: 3),
+                    ),
+                    child: _selectedImageBytes != null
+                        ? CircleAvatar(
+                            radius: 50,
+                            backgroundImage: MemoryImage(_selectedImageBytes!),
+                            backgroundColor: Colors.grey[200],
+                          )
+                        : _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                            ? CircleAvatar(
+                                radius: 50,
+                                backgroundImage: NetworkImage(_profileImageUrl!),
+                                backgroundColor: Colors.grey[200],
+                              )
+                            : CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.grey[200],
+                                child: Icon(LucideIcons.user, size: 50, color: AppColors.primary),
+                              ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(LucideIcons.camera, size: 20, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(LucideIcons.upload, size: 16),
+                label: const Text('เปลี่ยนรูปโปรไฟล์'),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
             // Account Info (ReadOnly ID)
             _sectionHeader('ข้อมูลบัญชี'),
             TextFormField(
-              initialValue: _memberData?['memberid'],
+              initialValue: _memberData?['memberid']?.toString().formatCitizenId(),
               decoration: const InputDecoration(labelText: 'เลขบัตรประชาชน', filled: true),
               readOnly: true,
               enabled: false,

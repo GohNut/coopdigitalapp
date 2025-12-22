@@ -95,7 +95,7 @@ class _LoanPaymentScreenState extends ConsumerState<LoanPaymentScreen> {
       final accounts = await DynamicDepositApiService.getAccounts(memberId);
       // Find savings account
       final savings = accounts.firstWhere(
-        (a) => a['accounttype'] == 'loan',
+        (a) => a['accounttype'] == 'savings',
         orElse: () => accounts.isNotEmpty ? accounts.first : {},
       );
       
@@ -335,7 +335,7 @@ class _LoanPaymentScreenState extends ConsumerState<LoanPaymentScreen> {
             
             _buildPaymentMethodOption(
               value: 'account_book',
-              title: 'ชำระจากสมุดเงินกู้',
+              title: 'ชำระจากบัญชีเงินฝาก',
               subtitle: _sourceAccount != null 
                   ? '${_sourceAccount!['accountname']}\n${_sourceAccount!['accountnumber']}\nยอดเงินคงเหลือ: ${currencyFormat.format(_sourceAccount!['balance'])}'
                   : 'กำลังโหลด...',

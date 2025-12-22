@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../core/config/api_config.dart';
 
 class DynamicShareApiService {
-  // Base URL สำหรับ API หุ้นสหกรณ์
-  static const String _baseUrl = 'https://member.rspcoop.com/api/v1/loan';
   
   /// ดึงข้อมูลหุ้นสหกรณ์ของสมาชิก
   /// Returns: Map containing share info for the member
   static Future<Map<String, dynamic>> getShareInfo(String memberId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'share_accounts',
@@ -43,7 +42,7 @@ class DynamicShareApiService {
     };
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'share_accounts',
@@ -84,7 +83,7 @@ class DynamicShareApiService {
     };
 
     final transactionResponse = await http.post(
-      Uri.parse('$_baseUrl/create'),
+      Uri.parse('${ApiConfig.baseUrl}/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'share_transactions',
@@ -102,7 +101,7 @@ class DynamicShareApiService {
     final newTotalValue = (currentShare['totalvalue'] ?? 0.0) + amount;
 
     final updateResponse = await http.post(
-      Uri.parse('$_baseUrl/update'),
+      Uri.parse('${ApiConfig.baseUrl}/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'share_accounts',
@@ -138,7 +137,7 @@ class DynamicShareApiService {
     if (skip != null) body['skip'] = skip;
 
     final response = await http.post(
-      Uri.parse('$_baseUrl/get'),
+      Uri.parse('${ApiConfig.baseUrl}/get'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
@@ -147,6 +146,66 @@ class DynamicShareApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to get share history: ${response.body}');
+    }
+  }
+
+  /// ดึงข้อมูลประเภทหุ้นทั้งหมด
+  static Future<List<Map<String, dynamic>>> getShareTypes() async {
+    final response = await http.get(
+      Uri.parse('${ApiConfig.baseUrl}/share/list'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final result = jsonDecode(response.body);
+      if (result['status'] == 'success' && result['data'] is List) {
+        return List<Map<String, dynamic>>.from(result['data']);
+      }
+      return [];
+    } else {
+      throw Exception('Failed to get share types: ${response.body}');
+    }
+  }
+
+  /// สร้างประเภทหุ้นใหม่ (สำหรับเจ้าหน้าที่)
+  static Future<Map<String, dynamic>> createShareType(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/share/create'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to create share type: ${response.body}');
+    }
+  }
+
+  /// แก้ไขประเภทหุ้น (สำหรับเจ้าหน้าที่)
+  static Future<Map<String, dynamic>> updateShareType(String id, Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/share/update/$id'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to update share type: ${response.body}');
+    }
+  }
+
+  /// ลบประเภทหุ้น (Soft delete) (สำหรับเจ้าหน้าที่)
+  static Future<void> deleteShareType(String id) async {
+    final response = await http.delete(
+      Uri.parse('${ApiConfig.baseUrl}/share/delete/$id'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete share type: ${response.body}');
     }
   }
 }

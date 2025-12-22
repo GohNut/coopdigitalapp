@@ -10,6 +10,7 @@ import '../../../notification/presentation/providers/notification_provider.dart'
 import '../../../notification/domain/notification_model.dart';
 import '../../../auth/domain/user_role.dart';
 import '../../../deposit/data/deposit_providers.dart';
+import '../../../../core/utils/string_extensions.dart';
 
 class OfficerLoanDetailScreen extends ConsumerStatefulWidget {
   final LoanApplication application;
@@ -221,7 +222,7 @@ class _OfficerLoanDetailScreenState extends ConsumerState<OfficerLoanDetailScree
       children: [
         _buildInfoRow('ชื่อ-นามสกุล', widget.application.applicantName),
         _buildInfoRow('รหัสสมาชิก', widget.application.memberId),
-        _buildInfoRow('เลขบัตรประชาชน', widget.application.applicantId),
+        _buildInfoRow('เลขบัตรประชาชน', widget.application.applicantId.formatCitizenId()),
       ],
     );
   }

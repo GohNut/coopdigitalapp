@@ -272,6 +272,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
         // If storedPassword is null/empty, it's an old member - allow login without password
         
+        // โหลดรูปโปรไฟล์
+        String? profileImageUrl;
+        try {
+          final imageData = await DynamicDepositApiService.getProfileImageUrl(idCard);
+          if (imageData != null) {
+            profileImageUrl = imageData['url'];
+          }
+        } catch (e) {
+          debugPrint('Failed to load profile image: $e');
+          // ไม่ต้อง error ถ้าไม่มีรูป
+        }
+        
         // Login successful - Update CurrentUser
         await CurrentUser.setUser(
           newName: memberData['name_th'] ?? 'สมาชิกสหกรณ์',
@@ -279,6 +291,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           newRole: UserRole.member,
           newIsMember: true,
           newPin: memberData['pin'], // Load PIN from API
+          newProfileImageUrl: profileImageUrl, // โหลดรูปโปรไฟล์
         );
 
         // Migration Check: If PIN is missing, set default '123456'

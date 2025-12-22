@@ -12,6 +12,7 @@ import '../../features/deposit/presentation/screens/deposit_account_detail_scree
 
 import '../../features/deposit/presentation/screens/create_account_screen.dart';
 import '../../features/deposit/presentation/screens/officer_deposit_check_screen.dart';
+import '../../features/wallet/presentation/screens/officer_withdrawal_check_screen.dart';
 import '../../features/loan/presentation/screens/loan_products_screen.dart';
 import '../../features/loan/presentation/screens/loan_application_screen.dart';
 import '../../features/wallet/presentation/screens/top_up_amount_screen.dart';
@@ -57,6 +58,14 @@ import '../../features/loan/presentation/screens/loan_products_management_screen
 import '../../features/loan/presentation/screens/loan_product_form_screen.dart';
 import '../../features/loan/presentation/screens/additional_document_review_screen.dart';
 import '../../features/loan/domain/loan_product_model.dart';
+import '../../features/kyc/presentation/screens/kyc_intro_screen.dart';
+import '../../features/kyc/presentation/screens/kyc_step1_idcard_screen.dart';
+import '../../features/kyc/presentation/screens/kyc_step2_bank_screen.dart';
+import '../../features/kyc/presentation/screens/kyc_step3_selfie_screen.dart';
+import '../../features/kyc/presentation/screens/kyc_review_screen.dart';
+import '../../features/kyc/presentation/screens/officer_kyc_list_screen.dart';
+import '../../features/kyc/presentation/screens/officer_kyc_detail_screen.dart';
+import '../../features/share/presentation/screens/officer_share_type_management_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -416,6 +425,49 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/officer/deposit-check',
         builder: (context, state) => const OfficerDepositCheckScreen(),
+      ),
+      GoRoute(
+        path: '/officer/withdrawal-check',
+        builder: (context, state) => const OfficerWithdrawalCheckScreen(),
+      ),
+      GoRoute(
+        path: '/officer/kyc-check',
+        builder: (context, state) => const OfficerKYCListScreen(),
+      ),
+      GoRoute(
+        path: '/officer/kyc-detail/:memberId',
+        builder: (context, state) {
+           final memberId = state.pathParameters['memberId']!;
+           return OfficerKYCDetailScreen(memberId: memberId);
+        },
+      ),
+      GoRoute(
+        path: '/officer/share-type',
+        builder: (context, state) => const OfficerShareTypeManagementScreen(),
+      ),
+
+      // KYC Routes
+      GoRoute(
+        path: '/kyc',
+        builder: (context, state) => const KYCIntroScreen(),
+        routes: [
+           GoRoute(
+            path: 'step1',
+            builder: (context, state) => const KYCStep1IDCardScreen(),
+          ),
+           GoRoute(
+            path: 'step2',
+            builder: (context, state) => const KYCStep2BankScreen(),
+          ),
+           GoRoute(
+            path: 'step3',
+            builder: (context, state) => const KYCStep3SelfieScreen(),
+          ),
+           GoRoute(
+            path: 'review',
+            builder: (context, state) => const KYCReviewScreen(),
+          ),
+        ],
       ),
     ],
   );
