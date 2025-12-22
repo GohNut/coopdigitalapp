@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/feature_coming_soon_dialog.dart';
 import '../../../auth/domain/user_role.dart';
 import '../../../loan/presentation/screens/officer_dashboard_screen.dart';
 
@@ -39,7 +40,13 @@ class ServiceMenuGrid extends StatelessWidget {
                   label: 'หุ้นสหกรณ์',
                   subtitle: 'ซื้อหุ้น ปันผล',
                   color: const Color(0xFF2563EB), // Deep Blue
-                  onTap: () => context.push('/share'),
+                  onTap: () {
+                    if (CurrentUser.role == UserRole.member) {
+                      showFeatureComingSoonDialog(context);
+                    } else {
+                      context.push('/share');
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: 16),
@@ -50,7 +57,13 @@ class ServiceMenuGrid extends StatelessWidget {
                   label: 'สินเชื่อเงินกู้',
                   subtitle: 'ยื่นกู้ ตรวจสอบสถานะ',
                   color: const Color(0xFF10B981), // Green
-                  onTap: () => context.push('/loan'),
+                  onTap: () {
+                    if (CurrentUser.role == UserRole.member) {
+                      showFeatureComingSoonDialog(context);
+                    } else {
+                      context.push('/loan');
+                    }
+                  },
                 ),
               ),
             ],
@@ -75,10 +88,10 @@ class ServiceMenuGrid extends StatelessWidget {
             crossAxisSpacing: 12,
             childAspectRatio: 0.9,
             children: [
-              _buildSmallMenuItem(context, LucideIcons.heartHandshake, 'สวัสดิการ', Colors.pink),
-              _buildSmallMenuItem(context, LucideIcons.barChart3, 'ปันผล', Colors.purple),
-              _buildSmallMenuItem(context, LucideIcons.fileText, 'เอกสาร', Colors.blueGrey),
-              _buildSmallMenuItem(context, LucideIcons.headphones, 'ช่วยเหลือ', Colors.teal),
+              // _buildSmallMenuItem(context, LucideIcons.heartHandshake, 'สวัสดิการ', Colors.pink),
+              // _buildSmallMenuItem(context, LucideIcons.barChart3, 'ปันผล', Colors.purple),
+              // _buildSmallMenuItem(context, LucideIcons.fileText, 'เอกสาร', Colors.blueGrey),
+              // _buildSmallMenuItem(context, LucideIcons.headphones, 'ช่วยเหลือ', Colors.teal),
               _buildSmallMenuItem(
                 context, 
                 LucideIcons.shieldCheck, 

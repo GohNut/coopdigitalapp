@@ -94,7 +94,7 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
     final repository = LoanRepositoryImpl();
     
     return FutureBuilder<List<LoanApplication>>(
-      future: repository.getLoanApplications(),
+      future: repository.getLoanApplications(forOfficerReview: true),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
            return const Center(child: CircularProgressIndicator());

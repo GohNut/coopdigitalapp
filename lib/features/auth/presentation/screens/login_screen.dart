@@ -8,6 +8,9 @@ import '../../domain/user_role.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../payment/data/payment_providers.dart'; // Added import
+import '../../../home/presentation/providers/profile_image_provider.dart';
+import '../../../../core/providers/token_provider.dart';
+import '../../../../core/utils/external_navigation.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -44,6 +47,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => ExternalNavigation.backToILife(),
+          icon: const Icon(LucideIcons.arrowLeft, color: AppColors.primary),
+          tooltip: 'กลับไป iLife',
+        ),
+        title: const Text(
+          'กลับไป iLife',
+          style: TextStyle(
+            color: AppColors.primary,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        titleSpacing: 0,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -150,21 +171,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                child: Text(
-                  'หมายเหตุ: สมาชิกเก่าสามารถเข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
               
               const SizedBox(height: 24),
+              
+              // ปุ่มกลับไป iLife (ถ้ามี token)
+              if (ref.watch(tokenProvider) != null) ...[
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: () => ExternalNavigation.backToILife(),
+                    icon: const Icon(LucideIcons.arrowLeftCircle, size: 20),
+                    label: const Text('กลับไปยังแอป iLife'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
 
               // Login Button
               SizedBox(
@@ -192,29 +220,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               TextButton(
                 onPressed: () => context.go('/register'),
                 child: const Text('ยังไม่มีบัญชี? สมัครสมาชิก'),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Officer Button (Small/Ghost)
-              Center(
-                child: TextButton.icon(
-                  onPressed: () async {
-                    // Simulate Officer Login (Still Mock for now, but using MEM001 ID)
-                    await CurrentUser.setUser(
-                      newName: 'จนท. ใจดี',
-                      newId: 'MEM001', 
-                      newRole: UserRole.officer,
-                      newIsMember: true,
-                    );
-                    if (context.mounted) context.go('/home');
-                  },
-                  icon: const Icon(LucideIcons.shieldCheck, size: 16),
-                  label: const Text('เข้าสู่ระบบเจ้าหน้าที่ (สำหรับทดสอบ)'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey,
-                  ),
-                ),
               ),
             ],
           ),
@@ -284,14 +289,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // ไม่ต้อง error ถ้าไม่มีรูป
         }
         
+        // Determine Role
+        final roleStr = memberData['role'] as String? ?? 'member';
+        UserRole userRole = UserRole.member;
+        if (roleStr == 'officer') {
+          userRole = UserRole.officer;
+        } else if (roleStr == 'approver') {
+          userRole = UserRole.approver;
+        }
+
         // Login successful - Update CurrentUser
         await CurrentUser.setUser(
           newName: memberData['name_th'] ?? 'สมาชิกสหกรณ์',
           newId: idCard, // Use ID Card as ID
-          newRole: UserRole.member,
+          newRole: userRole,
           newIsMember: true,
           newPin: memberData['pin'], // Load PIN from API
           newProfileImageUrl: profileImageUrl, // โหลดรูปโปรไฟล์
+          newKycStatus: memberData['kyc_status'], // โหลดสถานะ KYC
         );
 
         // Migration Check: If PIN is missing, set default '123456'
@@ -316,6 +331,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ref.invalidate(depositAccountsAsyncProvider);
         ref.invalidate(totalDepositBalanceAsyncProvider);
         ref.invalidate(paymentSourcesProvider); // Added: Invalidate payment sources
+        
+        // Initialize profile image provider with the loaded URL
+        if (profileImageUrl != null) {
+          ref.read(profileImageUrlProvider.notifier).setImageUrl(profileImageUrl);
+        }
 
         context.go('/home');
       } else {

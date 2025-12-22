@@ -126,16 +126,16 @@ class LoanRepositoryImpl implements LoanRepository {
   }
 
   @override
-  Future<List<LoanApplication>> getLoanApplications() async {
+  Future<List<LoanApplication>> getLoanApplications({bool forOfficerReview = false}) async {
     try {
-      // Example filter: get all for current user (need memberId)
-      // Build filter based on role
       final filter = <String, dynamic>{};
       
-      // If not officer, filter by memberId to show only own loans
-      if (!CurrentUser.isOfficerOrApprover) {
+      // Mode 1: Personal View (default) -> Always filter by own ID
+      if (!forOfficerReview) {
         filter['memberid'] = CurrentUser.id;
       }
+      // Mode 2: Officer Review -> Fetch All (no filter) 
+      // Note: We will filter OUT own loans client-side since API might not support $ne easily
       
       final response = await DynamicLoanApiService.getLoans(filter);
       
@@ -143,6 +143,13 @@ class LoanRepositoryImpl implements LoanRepository {
         if (response['data'] is List) {
           final List<dynamic> data = response['data'];
           var apps = data.map((json) => LoanApplication.fromJson(json)).toList();
+
+          // If Officer Review Mode: Filter OUT own loans to prevent self-approval
+          if (forOfficerReview) {
+            apps = apps.where((app) => app.memberId != CurrentUser.id).toList();
+          }
+
+          // Auto-reject logic for expired waitingForDocs
 
           // Auto-reject logic for expired waitingForDocs
           for (var app in apps) {

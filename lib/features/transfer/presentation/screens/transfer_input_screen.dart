@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/kyc_required_dialog.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
 import '../../../auth/presentation/screens/pin_verification_screen.dart'; // Import PIN screen
@@ -202,7 +203,12 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+        // ตรวจจับ KYC error และแสดง Dialog แทน SnackBar
+        if (isKYCError(e)) {
+          await showKYCRequiredDialog(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+        }
       }
     }
   }

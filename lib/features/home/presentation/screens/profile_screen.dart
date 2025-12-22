@@ -14,6 +14,8 @@ import '../../../../core/constants/address_data.dart';
 import '../../../auth/presentation/widgets/address_form_widget.dart';
 import '../../../auth/domain/models/registration_form_model.dart'; // For Address model
 import '../../../../core/utils/string_extensions.dart';
+import '../providers/profile_image_provider.dart';
+import '../../../../core/config/api_config.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -207,7 +209,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
         // หลังอัพโหลดสำเร็จ ใช้ proxy URL พร้อม cache busting
         final version = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        uploadedImageUrl = 'https://member.rspcoop.com/member/profile-image/proxy?memberid=${CurrentUser.id}&v=$version';
+        uploadedImageUrl = '${ApiConfig.baseUrl}/member/profile-image/proxy?memberid=${CurrentUser.id}&v=$version';
         
         // อัพเดทรูปในหน้า Profile ทันที
         setState(() {
@@ -265,6 +267,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (uploadedImageUrl != null) {
         CurrentUser.profileImageUrl = uploadedImageUrl;
         await CurrentUser.saveUser();
+        // Update provider so HomeHeader rebuilds
+        ref.read(profileImageUrlProvider.notifier).setImageUrl(uploadedImageUrl);
       }
 
       // Reload data (จะโหลด member data ใหม่)
@@ -425,7 +429,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       if (_memberData?['kyc_status'] == 'verified' || _memberData?['kyc_status'] == 'approved') ...[
                         const SizedBox(width: 8),
-                        const Icon(LucideIcons.badgeCheck, color: Colors.blueAccent, size: 24), // Or Gold
+                        const Icon(LucideIcons.badgeCheck, color: Colors.green, size: 24), // Or Gold
                       ],
                     ],
                   ),

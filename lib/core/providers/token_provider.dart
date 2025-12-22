@@ -43,6 +43,19 @@ class TokenNotifier extends Notifier<String?> {
       print('Error clearing token: $e');
     }
   }
+
+  /// ดึง token จาก URL query parameters (ถ้ามี)
+  Future<void> extractTokenFromUrl() async {
+    try {
+      final uri = Uri.base;
+      final token = uri.queryParameters['token'];
+      if (token != null && token.isNotEmpty) {
+        await setToken(token);
+      }
+    } catch (e) {
+      print('Error extracting token from URL: $e');
+    }
+  }
 }
 
 /// Provider instance สำหรับเข้าถึง token

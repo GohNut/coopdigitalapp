@@ -25,7 +25,7 @@ abstract class LoanRepository {
     required String memberId,
   });
 
-  Future<List<LoanApplication>> getLoanApplications();
+  Future<List<LoanApplication>> getLoanApplications({bool forOfficerReview = false});
   Future<List<LoanProduct>> getLoanProducts();
   Future<void> updateLoanStatus(String applicationId, LoanApplicationStatus status, {String? comment});
   

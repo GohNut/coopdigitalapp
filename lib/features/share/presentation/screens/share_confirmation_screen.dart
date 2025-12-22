@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/kyc_required_dialog.dart';
 import '../../data/repositories/share_repository_impl.dart';
 import '../../../../services/dynamic_deposit_api.dart';
 import '../../../deposit/data/deposit_providers.dart';
@@ -86,12 +87,17 @@ class _ShareConfirmationScreenState extends ConsumerState<ShareConfirmationScree
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          )
-        );
+        // ตรวจจับ KYC error และแสดง Dialog แทน SnackBar
+        if (isKYCError(e)) {
+          await showKYCRequiredDialog(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('เกิดข้อผิดพลาด: $e'),
+              backgroundColor: Colors.red,
+            )
+          );
+        }
         setState(() => _isLoading = false);
       }
     }

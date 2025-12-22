@@ -29,6 +29,28 @@ class DynamicDepositApiService {
     }
   }
 
+  /// ตรวจสอบ Token สำหรับ SSO
+  static Future<Map<String, dynamic>?> verifyToken(String token) async {
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/verify-token'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'token': token,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final result = jsonDecode(response.body);
+      if (result['status'] == 'success') {
+        return result['data'];
+      }
+      return null;
+    } else {
+      // Token invalid or expired
+      return null;
+    }
+  }
+
   /// สร้างสมาชิกใหม่
   static Future<Map<String, dynamic>> createMember({
     required String citizenId, // ใช้เป็น memberid

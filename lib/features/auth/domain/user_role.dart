@@ -18,6 +18,7 @@ class CurrentUser {
 
   static String? pin; // Added PIN field
   static String? profileImageUrl; // Added profile image URL field
+  static String? kycStatus; // Added KYC status field
 
   static bool get isOfficerOrApprover => 
       role == UserRole.officer || role == UserRole.approver;
@@ -32,6 +33,7 @@ class CurrentUser {
     required bool newIsMember,
     String? newPin, // Added PIN parameter
     String? newProfileImageUrl, // Added profile image URL parameter
+    String? newKycStatus, // Added KYC status parameter
   }) async {
     name = newName;
     id = newId;
@@ -39,6 +41,7 @@ class CurrentUser {
     isMember = newIsMember;
     pin = newPin;
     profileImageUrl = newProfileImageUrl;
+    kycStatus = newKycStatus;
     
     await saveUser(); // Auto-save when setting user
   }
@@ -59,6 +62,11 @@ class CurrentUser {
       await prefs.setString('user_profile_image_url', profileImageUrl!);
     } else {
       await prefs.remove('user_profile_image_url');
+    }
+    if (kycStatus != null) {
+      await prefs.setString('user_kyc_status', kycStatus!);
+    } else {
+      await prefs.remove('user_kyc_status');
     }
   }
 
@@ -83,6 +91,7 @@ class CurrentUser {
     isMember = prefs.getBool('user_is_member') ?? false;
     pin = prefs.getString('user_pin');
     profileImageUrl = prefs.getString('user_profile_image_url');
+    kycStatus = prefs.getString('user_kyc_status');
   }
 
   // Clear user state (Logout)
@@ -97,5 +106,6 @@ class CurrentUser {
     isMember = false;
     pin = null;
     profileImageUrl = null;
+    kycStatus = null;
   }
 }

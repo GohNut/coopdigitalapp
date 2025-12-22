@@ -150,35 +150,45 @@ class RegistrationNotifier extends Notifier<RegistrationState> {
       }
 
       // Call API to create member
-      await DynamicDepositApiService.createMember(
-        citizenId: account.citizenId,
-        nameTh: personal.fullName,
-        mobile: account.mobile,
-        email: account.email,
-        password: account.password,
-        pin: pin, // Pass PIN from PIN setup screen
-        additionalData: additionalData,
-      );
+      try {
+        await DynamicDepositApiService.createMember(
+          citizenId: account.citizenId,
+          nameTh: personal.fullName,
+          mobile: account.mobile,
+          email: account.email,
+          password: account.password,
+          pin: pin, // Pass PIN from PIN setup screen
+          additionalData: additionalData,
+        );
+      } catch (e) {
+        // If member already exists, we might be resuming a partial registration
+        // Check if the error is about duplicate member
+        if (e.toString().contains('409') || e.toString().contains('already exists')) {
+          // This is fine, we'll continue to try creating accounts if they don't exist
+          print('Member already exists, proceeding to check/create accounts');
+        } else {
+          rethrow;
+        }
+      }
 
       // Auto-create Savings Account (บัญชีออมทรัพย์)
-      final randomAccountNo = '2${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}-${(10000 + DateTime.now().microsecond % 90000).toString()}';
-      await DynamicDepositApiService.createAccount(
-        memberId: account.citizenId,
-        accountNumber: randomAccountNo,
-        accountName: 'บัญชีออมทรัพย์ - ${personal.fullName}',
-        accountType: 'savings',
-        interestRate: 0.25,
-      );
+      try {
+        final randomAccountNo = '2${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}-${(10000 + DateTime.now().microsecond % 90000).toString()}';
+        await DynamicDepositApiService.createAccount(
+          memberId: account.citizenId,
+          accountNumber: randomAccountNo,
+          accountName: 'บัญชีออมทรัพย์ - ${personal.fullName}',
+          accountType: 'savings',
+          interestRate: 0,
+        );
+      } catch (e) {
+         // Silently ignore if account exists or handle specifically
+         if (!e.toString().contains('409') && !e.toString().contains('already exists')) {
+           rethrow;
+         }
+      }
 
-      // Auto-create Loan Account (บัญชีเงินกู้สหกรณ์)
-      final loanAccountNo = '5${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}-${(10000 + DateTime.now().microsecond % 90000).toString()}';
-      await DynamicDepositApiService.createAccount(
-        memberId: account.citizenId,
-        accountNumber: loanAccountNo,
-        accountName: 'บัญชีเงินกู้สหกรณ์ - ${personal.fullName}',
-        accountType: 'loan',
-        interestRate: 0.0, // ดอกเบี้ยคิดตามสัญญากู้
-      );
+
       
       state = state.copyWith(isLoading: false);
       return true;
@@ -190,6 +200,6 @@ class RegistrationNotifier extends Notifier<RegistrationState> {
 }
 
 final registrationProvider =
-    NotifierProvider<RegistrationNotifier, RegistrationState>(() {
+    NotifierProvider.autoDispose<RegistrationNotifier, RegistrationState>(() {
   return RegistrationNotifier();
 });

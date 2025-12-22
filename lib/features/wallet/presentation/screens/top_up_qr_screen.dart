@@ -7,7 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/kyc_required_dialog.dart';
+import '../../../../core/utils/promptpay_qr_generator.dart';
 import '../../domain/top_up_service.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../../services/dynamic_deposit_api.dart';
@@ -268,9 +271,14 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
-        );
+        // ตรวจจับ KYC error และแสดง Dialog แทน SnackBar
+        if (isKYCError(e)) {
+          await showKYCRequiredDialog(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -335,7 +343,7 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '${NumberFormat('#,##0.00').format((widget.params['amount'] as num).toDouble())}',
+                        NumberFormat('#,##0.00').format((widget.params['amount'] as num).toDouble()),
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -343,18 +351,65 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
+                      // QR Code จริงจาก PromptPay Generator
                       Container(
                         width: 250,
                         height: 250,
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey[200],
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade300),
                         ),
-                        child: const Center(
-                          child: Icon(Icons.qr_code_2, size: 150, color: Colors.black),
+                        child: QrImageView(
+                          data: PromptPayQrGenerator.generate(
+                            amount: (widget.params['amount'] as num).toDouble(),
+                          ),
+                          version: QrVersions.auto,
+                          size: 218,
+                          backgroundColor: Colors.white,
+                          errorCorrectionLevel: QrErrorCorrectLevel.M,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+                      // ข้อมูลบัญชีธนาคาร
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              PromptPayQrGenerator.coopBankName,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              PromptPayQrGenerator.coopAccountName,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'เลขที่บัญชี: ${PromptPayQrGenerator.coopAccountNumber}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

@@ -5,8 +5,27 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/kyc_service.dart';
 
-class OfficerKYCListScreen extends StatelessWidget {
+class OfficerKYCListScreen extends StatefulWidget {
   const OfficerKYCListScreen({super.key});
+
+  @override
+  State<OfficerKYCListScreen> createState() => _OfficerKYCListScreenState();
+}
+
+class _OfficerKYCListScreenState extends State<OfficerKYCListScreen> {
+  late Future<List<Map<String, dynamic>>> _pendingKYCFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshList();
+  }
+
+  void _refreshList() {
+    setState(() {
+      _pendingKYCFuture = KYCService.getPendingKYCRequests();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +34,15 @@ class OfficerKYCListScreen extends StatelessWidget {
         title: const Text('ตรวจสอบ KYC'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            onPressed: _refreshList,
+            icon: const Icon(LucideIcons.refreshCw),
+          ),
+        ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: KYCService.getPendingKYCRequests(),
+        future: _pendingKYCFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -31,26 +56,34 @@ class OfficerKYCListScreen extends StatelessWidget {
             return const Center(child: Text('ไม่มีรายการรอตรวจสอบ'));
           }
 
-          return ListView.builder(
-            itemCount: pendingKYC.length,
-            itemBuilder: (context, index) {
-              final item = pendingKYC[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.orange,
-                    child: Icon(LucideIcons.user, color: Colors.white),
-                  ),
-                  title: Text(item['name_th'] ?? 'Unknown'),
-                  subtitle: Text('ID: ${item['memberid']}'),
-                  trailing: const Icon(LucideIcons.chevronRight),
-                  onTap: () {
-                    context.push('/officer/kyc-detail/${item['memberid']}');
-                  },
-                ),
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              _refreshList();
+              await _pendingKYCFuture;
             },
+            child: ListView.builder(
+              itemCount: pendingKYC.length,
+              itemBuilder: (context, index) {
+                final item = pendingKYC[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Colors.orange,
+                      child: Icon(LucideIcons.user, color: Colors.white),
+                    ),
+                    title: Text(item['name_th'] ?? 'Unknown'),
+                    subtitle: Text('ID: ${item['memberid']}'),
+                    trailing: const Icon(LucideIcons.chevronRight),
+                    onTap: () async {
+                      // รอผลกลับมาจากหน้า detail เพื่อ refresh รายการ
+                      await context.push('/officer/kyc-detail/${item['memberid']}');
+                      _refreshList();
+                    },
+                  ),
+                );
+              },
+            ),
           );
         },
       ),

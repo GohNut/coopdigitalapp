@@ -11,11 +11,35 @@ class KYCService {
   
   // Check KYC Status
   static Future<Map<String, dynamic>> getKYCStatus() async {
-    // TODO: Implement actual API call
-    return {
-      'status': 'not_verified',
-      'reject_reason': null,
-    };
+    try {
+      if (CurrentUser.id.isEmpty) {
+        return {'status': 'not_verified', 'reject_reason': null};
+      }
+
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/get'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'collection': 'members',
+          'filter': {'memberid': CurrentUser.id},
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        if (result['status'] == 'success' && result['data'] is List && (result['data'] as List).isNotEmpty) {
+          final member = result['data'][0];
+          return {
+            'status': member['kyc_status'] ?? 'not_verified',
+            'reject_reason': member['kyc_reject_reason'],
+          };
+        }
+      }
+      return {'status': 'not_verified', 'reject_reason': null};
+    } catch (e) {
+      print('Failed to get KYC status: $e');
+      return {'status': 'not_verified', 'reject_reason': null};
+    }
   }
 
   // Submit KYC

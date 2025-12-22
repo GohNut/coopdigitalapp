@@ -6,6 +6,7 @@ import '../../../providers/registration_provider.dart';
 import '../../../../domain/models/registration_form_model.dart';
 import '../../pin_setup_screen.dart';
 import '../../../../../../services/dynamic_deposit_api.dart';
+import '../../../../domain/user_role.dart'; // Import for CurrentUser
 
 
 
@@ -163,20 +164,35 @@ class _Step4ConsentScreenState extends ConsumerState<Step4ConsentScreen> {
         builder: (context) => PinSetupScreen(
           onPinSet: (pin) async {
             final notifier = ref.read(registrationProvider.notifier);
+            final form = ref.read(registrationProvider).form;
             
             // Submit registration with PIN
             final success = await notifier.submitRegistration(pin: pin);
             if (success && mounted) {
-              // Don't pop - just use context.go to replace the entire stack
-              // This avoids the GoRouter error about popping the last page
-              context.go('/login');
+              
+              // Auto-Login Logic
+              await CurrentUser.setUser(
+                newName: form.personalInfo.fullName,
+                newId: form.accountInfo.citizenId,
+                newRole: UserRole.member,
+                newIsMember: true,
+                newPin: pin,
+              );
+              
+              // Invalidate providers to ensure data is fresh
+              // Note: We need to import the providers if we want to invalidate them here, 
+              // but since we are navigating to Home which likely watches them, simple navigation might be enough.
+              // For robustness, let's just navigate.
+
+              // Navigate to Home
+              if (mounted) context.go('/home');
               
               // Show success message after navigation
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('สมัครสมาชิกสำเร็จ'),
+                      content: Text('สมัครสมาชิกสำเร็จและเข้าสู่ระบบเรียบร้อยแล้ว'),
                       backgroundColor: Colors.green,
                     ),
                   );

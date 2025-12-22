@@ -6,7 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
-import '../../../auth/presentation/screens/pin_verification_screen.dart'; // Import PIN screen
+
 import '../../../../core/utils/currency_input_formatter.dart';
 
 class TopUpAmountScreen extends ConsumerStatefulWidget {
@@ -82,64 +82,6 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
     });
   }
 
-  Future<void> _performRealDeposit() async {
-    if (_selectedAccountId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเลือกบัญชีเงินฝาก')),
-      );
-      return;
-    }
-
-    final input = _amountController.text.trim();
-    final amount = double.tryParse(input.replaceAll(',', ''));
-
-    if (amount == null || amount < 100.0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาระบุจำนวนเงินขั้นต่ำ 100 บาท')),
-      );
-      return;
-    }
-
-    // PIN Verification
-    final pinResult = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (c) => const PinVerificationScreen()),
-    );
-
-    if (pinResult != true) {
-      // PIN failed or cancelled
-      return;
-    }
-
-    // Call Provider Logic
-    try {
-      await ref.read(depositActionProvider.notifier).deposit(
-        accountId: _selectedAccountId!,
-        amount: amount,
-        description: 'ฝากเงิน (แอพมือถือ)',
-      );
-
-      if (mounted) {
-        // Navigate to Success Screen (Using transfer success screen as placeholder or navigate back to account book)
-        // Here we simulate going to success screen with real data
-         context.go('/transfer/success', extra: {
-            'transaction_id': 'DEP-${DateTime.now().millisecondsSinceEpoch}',
-            'amount': amount,
-            'target_name': 'บัญชีเงินฝากของฉัน',
-            'note': 'ฝากเงินสำเร็จ',
-            'timestamp': DateTime.now().toIso8601String(),
-            'repeat_text': 'ฝากเงินอีกครั้ง',
-            'repeat_route': '/wallet/topup',
-          });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -319,32 +261,6 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
               ),
             ),
 
-            // Toggle Real Deposit Button
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: OutlinedButton(
-                onPressed: isDepositing ? null : _performRealDeposit,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.green, width: 2),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  backgroundColor: isDepositing ? Colors.green.withOpacity(0.1) : null,
-                ),
-                child: isDepositing 
-                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text(
-                  '✅ ฝากเงินเข้าบัญชีจริง',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),

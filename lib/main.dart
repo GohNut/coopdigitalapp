@@ -7,6 +7,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'features/auth/domain/user_role.dart';
 import 'package:camera/camera.dart';
 import 'core/providers/camera_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:coop_digital_app/services/dynamic_deposit_api.dart';
+import 'core/providers/token_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +17,7 @@ void main() async {
   
   // Load saved user session
   await CurrentUser.loadUser();
-
+  
   // Initialize Cameras
   List<CameraDescription> cameras = [];
   try {
@@ -23,10 +26,24 @@ void main() async {
     debugPrint('Failed to initialize cameras: $e');
   }
 
-  runApp(ProviderScope(
+  // Create ProviderContainer early to use in SSO check
+  final container = ProviderContainer(
     overrides: [
       cameraProvider.overrideWithValue(cameras),
     ],
+  );
+
+  // เช็ค Token จาก URL (Handoff สำหรับ Hybrid WebView) - แค่เก็บไว้สำหรับปุ่มกดย้อนกลับ
+  final uri = Uri.base;
+  final token = uri.queryParameters['token'];
+  if (token != null && token.isNotEmpty) {
+    debugPrint('Found iLife token in URL: $token');
+    // บันทึก token ลงในระบบผ่าน Provider
+    await container.read(tokenProvider.notifier).setToken(token);
+  }
+
+  runApp(UncontrolledProviderScope(
+    container: container,
     child: const CoopDigitalApp(),
   ));
 }

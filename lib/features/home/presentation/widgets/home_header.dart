@@ -8,6 +8,9 @@ import '../../../auth/domain/user_role.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../deposit/data/deposit_providers.dart';
+import '../providers/profile_image_provider.dart';
+import '../../../../core/providers/token_provider.dart';
+import '../../../../core/utils/external_navigation.dart';
 
 class HomeHeader extends ConsumerWidget {
   const HomeHeader({super.key});
@@ -15,6 +18,9 @@ class HomeHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(unreadNotificationCountProvider);
+    // Watch profile image URL changes - use provider value or fallback to CurrentUser
+    final providerImageUrl = ref.watch(profileImageUrlProvider);
+    final profileImageUrl = providerImageUrl ?? CurrentUser.profileImageUrl;
     final topPadding = MediaQuery.of(context).padding.top;
     
     return Container(
@@ -44,11 +50,12 @@ class HomeHeader extends ConsumerWidget {
                       colors: [AppColors.primary, AppColors.secondary],
                     ),
                   ),
-                  child: CurrentUser.profileImageUrl != null && CurrentUser.profileImageUrl!.isNotEmpty
+                  child: profileImageUrl != null && profileImageUrl.isNotEmpty
                       ? CircleAvatar(
                           radius: 22,
-                          backgroundImage: NetworkImage(CurrentUser.profileImageUrl!),
+                          backgroundImage: NetworkImage(profileImageUrl),
                           backgroundColor: Colors.white,
+                          onBackgroundImageError: (_, __) {},
                         )
                       : const CircleAvatar(
                           radius: 22,
@@ -66,12 +73,21 @@ class HomeHeader extends ConsumerWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Text(
-                      CurrentUser.name,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          CurrentUser.name,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (CurrentUser.kycStatus == 'verified') ...[
+                          const SizedBox(width: 6),
+                          const Icon(LucideIcons.badgeCheck, color: Colors.green, size: 20),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -80,6 +96,21 @@ class HomeHeader extends ConsumerWidget {
           ),
           Row(
             children: [
+              // ปุ่มกลับไป iLife App (ถ้ามี Token)
+              if (ref.watch(tokenProvider) != null) ...[
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    onPressed: () => ExternalNavigation.backToILife(),
+                    icon: const Icon(LucideIcons.arrowLeftCircle, color: AppColors.primary),
+                    tooltip: 'กลับไป iLife',
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.error.withOpacity(0.1),
@@ -145,6 +176,7 @@ class HomeHeader extends ConsumerWidget {
               // Logout Logic
               ref.invalidate(depositAccountsAsyncProvider);
               ref.invalidate(totalDepositBalanceAsyncProvider);
+              ref.read(tokenProvider.notifier).clearToken(); // Clear token provider
               CurrentUser.setUser(
                 newName: '',
                 newId: '',

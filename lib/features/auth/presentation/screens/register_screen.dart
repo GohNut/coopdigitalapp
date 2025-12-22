@@ -18,7 +18,7 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: CurrentUser.name);
+  final _nameController = TextEditingController();
   final _idCardController = TextEditingController();
   final _phoneController = TextEditingController();
   
@@ -230,7 +230,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           accountNumber: randomAccountNo,
           accountName: 'บัญชีออมทรัพย์ - $name',
           accountType: 'savings',
-          interestRate: 0.25,
+          interestRate: 0,
         );
 
         // 3. Loan Account creation removed as per requirement

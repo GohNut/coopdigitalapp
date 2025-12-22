@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/token_provider.dart';
+import '../../features/auth/domain/user_role.dart';
 import '../../features/notification/presentation/screens/notification_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/screens/main_layout_screen.dart';
@@ -73,7 +74,23 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/login', // Start at Login
+    initialLocation: CurrentUser.id.isNotEmpty ? '/home' : '/login',
+    redirect: (context, state) {
+      final bool loggedIn = CurrentUser.id.isNotEmpty;
+      final bool isLoggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+
+      // ถ้ายังไม่ได้ล็อกอิน และไม่ได้อยู่ที่หน้า login/register ให้ไปหน้า login
+      if (!loggedIn && !isLoggingIn) {
+        return '/login';
+      }
+
+      // ถ้าล็อกอินแล้ว แต่อยู่ที่หน้า login/register ให้ไปหน้า home
+      if (loggedIn && isLoggingIn) {
+        return '/home';
+      }
+
+      return null;
+    },
     routes: [
       // Auth Routes
       GoRoute(
