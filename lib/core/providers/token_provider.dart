@@ -44,17 +44,62 @@ class TokenNotifier extends Notifier<String?> {
     }
   }
 
-  /// ดึง token จาก URL query parameters (ถ้ามี)
+  /// ดึง token จาก URL (รองรับทั้ง Query, Path, และ Fragment)
   Future<void> extractTokenFromUrl() async {
     try {
       final uri = Uri.base;
-      final token = uri.queryParameters['token'];
+      final token = extractTokenFromUri(uri);
       if (token != null && token.isNotEmpty) {
         await setToken(token);
       }
     } catch (e) {
       print('Error extracting token from URL: $e');
     }
+  }
+
+  /// Helper สำหรับดึง token จาก Uri อย่างละเอียด
+  static String? extractTokenFromUri(Uri uri) {
+    // 1. ลองหาจาก Query Parameters มาตรฐาน (?token=xxx)
+    if (uri.queryParameters.containsKey('token')) {
+      return uri.queryParameters['token'];
+    }
+
+    // 2. ลองหาจาก Path (กรณีเช่น /token=xxx)
+    final path = uri.path;
+    if (path.contains('token=')) {
+      final parts = path.split('token=');
+      if (parts.length > 1) {
+        // ตัดเอาส่วนหลัง token= และหยุดที่ / หรือ ? ตัวถัดไป
+        String tokenPart = parts[1];
+        if (tokenPart.contains('/')) {
+          tokenPart = tokenPart.split('/')[0];
+        }
+        if (tokenPart.contains('?')) {
+          tokenPart = tokenPart.split('?')[0];
+        }
+        return tokenPart;
+      }
+    }
+
+    // 3. ลองหาจาก Fragment (ส่วนหลัง # เช่น /#/home?token=xxx)
+    final fragment = uri.fragment;
+    if (fragment.isNotEmpty) {
+      if (fragment.contains('token=')) {
+        final parts = fragment.split('token=');
+        if (parts.length > 1) {
+          String tokenPart = parts[1];
+          // ตัดเอาส่วนที่อยู่ก่อน & หรือ / หรือ ?
+          final separators = RegExp(r'[&/?]');
+          final endIdx = tokenPart.indexOf(separators);
+          if (endIdx != -1) {
+            tokenPart = tokenPart.substring(0, endIdx);
+          }
+          return tokenPart;
+        }
+      }
+    }
+
+    return null;
   }
 }
 

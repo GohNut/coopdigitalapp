@@ -35,7 +35,7 @@ void main() async {
 
   // เช็ค Token จาก URL (Handoff สำหรับ Hybrid WebView) - แค่เก็บไว้สำหรับปุ่มกดย้อนกลับ
   final uri = Uri.base;
-  final token = uri.queryParameters['token'];
+  final token = TokenNotifier.extractTokenFromUri(uri);
   if (token != null && token.isNotEmpty) {
     debugPrint('Found iLife token in URL: $token');
     // บันทึก token ลงในระบบผ่าน Provider
