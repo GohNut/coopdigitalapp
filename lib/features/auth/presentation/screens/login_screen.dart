@@ -173,26 +173,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               
               const SizedBox(height: 24),
-              
-              // ปุ่มกลับไป iLife (ถ้ามี token)
-              if (ref.watch(tokenProvider) != null) ...[
-                SizedBox(
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: () => ExternalNavigation.backToILife(),
-                    icon: const Icon(LucideIcons.arrowLeftCircle, size: 20),
-                    label: const Text('กลับไปยังแอป iLife'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
 
               // Login Button
               SizedBox(
