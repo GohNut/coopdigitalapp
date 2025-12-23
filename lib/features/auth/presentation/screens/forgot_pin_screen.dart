@@ -123,7 +123,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => PinSetupScreen(
-              onPinSet: (newPin) {
+              onPinSet: (newPin) async {
                 // Update PIN (no need for setState - it's a static variable)
                 CurrentUser.pin = newPin;
                 

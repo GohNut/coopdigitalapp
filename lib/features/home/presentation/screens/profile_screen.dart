@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -128,6 +129,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               newPin: memberData['pin'] ?? CurrentUser.pin,
               newProfileImageUrl: CurrentUser.profileImageUrl,
               newKycStatus: memberData['kyc_status'] ?? CurrentUser.kycStatus,
+              newMemberNumber: memberData['member_number'] ?? CurrentUser.memberNumber,
             );
           }
         }
@@ -474,6 +476,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                  _buildInfoSection('ข้อมูลบัญชี', [
                     _buildInfoTile(LucideIcons.creditCard, 'เลขบัตรประชาชน', _memberData?['memberid']?.toString().formatCitizenId()),
+                    _buildInfoTile(
+                      LucideIcons.userCheck, 
+                      'หมายเลขสมาชิก', 
+                      _memberData?['member_number'] ?? CurrentUser.memberNumber,
+                      trailing: IconButton(
+                        icon: const Icon(LucideIcons.copy, size: 18),
+                        onPressed: () {
+                          final num = _memberData?['member_number'] ?? CurrentUser.memberNumber;
+                          if (num != null) {
+                            Clipboard.setData(ClipboardData(text: num));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('คัดลอกหมายเลขสมาชิกแล้ว'), duration: Duration(seconds: 1)),
+                            );
+                          }
+                        },
+                      ),
+                    ),
                     _buildInfoTile(LucideIcons.mail, 'อีเมล', _memberData?['email']),
                     _buildInfoTile(LucideIcons.phone, 'เบอร์โทรศัพท์', _memberData?['mobile']),
                  ]),
@@ -734,7 +753,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoTile(IconData icon, String label, String? value) {
+  Widget _buildInfoTile(IconData icon, String label, String? value, {Widget? trailing}) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -743,6 +762,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       title: Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
       subtitle: Text(value ?? '-', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+      trailing: trailing,
     );
   }
 

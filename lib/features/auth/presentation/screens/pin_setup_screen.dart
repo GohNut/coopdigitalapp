@@ -4,7 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class PinSetupScreen extends StatefulWidget {
-  final Function(String) onPinSet;
+  final Future<void> Function(String) onPinSet;
 
   const PinSetupScreen({super.key, required this.onPinSet});
 
@@ -17,9 +17,11 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   String _confirmPin = '';
   bool _isConfirming = false;
   bool _isError = false;
+  bool _isLoading = false;
   String _errorMessage = '';
 
   void _onKeyPress(String value) {
+    if (_isLoading) return;
     setState(() {
       _isError = false;
       _errorMessage = '';
@@ -38,6 +40,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 
   void _onDelete() {
+    if (_isLoading) return;
     setState(() {
       _isError = false;
       if (!_isConfirming) {
@@ -54,9 +57,21 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     });
   }
 
-  void _validatePin() {
+  Future<void> _validatePin() async {
     if (_pin == _confirmPin) {
-      widget.onPinSet(_pin);
+      setState(() => _isLoading = true);
+      try {
+        await widget.onPinSet(_pin);
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+          _isError = true;
+          _errorMessage = e.toString();
+          _confirmPin = '';
+          _pin = '';
+          _isConfirming = false;
+        });
+      }
     } else {
       setState(() {
         _isError = true;
@@ -133,7 +148,14 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
               child: Text(
                 _errorMessage,
                 style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
               ),
+            ),
+          
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: 24),
+              child: CircularProgressIndicator(color: Colors.white),
             ),
           
           const Spacer(),

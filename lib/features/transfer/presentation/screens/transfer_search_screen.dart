@@ -42,7 +42,7 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
     });
 
     try {
-      // Search by Account Number
+      // 1. Search by Account Number (เดิม)
       final account = await DynamicDepositApiService.getAccountByNumber(key);
       
       if (account != null) {
@@ -50,7 +50,18 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
           _foundAccount = account;
         });
       } else {
-         // Fallback: try search by ID just in case
+         // 2. ถ้าคีย์ที่กรอกขึ้นต้นด้วย 'M' ให้หาด้วย Member Number
+         if (key.startsWith('M') || key.startsWith('m')) {
+           final accountByMember = await DynamicDepositApiService.getAccountsByMemberNumber(key.toUpperCase());
+           if (accountByMember != null) {
+             setState(() {
+               _foundAccount = accountByMember;
+             });
+             return;
+           }
+         }
+
+         // 3. Fallback: try search by ID just in case
          final accountById = await DynamicDepositApiService.getAccountById(key);
          if (accountById != null) {
             setState(() {
@@ -58,7 +69,7 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
             });
          } else {
             setState(() {
-              _error = 'ไม่พบบัญชีเงินฝาก';
+              _error = 'ไม่พบบัญชีปลายทาง (แนะนำ: ค้นด้วยหมายเลขสมาชิก เช่น M12345)';
             });
          }
       }

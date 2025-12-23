@@ -103,6 +103,22 @@ class RegistrationNotifier extends Notifier<RegistrationState> {
     }
   }
 
+  Future<String> _generateUniqueMemberNumber() async {
+    final random = DateTime.now().microsecondsSinceEpoch % 100000;
+    String memberNumber = 'M${random.toString().padLeft(5, '0')}';
+    
+    // Check uniqueness
+    bool isUnique = await DynamicDepositApiService.isMemberNumberUnique(memberNumber);
+    int attempts = 0;
+    while (!isUnique && attempts < 10) {
+      final nextRandom = (DateTime.now().microsecondsSinceEpoch + attempts) % 100000;
+      memberNumber = 'M${nextRandom.toString().padLeft(5, '0')}';
+      isUnique = await DynamicDepositApiService.isMemberNumberUnique(memberNumber);
+      attempts++;
+    }
+    return memberNumber;
+  }
+
   Future<bool> submitRegistration({String? pin}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -110,9 +126,13 @@ class RegistrationNotifier extends Notifier<RegistrationState> {
       final account = form.accountInfo;
       final personal = form.personalInfo;
       final occupation = form.occupationInfo;
+
+      // 0. Generate Unique Member Number
+      final memberNumber = await _generateUniqueMemberNumber();
       
       // Prepare additional data
       final additionalData = <String, dynamic>{
+        'member_number': memberNumber, // เก็บหมายเลขสมาชิกที่สุ่มมา
         'birth_date': personal.birthDate?.toIso8601String(),
         'marital_status': personal.maritalStatus,
         'occupation_type': occupation.occupationType,
@@ -173,14 +193,22 @@ class RegistrationNotifier extends Notifier<RegistrationState> {
 
       // Auto-create Savings Account (บัญชีออมทรัพย์)
       try {
-        final randomAccountNo = '2${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}-${(10000 + DateTime.now().microsecond % 90000).toString()}';
-        await DynamicDepositApiService.createAccount(
-          memberId: account.citizenId,
-          accountNumber: randomAccountNo,
-          accountName: 'บัญชีออมทรัพย์ - ${personal.fullName}',
-          accountType: 'savings',
-          interestRate: 0,
-        );
+        // Check if member already has a savings account
+        final existingAccounts = await DynamicDepositApiService.getAccounts(account.citizenId);
+        final hasSavings = existingAccounts.any((acc) => acc['accounttype'] == 'savings');
+        
+        if (hasSavings) {
+          print('Member already has a savings account, skipping creation');
+        } else {
+          final randomAccountNo = '2${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}-${(10000 + DateTime.now().microsecond % 90000).toString()}';
+          await DynamicDepositApiService.createAccount(
+            memberId: account.citizenId,
+            accountNumber: randomAccountNo,
+            accountName: 'บัญชีออมทรัพย์ - ${personal.fullName}',
+            accountType: 'savings',
+            interestRate: 0,
+          );
+        }
       } catch (e) {
          // Silently ignore if account exists or handle specifically
          if (!e.toString().contains('409') && !e.toString().contains('already exists')) {

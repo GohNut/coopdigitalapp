@@ -39,6 +39,61 @@ class DynamicDepositApiService {
     }
   }
 
+  /// ตรวจสอบว่าหมายเลขสมาชิกซ้ำหรือไม่ (Mxxxxx)
+  static Future<bool> isMemberNumberUnique(String memberNumber) async {
+    final url = '${ApiConfig.baseUrl}/get';
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'members',
+        'filter': {'member_number': memberNumber},
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final result = jsonDecode(response.body);
+      if (result['status'] == 'success' && result['data'] is List) {
+        return (result['data'] as List).isEmpty;
+      }
+      return true;
+    }
+    return true;
+  }
+
+  /// ค้นหาบัญชีจากหมายเลขสมาชิก (Member Number)
+  static Future<Map<String, dynamic>?> getAccountsByMemberNumber(String memberNumber) async {
+    // 1. ค้นหา Member ก่อนเพื่อเอา ID (Citizen ID)
+    final url = '${ApiConfig.baseUrl}/get';
+    final memberResponse = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'collection': 'members',
+        'filter': {'member_number': memberNumber},
+      }),
+    );
+
+    if (memberResponse.statusCode == 200) {
+      final memberResult = jsonDecode(memberResponse.body);
+      if (memberResult['status'] == 'success' && 
+          memberResult['data'] is List && 
+          (memberResult['data'] as List).isNotEmpty) {
+        
+        final member = (memberResult['data'] as List).first;
+        final memberId = member['memberid'];
+
+        // 2. เมื่อได้ memberId แล้ว ไปหาบัญชีออมทรัพย์ของเขา
+        final accounts = await getAccounts(memberId);
+        if (accounts.isNotEmpty) {
+          // ในที่นี้สมมติเอาบัญชีแรกที่เป็นออมทรัพย์ หรือบัญชีแรกที่เจอ
+          return accounts.first;
+        }
+      }
+    }
+    return null;
+  }
+
   /// ตรวจสอบ Token สำหรับ SSO
   static Future<Map<String, dynamic>?> verifyToken(String token) async {
     final response = await http.post(

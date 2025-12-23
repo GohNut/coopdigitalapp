@@ -7,6 +7,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/dynamic_deposit_api.dart';
 import '../../../deposit/data/deposit_providers.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 
 class OfficerDepositDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> deposit;
@@ -55,6 +57,15 @@ class _OfficerDepositDetailScreenState extends ConsumerState<OfficerDepositDetai
       if (mounted) {
         Navigator.pop(context, true); // Return true to refresh list
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('อนุมัติเรียบร้อยแล้ว')));
+
+        // Add notification for member
+        ref.read(notificationProvider.notifier).addNotification(
+          NotificationModel.now(
+            title: 'การฝากเงินสำเร็จ',
+            message: 'ยอดเงินฝากจำนวน ${currencyFormat.format((widget.deposit['amount'] ?? 0.0).toDouble())} เข้าบัญชีของคุณเรียบร้อยแล้ว',
+            type: NotificationType.success,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -112,6 +123,15 @@ class _OfficerDepositDetailScreenState extends ConsumerState<OfficerDepositDetai
       if (mounted) {
         Navigator.pop(context, true); // Return true to refresh list
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ปฏิเสธรายการเรียบร้อยแล้ว')));
+
+        // Add notification for member
+        ref.read(notificationProvider.notifier).addNotification(
+          NotificationModel.now(
+            title: 'การฝากเงินไม่สำเร็จ',
+            message: 'รายการฝากเงินจำนวน ${currencyFormat.format((widget.deposit['amount'] ?? 0.0).toDouble())} ถูกปฏิเสธ: ${reasonController.text}',
+            type: NotificationType.error,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

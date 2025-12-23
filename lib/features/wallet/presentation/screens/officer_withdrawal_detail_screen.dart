@@ -5,6 +5,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/dynamic_withdrawal_api.dart';
 import '../../../deposit/data/deposit_providers.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 
 class OfficerWithdrawalDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> withdrawal;
@@ -53,6 +55,15 @@ class _OfficerWithdrawalDetailScreenState extends ConsumerState<OfficerWithdrawa
       if (mounted) {
         Navigator.pop(context, true); 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('อนุมัติเรียบร้อยแล้ว')));
+
+        // Add notification for member
+        ref.read(notificationProvider.notifier).addNotification(
+          NotificationModel.now(
+            title: 'การถอนเงินสำเร็จ',
+            message: 'รายการถอนเงินจำนวน ${currencyFormat.format((widget.withdrawal['amount'] is num ? widget.withdrawal['amount'].toDouble() : double.tryParse(widget.withdrawal['amount'] ?? '0') ?? 0.0))} ได้รับการอนุมัติและโอนเข้าบัญชีธนาคารของคุณแล้ว',
+            type: NotificationType.success,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -110,6 +121,15 @@ class _OfficerWithdrawalDetailScreenState extends ConsumerState<OfficerWithdrawa
       if (mounted) {
         Navigator.pop(context, true); 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ปฏิเสธรายการเรียบร้อยแล้ว (คืนเงินสำเร็จ)')));
+
+        // Add notification for member
+        ref.read(notificationProvider.notifier).addNotification(
+          NotificationModel.now(
+            title: 'การถอนเงินถูกปฏิเสธ',
+            message: 'รายการถอนเงินจำนวน ${currencyFormat.format((widget.withdrawal['amount'] is num ? widget.withdrawal['amount'].toDouble() : double.tryParse(widget.withdrawal['amount'] ?? '0') ?? 0.0))} ถูกปฏิเสธ: ${reasonController.text} (ระบบได้คืนเงินเข้าบัญชีเรียบร้อยแล้ว)',
+            type: NotificationType.error,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

@@ -18,6 +18,8 @@ import '../../../../core/utils/image_saver/image_saver.dart';
 import '../../domain/top_up_service.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../../services/dynamic_deposit_api.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 
 
 
@@ -238,6 +240,15 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
       ref.invalidate(depositAccountsAsyncProvider);
       ref.invalidate(totalDepositBalanceAsyncProvider);
       ref.invalidate(depositTransactionsAsyncProvider(accountId));
+
+      // Add notification
+      ref.read(notificationProvider.notifier).addNotification(
+        NotificationModel.now(
+          title: 'ส่งคำขอฝากเงินสำเร็จ',
+          message: 'คำขอฝากเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท (รหัส: $refNo) กำลังรอเจ้าหน้าที่ตรวจสอบ',
+          type: NotificationType.warning,
+        ),
+      );
       
       if (mounted) {
         // Show success dialog

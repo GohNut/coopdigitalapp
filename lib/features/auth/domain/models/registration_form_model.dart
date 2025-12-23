@@ -32,6 +32,7 @@ class AccountInfo {
   final String mobile;
   final String password;
   final String confirmPassword;
+  final String memberNumber;
 
   AccountInfo({
     this.email,
@@ -39,6 +40,7 @@ class AccountInfo {
     this.mobile = '',
     this.password = '',
     this.confirmPassword = '',
+    this.memberNumber = '',
   });
 
   AccountInfo copyWith({
@@ -47,6 +49,7 @@ class AccountInfo {
     String? mobile,
     String? password,
     String? confirmPassword,
+    String? memberNumber,
   }) {
     return AccountInfo(
       email: email ?? this.email,
@@ -54,6 +57,7 @@ class AccountInfo {
       mobile: mobile ?? this.mobile,
       password: password ?? this.password,
       confirmPassword: confirmPassword ?? this.confirmPassword,
+      memberNumber: memberNumber ?? this.memberNumber,
     );
   }
 }

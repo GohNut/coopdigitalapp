@@ -1,26 +1,33 @@
 import '../domain/notification_model.dart';
+import '../../../services/notification_api_service.dart';
 
 class NotificationRepository {
-  // Mock data - Empty by default as requested
-  static final List<NotificationModel> _notifications = [];
-
-  Future<List<NotificationModel>> getNotifications() async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    return List.from(_notifications); // Return copy
+  Future<List<NotificationModel>> getNotifications(String userId) async {
+    return await NotificationApiService.getNotifications(userId);
   }
 
-  Future<void> markAsRead(String id) async {
-    final index = _notifications.indexWhere((n) => n.id == id);
-    if (index != -1) {
-      // In a real app we would update the server
-      // Here we just replace the item with isRead = true
-      // Since fields are final, we can't just set isRead = true
-      // We would implementation copyWith, but for mock let's just ignore for now or simulate success
-    }
+  Future<void> markAsRead(String userId, String id) async {
+    await NotificationApiService.markAsRead(
+      memberId: userId,
+      notificationId: id,
+    );
   }
 
-  Future<void> addNotification(NotificationModel notification) async {
-    _notifications.insert(0, notification);
+  Future<void> addNotification(String userId, NotificationModel notification) async {
+    await NotificationApiService.addNotification(
+      memberId: userId,
+      title: notification.title,
+      message: notification.message,
+      type: NotificationModel.typeToString(notification.type),
+      route: notification.route,
+    );
+  }
+
+  Future<void> clearNotifications(String userId) async {
+    await NotificationApiService.clearNotifications(userId);
+  }
+
+  Future<void> markAllAsRead(String userId) async {
+    await NotificationApiService.markAllAsRead(userId);
   }
 }

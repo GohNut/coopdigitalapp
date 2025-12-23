@@ -177,6 +177,10 @@ class HomeHeader extends ConsumerWidget {
               ref.invalidate(depositAccountsAsyncProvider);
               ref.invalidate(totalDepositBalanceAsyncProvider);
               ref.read(tokenProvider.notifier).clearToken(); // Clear token provider
+              
+              // Clear notifications for current user
+              ref.read(notificationProvider.notifier).clearNotifications();
+              
               CurrentUser.setUser(
                 newName: '',
                 newId: '',

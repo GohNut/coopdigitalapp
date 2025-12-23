@@ -4,17 +4,20 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/kyc_service.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class OfficerKYCDetailScreen extends StatefulWidget {
+class OfficerKYCDetailScreen extends ConsumerStatefulWidget {
   final String memberId;
 
   const OfficerKYCDetailScreen({super.key, required this.memberId});
 
   @override
-  State<OfficerKYCDetailScreen> createState() => _OfficerKYCDetailScreenState();
+  ConsumerState<OfficerKYCDetailScreen> createState() => _OfficerKYCDetailScreenState();
 }
 
-class _OfficerKYCDetailScreenState extends State<OfficerKYCDetailScreen> {
+class _OfficerKYCDetailScreenState extends ConsumerState<OfficerKYCDetailScreen> {
   late Future<Map<String, dynamic>> _kycDetailFuture;
   bool _isSubmitting = false;
   bool _promoteToOfficer = false;
@@ -37,6 +40,17 @@ class _OfficerKYCDetailScreenState extends State<OfficerKYCDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('บันทึกผลการตรวจสอบ: $status เรียบร้อยแล้ว')),
+        );
+
+        // Add notification for member
+        ref.read(notificationProvider.notifier).addNotification(
+          NotificationModel.now(
+            title: status == 'verified' ? 'ยืนยันตัวตนสำเร็จ' : 'การยืนยันตัวตนถูกปฏิเสธ',
+            message: status == 'verified' 
+                ? 'บัญชีของคุณได้รับการยืนยันตัวตนเรียบร้อยแล้ว' 
+                : 'การยืนยันตัวตนไม่สำเร็จ เนื่องจาก: ${reason ?? 'ข้อมูลไม่ชัดเจน'}',
+            type: status == 'verified' ? NotificationType.success : NotificationType.error,
+          ),
         );
         context.pop(); // Go back to list
       }

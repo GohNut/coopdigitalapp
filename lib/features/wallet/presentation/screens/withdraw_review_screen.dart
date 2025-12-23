@@ -6,6 +6,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/kyc_required_dialog.dart';
 import '../../../../services/dynamic_withdrawal_api.dart';
 import '../../../deposit/data/deposit_providers.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 
 class WithdrawReviewScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
@@ -92,6 +94,15 @@ class _WithdrawReviewScreenState extends ConsumerState<WithdrawReviewScreen> {
         // Invalidate providers to refresh data immediately
         ref.invalidate(depositAccountsAsyncProvider);
         ref.invalidate(totalDepositBalanceAsyncProvider);
+
+        // Add notification
+        ref.read(notificationProvider.notifier).addNotification(
+          NotificationModel.now(
+            title: 'ส่งคำขอถอนเงินสำเร็จ',
+            message: 'คำขอถอนเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท กำลังรอเจ้าหน้าที่ตรวจสอบ',
+            type: NotificationType.warning,
+          ),
+        );
 
         if (mounted) {
           await showDialog(

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/notification_model.dart';
 import '../../data/notification_repository.dart';
+import '../../../auth/domain/user_role.dart';
 
 final notificationProvider = NotifierProvider<NotificationNotifier, List<NotificationModel>>(() {
   return NotificationNotifier();
@@ -17,38 +18,102 @@ class NotificationNotifier extends Notifier<List<NotificationModel>> {
   @override
   List<NotificationModel> build() {
     _repository = NotificationRepository();
-    // Start with empty or load
+    // Load notifications for current user
     _loadNotifications();
     return [];
   }
 
-
   Future<void> _loadNotifications() async {
-    // Initial load (empty for now as requested, or from storage in real app)
-    state = [];
+    final userId = CurrentUser.id;
+    if (userId.isNotEmpty) {
+      try {
+        final notifications = await _repository.getNotifications(userId);
+        state = notifications;
+      } catch (e) {
+        print('Error loading notifications: $e');
+        state = [];
+      }
+    }
   }
 
   Future<void> addNotification(NotificationModel notification) async {
-    // Add to top list
-    state = [notification, ...state];
-    // In real app: await _repository.addNotification(notification);
+    final userId = CurrentUser.id;
+    if (userId.isEmpty) return;
+    
+    try {
+      // Save to database first (don't add to state optimistically)
+      await _repository.addNotification(userId, notification);
+      
+      // Reload from server to get the correct MongoDB ObjectID
+      await _loadNotifications();
+    } catch (e) {
+      print('Error adding notification: $e');
+      // Reload from server on error
+      await _loadNotifications();
+    }
   }
 
   Future<void> markAsRead(String id) async {
-    state = [
-      for (final notification in state)
-        if (notification.id == id)
-          notification.copyWith(isRead: true)
-        else
-          notification,
-    ];
-    // In real app: await _repository.markAsRead(id);
+    final userId = CurrentUser.id;
+    if (userId.isEmpty) return;
+    
+    try {
+      // Optimistically update state
+      state = [
+        for (final notification in state)
+          if (notification.id == id)
+            notification.copyWith(isRead: true)
+          else
+            notification,
+      ];
+      
+      // Update in database
+      await _repository.markAsRead(userId, id);
+    } catch (e) {
+      print('Error marking notification as read: $e');
+      // Reload from server on error
+      await _loadNotifications();
+    }
   }
   
   Future<void> markAllAsRead() async {
-    state = [
-      for (final notification in state)
-        notification.copyWith(isRead: true)
-    ];
+    final userId = CurrentUser.id;
+    if (userId.isEmpty) return;
+    
+    try {
+      // Optimistically update state
+      state = [
+        for (final notification in state)
+          notification.copyWith(isRead: true)
+      ];
+      
+      // Update in database
+      await _repository.markAllAsRead(userId);
+    } catch (e) {
+      print('Error marking all notifications as read: $e');
+      // Reload from server on error
+      await _loadNotifications();
+    }
+  }
+
+  Future<void> clearNotifications() async {
+    final userId = CurrentUser.id;
+    if (userId.isEmpty) return;
+    
+    try {
+      // Clear state immediately
+      state = [];
+      
+      // Clear in database
+      await _repository.clearNotifications(userId);
+    } catch (e) {
+      print('Error clearing notifications: $e');
+      // Reload from server on error
+      await _loadNotifications();
+    }
+  }
+
+  Future<void> refresh() async {
+    await _loadNotifications();
   }
 }

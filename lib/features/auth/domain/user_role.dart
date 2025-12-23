@@ -19,6 +19,7 @@ class CurrentUser {
   static String? pin; // Added PIN field
   static String? profileImageUrl; // Added profile image URL field
   static String? kycStatus; // Added KYC status field
+  static String? memberNumber; // Added member number field
 
   static bool get isOfficerOrApprover => 
       role == UserRole.officer || role == UserRole.approver;
@@ -34,6 +35,7 @@ class CurrentUser {
     String? newPin, // Added PIN parameter
     String? newProfileImageUrl, // Added profile image URL parameter
     String? newKycStatus, // Added KYC status parameter
+    String? newMemberNumber, // Added member number parameter
   }) async {
     name = newName;
     id = newId;
@@ -42,6 +44,7 @@ class CurrentUser {
     pin = newPin;
     profileImageUrl = newProfileImageUrl;
     kycStatus = newKycStatus;
+    memberNumber = newMemberNumber;
     
     await saveUser(); // Auto-save when setting user
   }
@@ -68,6 +71,11 @@ class CurrentUser {
     } else {
       await prefs.remove('user_kyc_status');
     }
+    if (memberNumber != null) {
+      await prefs.setString('user_member_number', memberNumber!);
+    } else {
+      await prefs.remove('user_member_number');
+    }
   }
 
   // Load user state from SharedPreferences
@@ -92,6 +100,7 @@ class CurrentUser {
     pin = prefs.getString('user_pin');
     profileImageUrl = prefs.getString('user_profile_image_url');
     kycStatus = prefs.getString('user_kyc_status');
+    memberNumber = prefs.getString('user_member_number');
   }
 
   // Clear user state (Logout)
@@ -107,5 +116,6 @@ class CurrentUser {
     pin = null;
     profileImageUrl = null;
     kycStatus = null;
+    memberNumber = null;
   }
 }

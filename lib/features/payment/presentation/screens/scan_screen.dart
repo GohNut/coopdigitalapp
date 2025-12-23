@@ -20,6 +20,9 @@ import '../../data/payment_providers.dart';
 import '../../domain/payment_service.dart';
 import '../../domain/payment_source_model.dart';
 import '../../../../core/utils/image_saver/image_saver.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
+import 'package:intl/intl.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
   const ScanScreen({super.key});
@@ -39,6 +42,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   final TextEditingController _amountController = TextEditingController();
   bool _showReceiveQr = false;
   final GlobalKey _qrKey = GlobalKey();
+  double? _initialBalance; // Track initial balance to detect received payments
 
   @override
   void initState() {
@@ -66,6 +70,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
         controller.start();
       }
       setState(() {});
+    });
+
+    // Initialize balance tracking when showing receive QR
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_selectedReceiveAccountId != null) {
+        final accountsAsync = ref.read(depositAccountsAsyncProvider);
+        accountsAsync.whenData((accounts) {
+          final account = accounts.firstWhere(
+            (a) => a.id == _selectedReceiveAccountId,
+            orElse: () => accounts.first,
+          );
+          _initialBalance = account.balance;
+        });
+      }
     });
   }
 
@@ -298,9 +316,32 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                     children: [
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                        onPressed: () {
-                          // Refresh deposit accounts before closing
-                          // This ensures the user sees updated balance when they return to home
+                        onPressed: () async {
+                          // Check if user received money while on Receive tab
+                          if (_tabController.index == 1 && _selectedReceiveAccountId != null && _initialBalance != null) {
+                            // Refresh accounts first
+                            ref.invalidate(depositAccountsAsyncProvider);
+                            final accountsAsync = await ref.read(depositAccountsAsyncProvider.future);
+                            final selectedAccount = accountsAsync.firstWhere(
+                              (a) => a.id == _selectedReceiveAccountId,
+                              orElse: () => accountsAsync.first,
+                            );
+                            
+                            // Check if balance increased
+                            final balanceDiff = selectedAccount.balance - (_initialBalance ?? 0);
+                            if (balanceDiff > 0) {
+                              // Create notification for received money
+                              ref.read(notificationProvider.notifier).addNotification(
+                                NotificationModel.now(
+                                  title: 'ได้รับเงินโอน',
+                                  message: 'คุณได้รับเงินจำนวน ${NumberFormat('#,##0.00').format(balanceDiff)} บาท',
+                                  type: NotificationType.success,
+                                ),
+                              );
+                            }
+                          }
+                          
+                          // Refresh data before closing
                           ref.invalidate(depositAccountsAsyncProvider);
                           ref.invalidate(totalDepositExcludingLoanAsyncProvider);
                           ref.invalidate(loanAccountBalanceAsyncProvider);
@@ -484,7 +525,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                       value: acc.id,
                       child: Text('${acc.accountName} (${acc.accountNumber})'),
                     )).toList(),
-                    onChanged: (val) => setState(() { _selectedReceiveAccountId = val; _showReceiveQr = false; }),
+                    onChanged: (val) {
+                      setState(() { 
+                        _selectedReceiveAccountId = val; 
+                        _showReceiveQr = false;
+                        // Update initial balance when account changes
+                        final accounts = accountsAsync.value!;
+                        final account = accounts.firstWhere(
+                          (a) => a.id == val,
+                          orElse: () => accounts.first,
+                        );
+                        _initialBalance = account.balance;
+                      });
+                    },
                   ),
                 ),
               ),

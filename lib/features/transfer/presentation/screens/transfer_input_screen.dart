@@ -10,6 +10,8 @@ import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
 import '../../../auth/presentation/screens/pin_verification_screen.dart'; // Import PIN screen
 import '../../../../core/utils/currency_input_formatter.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 
 class TransferInputScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> account; // Destination Account
@@ -180,6 +182,15 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
       ref.invalidate(depositAccountsAsyncProvider);
       ref.invalidate(depositAccountByIdAsyncProvider(_selectedSourceAccountId!));
       ref.invalidate(totalDepositBalanceAsyncProvider);
+
+      // Add notification
+      ref.read(notificationProvider.notifier).addNotification(
+        NotificationModel.now(
+          title: 'โอนเงินสำเร็จ',
+          message: 'คุณได้โอนเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท ให้กับ ${widget.account['accountname']}',
+          type: NotificationType.success,
+        ),
+      );
 
       if (mounted) {
         // Get source account info

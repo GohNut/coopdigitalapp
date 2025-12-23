@@ -9,6 +9,8 @@ import '../../../../core/utils/currency_input_formatter.dart';
 import '../../../../core/widgets/kyc_required_dialog.dart';
 import '../../data/payment_providers.dart';
 import '../../domain/payment_source_model.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 
 class PaymentInputScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
@@ -87,6 +89,15 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
       );
 
       if (mounted) {
+        // Add notification
+        ref.read(notificationProvider.notifier).addNotification(
+          NotificationModel.now(
+            title: 'ชำระเงินสำเร็จ',
+            message: 'คุณได้ชำระเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท ให้กับ $_merchantName เรียบร้อยแล้ว',
+            type: NotificationType.success,
+          ),
+        );
+
         // Clear selected source
         ref.read(selectedPaymentSourceProvider.notifier).clear();
         context.go('/payment/success', extra: result);
