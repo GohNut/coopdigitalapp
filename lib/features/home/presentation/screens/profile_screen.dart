@@ -108,6 +108,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final memberData = await DynamicDepositApiService.getMember(CurrentUser.id);
       
       if (mounted) {
+        // อัปเดตโครงสร้าง CurrentUser ถ้าบทบาทเปลี่ยน (เช่น เจ้าหน้าที่เพิ่งอนุมัติ KYC)
+        if (memberData != null && memberData['role'] != null) {
+          final roleStr = memberData['role'] as String;
+          UserRole newRole = UserRole.member;
+          if (roleStr == 'officer') {
+            newRole = UserRole.officer;
+          } else if (roleStr == 'approver') {
+            newRole = UserRole.approver;
+          }
+
+          if (CurrentUser.role != newRole) {
+            debugPrint('Syncing role from backend: ${CurrentUser.role} -> $newRole');
+            await CurrentUser.setUser(
+              newName: memberData['name_th'] ?? CurrentUser.name,
+              newId: CurrentUser.id,
+              newRole: newRole,
+              newIsMember: true,
+              newPin: memberData['pin'] ?? CurrentUser.pin,
+              newProfileImageUrl: CurrentUser.profileImageUrl,
+              newKycStatus: memberData['kyc_status'] ?? CurrentUser.kycStatus,
+            );
+          }
+        }
+
         setState(() {
           _memberData = memberData;
           _isLoading = false;

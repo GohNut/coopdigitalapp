@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/payment_providers.dart';
 import '../../domain/payment_service.dart';
@@ -16,6 +16,7 @@ class ScanScreen extends ConsumerStatefulWidget {
 
 class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObserver {
   bool _isProcessing = false;
+  final MobileScannerController controller = MobileScannerController();
 
   @override
   void initState() {
@@ -26,6 +27,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    controller.dispose();
     super.dispose();
   }
 
@@ -112,25 +114,59 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Mock Camera Preview
+          // Real Camera Preview
+          MobileScanner(
+            controller: controller,
+            onDetect: (capture) {
+              final List<Barcode> barcodes = capture.barcodes;
+              for (final barcode in barcodes) {
+                if (barcode.rawValue != null) {
+                  _onQrFound(barcode.rawValue!);
+                  break;
+                }
+              }
+            },
+          ),
+          
+          // Outer overlay (dim background)
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              Colors.black.withOpacity(0.5),
+              BlendMode.srcOut,
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    width: 250,
+                    height: 250,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Scan Frame (Border)
           Center(
             child: Container(
+              width: 250,
+              height: 250,
               decoration: BoxDecoration(
                 border: Border.all(color: AppColors.primary, width: 4),
-                borderRadius: BorderRadius.circular(24)
+                borderRadius: BorderRadius.circular(24),
               ),
-              width: 300,
-              height: 300,
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(LucideIcons.scanLine, color: Colors.white54, size: 64),
-                    SizedBox(height: 16),
-                    Text('กำลังเปิดกล้อง...', style: TextStyle(color: Colors.white54, fontSize: 16)),
-                  ],
-                ),
-              ),
+              child: _isProcessing 
+                ? const Center(child: CircularProgressIndicator())
+                : null,
             ),
           ),
           
@@ -157,8 +193,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.flash_on, color: Colors.white),
-                        onPressed: () {},
+                        icon: ValueListenableBuilder(
+                          valueListenable: controller,
+                          builder: (context, state, child) {
+                            switch (state.torchState) {
+                              case TorchState.off:
+                                return const Icon(Icons.flash_off, color: Colors.white);
+                              case TorchState.on:
+                                return const Icon(Icons.flash_on, color: Colors.yellow);
+                              default:
+                                return const Icon(Icons.flash_off, color: Colors.white);
+                            }
+                          },
+                        ),
+                        onPressed: () => controller.toggleTorch(),
                       ),
                     ],
                   ),
@@ -239,35 +287,59 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 
                 const Spacer(),
                 
-                // Simulate Button
+                // Gallery / Manual Input (Subtle)
                 Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _isProcessing ? null : () => _onQrFound('mock-qr-data'),
-                      icon: _isProcessing 
-                        ? const SizedBox(
-                            width: 24, 
-                            height: 24, 
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                          )
-                        : const Icon(LucideIcons.scanLine, size: 24),
-                      label: Text(
-                        _isProcessing ? 'กำลังประมวลผล...' : 'จำลองการสแกนสำเร็จ',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  padding: const EdgeInsets.only(bottom: 40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildBottomAction(
+                        icon: Icons.image,
+                        label: 'อัลบั้มภาพ',
+                        onTap: () async {
+                          // TODO: Implement picking from gallery if needed
+                        },
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      const SizedBox(width: 40),
+                      _buildBottomAction(
+                        icon: Icons.keyboard,
+                        label: 'ใส่รหัสเอง',
+                        onTap: () {
+                          // TODO: Implement manual entry if needed
+                        },
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
           ),
         ],
       ),

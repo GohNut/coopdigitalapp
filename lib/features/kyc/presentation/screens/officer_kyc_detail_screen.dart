@@ -17,6 +17,7 @@ class OfficerKYCDetailScreen extends StatefulWidget {
 class _OfficerKYCDetailScreenState extends State<OfficerKYCDetailScreen> {
   late Future<Map<String, dynamic>> _kycDetailFuture;
   bool _isSubmitting = false;
+  bool _promoteToOfficer = false;
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _OfficerKYCDetailScreenState extends State<OfficerKYCDetailScreen> {
         memberId: widget.memberId,
         status: status,
         reason: reason,
+        isOfficer: status == 'verified' && _promoteToOfficer,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -124,6 +126,33 @@ class _OfficerKYCDetailScreenState extends State<OfficerKYCDetailScreen> {
                   _buildImagePreview('ภาพถ่ายคู่บัตร (Selfie)', images['kyc_selfie_image_key']),
                   
                 const SizedBox(height: 32),
+                
+                // Promote to Officer Toggle
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+                  ),
+                  child: CheckboxListTile(
+                    title: const Text(
+                      'แต่งตั้งเป็นเจ้าหน้าที่ (Officer)',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                    subtitle: const Text('เมื่ออนุมัติ สมาชิกจะได้รับสิทธิ์เป็นเจ้าหน้าที่ทันที'),
+                    value: _promoteToOfficer,
+                    activeColor: AppColors.primary,
+                    onChanged: (val) {
+                      setState(() {
+                        _promoteToOfficer = val ?? false;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
                 if (_isSubmitting)
                    const Center(child: CircularProgressIndicator())
                 else

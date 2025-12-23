@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../../../providers/registration_provider.dart';
 import '../../../../domain/models/registration_form_model.dart';
 import '../../../widgets/address_form_widget.dart';
@@ -17,8 +18,21 @@ class _Step2PersonalInfoScreenState extends ConsumerState<Step2PersonalInfoScree
   late TextEditingController _fullNameController;
   late TextEditingController _spouseNameController;
   
-  DateTime? _selectedBirthDate;
-  DateTime? _selectedSpouseBirthDate;
+  // Date Input Controllers
+  late TextEditingController _birthDateController;
+  late TextEditingController _spouseBirthDateController;
+
+  final _dateMaskFormatter = MaskTextInputFormatter(
+    mask: '##/##/####', 
+    filter: { "#": RegExp(r'[0-9]') },
+    type: MaskAutoCompletionType.lazy
+  );
+  final _spouseDateMaskFormatter = MaskTextInputFormatter(
+    mask: '##/##/####', 
+    filter: { "#": RegExp(r'[0-9]') },
+    type: MaskAutoCompletionType.lazy
+  );
+
   String? _selectedMaritalStatus;
   late Address _currentAddress;
 
@@ -36,38 +50,61 @@ class _Step2PersonalInfoScreenState extends ConsumerState<Step2PersonalInfoScree
     final personal = state.form.personalInfo;
 
     _fullNameController = TextEditingController(text: personal.fullName);
-    _selectedBirthDate = personal.birthDate;
+    _birthDateController = TextEditingController(
+      text: personal.birthDate != null ? _formatDateToTh(personal.birthDate!) : ''
+    );
+    _spouseBirthDateController = TextEditingController(
+      text: personal.spouseInfo?.birthDate != null ? _formatDateToTh(personal.spouseInfo!.birthDate!) : ''
+    );
+
     _selectedMaritalStatus = personal.maritalStatus;
     _currentAddress = personal.currentAddress;
     
     // Spouse Init
     _spouseNameController = TextEditingController(text: personal.spouseInfo?.fullName ?? '');
-    _selectedSpouseBirthDate = personal.spouseInfo?.birthDate;
   }
 
   @override
   void dispose() {
     _fullNameController.dispose();
     _spouseNameController.dispose();
+    _birthDateController.dispose();
+    _spouseBirthDateController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate(bool isSpouse) async {
-    final initialDate = isSpouse ? _selectedSpouseBirthDate : _selectedBirthDate;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate ?? DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isSpouse) {
-          _selectedSpouseBirthDate = picked;
-        } else {
-          _selectedBirthDate = picked;
-        }
-      });
+  String _formatDateToTh(DateTime date) {
+    // Convert DateTime to DD/MM/YYYY (BE) string
+    final yearTh = date.year + 543;
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/$yearTh';
+  }
+
+  DateTime? _parseDateTh(String input) {
+    // Input format: DD/MM/YYYY (BE)
+    try {
+      final parts = input.split('/');
+      if (parts.length != 3) return null;
+
+      final day = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final yearBe = int.parse(parts[2]);
+      final yearAd = yearBe - 543;
+
+      // Basic validation
+      if (month < 1 || month > 12) return null;
+      if (day < 1 || day > 31) return null;
+
+      // Create date and check if it matches input (handles invalid days like 31 Feb)
+      final date = DateTime(yearAd, month, day);
+      if (date.day != day || date.month != month || date.year != yearAd) {
+        return null;
+      }
+      
+      return date;
+    } catch (e) {
+      return null;
     }
   }
 
@@ -85,7 +122,7 @@ class _Step2PersonalInfoScreenState extends ConsumerState<Step2PersonalInfoScree
           children: [
             // Read-Only Fields from Step 1
             TextFormField(
-              initialValue: account.citizenId, // Should be masked or unmasked? Let's show masked if possible, but raw for now
+              initialValue: account.citizenId,
               decoration: const InputDecoration(
                 labelText: 'เลขบัตรประชาชน',
                 filled: true,
@@ -118,27 +155,24 @@ class _Step2PersonalInfoScreenState extends ConsumerState<Step2PersonalInfoScree
             ),
              const SizedBox(height: 16),
 
-             // Birth Date
-            InkWell(
-              onTap: () => _pickDate(false),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'วันเกิด',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                child: Text(
-                  _selectedBirthDate == null
-                      ? 'เลือกวันที่'
-                      : DateFormat('dd/MM/yyyy').format(_selectedBirthDate!),
-                ),
+             // Birth Date Text Field
+            TextFormField(
+              controller: _birthDateController,
+              inputFormatters: [_dateMaskFormatter],
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'วันเกิด (วว/ดด/ปปปป)',
+                hintText: 'เช่น 23/12/2530',
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.calendar_today),
               ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'กรุณาระบุวันเกิด';
+                if (v.length != 10) return 'รูปแบบวันที่ไม่ถูกต้อง (วว/ดด/ปปปป)';
+                if (_parseDateTh(v) == null) return 'วันที่ไม่ถูกต้อง';
+                return null;
+              },
             ),
-            if (_selectedBirthDate == null) // Manual validation handling/display if needed
-               const Padding(
-                 padding: EdgeInsets.only(top: 8.0, left: 12),
-                 child: Text('กรุณาระบุวันเกิด', style: TextStyle(color: Colors.red, fontSize: 12)),
-               ), 
             const SizedBox(height: 16),
 
             // Marital Status
@@ -181,20 +215,24 @@ class _Step2PersonalInfoScreenState extends ConsumerState<Step2PersonalInfoScree
                       validator: (v) => _selectedMaritalStatus == 'married' && v!.isEmpty ? 'ระบุชื่อคู่สมรส' : null,
                     ),
                     const SizedBox(height: 16),
-                    InkWell(
-                      onTap: () => _pickDate(true),
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'วันเกิดคู่สมรส',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        child: Text(
-                          _selectedSpouseBirthDate == null
-                              ? 'เลือกวันที่'
-                              : DateFormat('dd/MM/yyyy').format(_selectedSpouseBirthDate!),
-                        ),
+                    TextFormField(
+                      controller: _spouseBirthDateController,
+                      inputFormatters: [_spouseDateMaskFormatter],
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'วันเกิดคู่สมรส (วว/ดด/ปปปป)',
+                        hintText: 'เช่น 23/12/2530',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
                       ),
+                      validator: (v) {
+                         if (_selectedMaritalStatus == 'married') {
+                           if (v == null || v.isEmpty) return 'ระบุวันเกิดคู่สมรส';
+                           if (v.length != 10) return 'รูปแบบวันที่ไม่ถูกต้อง';
+                           if (_parseDateTh(v) == null) return 'วันที่ไม่ถูกต้อง';
+                         }
+                         return null;
+                      },
                     ),
                   ],
                 ),
@@ -240,24 +278,35 @@ class _Step2PersonalInfoScreenState extends ConsumerState<Step2PersonalInfoScree
 
   void _onNext() {
     if (_formKey.currentState!.validate()) {
-      if (_selectedBirthDate == null) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณาระบุวันเกิด')));
+      final parsedBirthDate = _parseDateTh(_birthDateController.text);
+      if (parsedBirthDate == null) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('วันเกิดไม่ถูกต้อง')));
           return;
       }
       
       final notifier = ref.read(registrationProvider.notifier);
       
-      final spouseInfo = _selectedMaritalStatus == 'married'
-          ? SpouseInfo(
+      SpouseInfo? spouseInfo;
+
+      if (_selectedMaritalStatus == 'married') {
+         final parsedSpouseDate = _parseDateTh(_spouseBirthDateController.text);
+         if (parsedSpouseDate == null) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('วันเกิดคู่สมรสไม่ถูกต้อง')));
+            return;
+         }
+
+          spouseInfo = SpouseInfo(
               fullName: _spouseNameController.text,
-              birthDate: _selectedSpouseBirthDate,
-            )
-          : null;
+              birthDate: parsedSpouseDate,
+            );
+      } else {
+        spouseInfo = null;
+      }
 
       notifier.updatePersonalInfo(
         PersonalInfo(
           fullName: _fullNameController.text,
-          birthDate: _selectedBirthDate,
+          birthDate: parsedBirthDate,
           maritalStatus: _selectedMaritalStatus!,
           spouseInfo: spouseInfo,
           currentAddress: _currentAddress,

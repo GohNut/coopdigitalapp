@@ -22,7 +22,9 @@ final paymentSourcesProvider = FutureProvider<List<PaymentSource>>((ref) async {
     final depositsData = await DynamicDepositApiService.getAccounts(memberId);
     for (final data in depositsData) {
       final balance = (data['balance'] ?? 0.0).toDouble();
-      if (balance > 0) {
+      // แสดงบัญชีทั้งหมดที่มี แม้จะมียอดเป็น 0 (เพื่อให้ผู้ใช้เห็นว่ามีบัญชีแล้ว)
+      // การตรวจสอบยอดเงินไม่พอ จะไปเช็คตอนทำรายการจ่าย
+      if (balance >= 0) {
         sources.add(PaymentSource(
           type: PaymentSourceType.deposit,
           sourceId: data['accountid'] ?? '',

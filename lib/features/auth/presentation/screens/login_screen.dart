@@ -100,7 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'ระบบสหกรณ์ รสพ. Digital',
+                'ระบบสหกรณ์ รสพ. ดิจิตอล',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,

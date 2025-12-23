@@ -65,10 +65,7 @@ class KYCService {
     
     request.fields['bank_id'] = bankId;
     request.fields['bank_account_no'] = bankAccountNo;
-    
-    if (CurrentUser.id.isNotEmpty) {
-      request.fields['member_id'] = CurrentUser.id;
-    }
+    request.fields['member_id'] = CurrentUser.id; // Ensure member_id is sent
     
     // Add files
     if (idCardBytes.isNotEmpty) {
@@ -172,6 +169,7 @@ class KYCService {
     required String memberId,
     required String status,
     String? reason,
+    bool isOfficer = false,
   }) async {
     final token = await _getToken();
     final response = await http.post(
@@ -184,6 +182,7 @@ class KYCService {
         'member_id': memberId,
         'status': status,
         'reason': reason,
+        'is_officer': isOfficer,
       }),
     );
 
