@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/promptpay_qr_generator.dart';
+import '../../../../core/utils/image_saver/image_saver.dart';
 import '../../../wallet/domain/top_up_service.dart';
 
 class ShareQrPaymentScreen extends StatefulWidget {
@@ -21,6 +25,8 @@ class _ShareQrPaymentScreenState extends State<ShareQrPaymentScreen> {
   Future<Map<String, dynamic>>? _qrFuture;
   Timer? _timer;
   int _timeLeft = 900; // 15 minutes in seconds
+  bool _isSavingImage = false;
+  final GlobalKey _qrKey = GlobalKey();
 
   @override
   void initState() {
@@ -54,10 +60,47 @@ class _ShareQrPaymentScreenState extends State<ShareQrPaymentScreen> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  void _saveImage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('บันทึกรูปภาพเรียบร้อยแล้ว')),
-    );
+  Future<void> _saveImage() async {
+    if (_isSavingImage) return;
+    
+    setState(() => _isSavingImage = true);
+    
+    try {
+      // Find the RenderRepaintBoundary
+      RenderRepaintBoundary boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      
+      // Capture the image
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+      
+      // Save to gallery
+      final imageSaver = getImageSaver();
+      await imageSaver.saveImage(
+        pngBytes,
+        'share_qr_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ บันทึกรูปภาพเรียบร้อยแล้ว'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingImage = false);
+    }
   }
 
   void _copyRef(String refNo) {
@@ -147,21 +190,25 @@ class _ShareQrPaymentScreenState extends State<ShareQrPaymentScreen> {
                       ),
                       const SizedBox(height: 24),
                       // QR Code จริงจาก PromptPay Generator
-                      Container(
-                        width: 250,
-                        height: 250,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: QrImageView(
-                          data: PromptPayQrGenerator.generate(amount: amount),
-                          version: QrVersions.auto,
-                          size: 218,
-                          backgroundColor: Colors.white,
-                          errorCorrectionLevel: QrErrorCorrectLevel.M,
+                      RepaintBoundary(
+                        key: _qrKey,
+                        child: Container(
+                          width: 250,
+                          height: 250,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: PrettyQrView.data(
+                            data: PromptPayQrGenerator.generate(amount: amount),
+                            decoration: const PrettyQrDecoration(
+                              shape: PrettyQrSmoothSymbol(
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -244,9 +291,15 @@ class _ShareQrPaymentScreenState extends State<ShareQrPaymentScreen> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: _saveImage,
-                        icon: const Icon(LucideIcons.download),
-                        label: const Text('บันทึกรูป'),
+                        onPressed: _isSavingImage ? null : _saveImage,
+                        icon: _isSavingImage
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(LucideIcons.download),
+                        label: Text(_isSavingImage ? 'กำลังบันทึก...' : 'บันทึกรูป'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppColors.primary,

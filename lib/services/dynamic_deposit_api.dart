@@ -9,14 +9,24 @@ class DynamicDepositApiService {
   
   /// ดึงข้อมูลสมาชิกจากเลขบัตรประชาชน (Member ID)
   static Future<Map<String, dynamic>?> getMember(String citizenId) async {
+    final url = '${ApiConfig.baseUrl}/get';
+    print('🔍 [DEBUG] Calling API: $url');
+    print('🔍 [DEBUG] Request body: ${jsonEncode({
+      'collection': 'members',
+      'filter': {'memberid': citizenId},
+    })}');
+    
     final response = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}/get'),
+      Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'collection': 'members',
         'filter': {'memberid': citizenId},
       }),
     );
+
+    print('🔍 [DEBUG] Response status: ${response.statusCode}');
+    print('🔍 [DEBUG] Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final result = jsonDecode(response.body);
@@ -684,6 +694,32 @@ class DynamicDepositApiService {
       }
     } catch (e) {
       print('Failed to send notification: $e');
+    }
+  }
+
+  /// โอนเงินภายในสหกรณ์ (ผ่าน QR Code)
+  static Future<Map<String, dynamic>> internalTransfer({
+    required String sourceAccountId,
+    required String destAccountId,
+    required double amount,
+    String? description,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/payment/internal'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'source_account_id': sourceAccountId,
+        'dest_account_id': destAccountId,
+        'amount': amount,
+        'description': description ?? 'โอนเงินภายในสวัสดิการ',
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['error'] ?? 'การโอนเงินผิดพลาด');
     }
   }
 }

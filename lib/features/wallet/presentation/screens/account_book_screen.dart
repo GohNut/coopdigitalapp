@@ -28,6 +28,13 @@ class AccountBookScreen extends ConsumerWidget {
         title: const Text('บัญชีของฉัน'),
         centerTitle: true,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.qrCode),
+            onPressed: () => context.push('/scan'),
+            tooltip: 'จ่าย/รับ',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -110,7 +117,57 @@ class AccountBookScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          // Action Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildHeaderAction(
+                context,
+                icon: LucideIcons.qrCode,
+                label: 'จ่าย/รับ',
+                onTap: () => context.push('/scan'),
+              ),
+              const SizedBox(width: 16),
+              _buildHeaderAction(
+                context,
+                icon: LucideIcons.plusCircle,
+                label: 'เพิ่มบัญชี',
+                onTap: () => context.push('/deposit/create'),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderAction(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

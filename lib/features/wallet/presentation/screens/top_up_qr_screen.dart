@@ -1,16 +1,20 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/kyc_required_dialog.dart';
 import '../../../../core/utils/promptpay_qr_generator.dart';
+import '../../../../core/utils/image_saver/image_saver.dart';
 import '../../domain/top_up_service.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../../services/dynamic_deposit_api.dart';
@@ -32,6 +36,8 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
   int _timeLeft = 900; // 15 minutes in seconds
   XFile? _slipImage;
   bool _isSubmitting = false;
+  bool _isSavingImage = false;
+  final GlobalKey _qrKey = GlobalKey();
 
   @override
   void initState() {
@@ -66,10 +72,47 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  void _saveImage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('บันทึกรูปภาพเรียบร้อยแล้ว')),
-    );
+  Future<void> _saveImage() async {
+    if (_isSavingImage) return;
+    
+    setState(() => _isSavingImage = true);
+    
+    try {
+      // Find the RenderRepaintBoundary
+      RenderRepaintBoundary boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      
+      // Capture the image
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+      
+      // Save to gallery
+      final imageSaver = getImageSaver();
+      await imageSaver.saveImage(
+        pngBytes,
+        'topup_qr_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ บันทึกรูปภาพเรียบร้อยแล้ว'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingImage = false);
+    }
   }
 
   void _copyRef(String refNo) {
@@ -352,23 +395,27 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
                       ),
                       const SizedBox(height: 24),
                       // QR Code จริงจาก PromptPay Generator
-                      Container(
-                        width: 250,
-                        height: 250,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: QrImageView(
-                          data: PromptPayQrGenerator.generate(
-                            amount: (widget.params['amount'] as num).toDouble(),
+                      RepaintBoundary(
+                        key: _qrKey,
+                        child: Container(
+                          width: 250,
+                          height: 250,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade300),
                           ),
-                          version: QrVersions.auto,
-                          size: 218,
-                          backgroundColor: Colors.white,
-                          errorCorrectionLevel: QrErrorCorrectLevel.M,
+                          child: PrettyQrView.data(
+                            data: PromptPayQrGenerator.generate(
+                              amount: (widget.params['amount'] as num).toDouble(),
+                            ),
+                            decoration: const PrettyQrDecoration(
+                              shape: PrettyQrSmoothSymbol(
+                                color: Colors.black, // Typical QR color for PromptPay
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -453,9 +500,15 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: _saveImage,
-                        icon: const Icon(LucideIcons.download),
-                        label: const Text('บันทึกรูป'),
+                        onPressed: _isSavingImage ? null : _saveImage,
+                        icon: _isSavingImage
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(LucideIcons.download),
+                        label: Text(_isSavingImage ? 'กำลังบันทึก...' : 'บันทึกรูป'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppColors.primary,

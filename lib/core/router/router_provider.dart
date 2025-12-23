@@ -373,51 +373,50 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-    GoRoute(
+      GoRoute(
         path: '/share',
         builder: (context, state) => const ShareDashboardScreen(),
         routes: [
-           GoRoute(
-          path: 'buy',
-          builder: (context, state) => const BuyExtraShareScreen(),
-          routes: [
-            GoRoute(
-              path: 'payment',
-              builder: (context, state) {
-                final args = state.extra as Map<String, dynamic>;
-                return SharePaymentMethodScreen(args: args);
-              },
-            ),
-            GoRoute(
-              path: 'confirm',
-              builder: (context, state) {
-                final args = state.extra as Map<String, dynamic>;
-                return ShareConfirmationScreen(args: args);
-              },
-            ),
-            GoRoute(
-              path: 'qr',
-              builder: (context, state) {
-                final args = state.extra as Map<String, dynamic>;
-                return ShareQrPaymentScreen(args: args);
-              },
-            ),
-            GoRoute(
-              path: 'success',
-              builder: (context, state) => const BuyShareSuccessScreen(),
-            ),
-          ]
-        ),
-
-           GoRoute(
+          GoRoute(
+            path: 'buy',
+            builder: (context, state) => const BuyExtraShareScreen(),
+            routes: [
+              GoRoute(
+                path: 'payment',
+                builder: (context, state) {
+                  final args = state.extra as Map<String, dynamic>;
+                  return SharePaymentMethodScreen(args: args);
+                },
+              ),
+              GoRoute(
+                path: 'confirm',
+                builder: (context, state) {
+                  final args = state.extra as Map<String, dynamic>;
+                  return ShareConfirmationScreen(args: args);
+                },
+              ),
+              GoRoute(
+                path: 'qr',
+                builder: (context, state) {
+                  final args = state.extra as Map<String, dynamic>;
+                  return ShareQrPaymentScreen(args: args);
+                },
+              ),
+              GoRoute(
+                path: 'success',
+                builder: (context, state) => const BuyShareSuccessScreen(),
+              ),
+            ],
+          ),
+          GoRoute(
             path: 'change',
             builder: (context, state) => const ChangeShareSubscriptionScreen(),
           ),
-           GoRoute(
+          GoRoute(
             path: 'history',
             builder: (context, state) => const ShareHistoryScreen(),
           ),
-           GoRoute(
+          GoRoute(
             path: 'dividend',
             builder: (context, state) => const DividendDetailScreen(),
             routes: [
@@ -437,7 +436,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-
       // Officer Routes
       GoRoute(
         path: '/officer/deposit-check',
@@ -454,8 +452,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/officer/kyc-detail/:memberId',
         builder: (context, state) {
-           final memberId = state.pathParameters['memberId']!;
-           return OfficerKYCDetailScreen(memberId: memberId);
+          final memberId = state.pathParameters['memberId']!;
+          return OfficerKYCDetailScreen(memberId: memberId);
         },
       ),
       GoRoute(
@@ -468,19 +466,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/kyc',
         builder: (context, state) => const KYCIntroScreen(),
         routes: [
-           GoRoute(
+          GoRoute(
             path: 'step1',
             builder: (context, state) => const KYCStep1IDCardScreen(),
           ),
-           GoRoute(
+          GoRoute(
             path: 'step2',
             builder: (context, state) => const KYCStep2BankScreen(),
           ),
-           GoRoute(
+          GoRoute(
             path: 'step3',
             builder: (context, state) => const KYCStep3SelfieScreen(),
           ),
-           GoRoute(
+          GoRoute(
             path: 'review',
             builder: (context, state) => const KYCReviewScreen(),
           ),

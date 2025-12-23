@@ -25,6 +25,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
   String get _merchantId => widget.args['merchant_id'] ?? '';
   String get _merchantName => widget.args['merchant_name'] ?? 'ร้านค้า';
   double? get _fixedAmount => widget.args['amount'] as double?;
+  bool get _isInternal => widget.args['is_internal'] ?? false;
 
   @override
   void initState() {
@@ -79,6 +80,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
         merchantId: _merchantId,
         merchantName: _merchantName,
         amount: amount,
+        isInternal: _isInternal,
       );
 
       if (mounted) {

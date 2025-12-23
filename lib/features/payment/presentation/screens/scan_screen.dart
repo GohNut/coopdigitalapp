@@ -1,11 +1,23 @@
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:qr_code_vision/qr_code_vision.dart' as vision;
+import 'package:image/image.dart' as img;
 import '../../../../core/theme/app_colors.dart';
+import '../../../deposit/domain/deposit_account.dart';
+import '../../../deposit/data/deposit_providers.dart';
 import '../../data/payment_providers.dart';
 import '../../domain/payment_service.dart';
 import '../../domain/payment_source_model.dart';
+import '../../../../core/utils/image_saver/image_saver.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
   const ScanScreen({super.key});
@@ -14,303 +26,332 @@ class ScanScreen extends ConsumerStatefulWidget {
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
 }
 
-class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObserver {
+class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   bool _isProcessing = false;
+  bool _isSavingQrImage = false;
   final MobileScannerController controller = MobileScannerController();
+  late TabController _tabController;
+  
+  // Receive states
+  String? _selectedReceiveAccountId;
+  final TextEditingController _amountController = TextEditingController();
+  bool _showReceiveQr = false;
+  final GlobalKey _qrKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _tabController = TabController(length: 2, vsync: this);
+    
+    // Auto-select account from provider for Receive tab
+    final selectedSource = ref.read(selectedPaymentSourceProvider);
+    if (selectedSource != null && selectedSource.type == PaymentSourceType.deposit) {
+      _selectedReceiveAccountId = selectedSource.sourceId;
+    }
+
+    _tabController.addListener(() {
+      if (_tabController.index == 1) {
+        controller.stop();
+        // Update receive account if changed in Pay tab's source card
+        final currentSource = ref.read(selectedPaymentSourceProvider);
+        if (currentSource != null && currentSource.type == PaymentSourceType.deposit) {
+          setState(() {
+            _selectedReceiveAccountId = currentSource.sourceId;
+          });
+        }
+      } else {
+        controller.start();
+      }
+      setState(() {});
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     controller.dispose();
+    _tabController.dispose();
+    _amountController.dispose();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Refresh selected source when app becomes active
-    if (state == AppLifecycleState.resumed) {
-      _refreshSelectedSource();
-    }
-  }
-
-  /// Refresh selected payment source with latest balance
   void _refreshSelectedSource() async {
     final currentSource = ref.read(selectedPaymentSourceProvider);
     if (currentSource == null) return;
-
-    // Invalidate and refetch payment sources
     ref.invalidate(paymentSourcesProvider);
-    
-    // Wait for new data
     final sourcesAsync = await ref.read(paymentSourcesProvider.future);
-    
-    // Find updated source by ID
     final updatedSource = sourcesAsync.firstWhere(
       (s) => s.sourceId == currentSource.sourceId,
       orElse: () => currentSource,
     );
-    
-    // Update selected source with fresh balance
     if (mounted) {
       ref.read(selectedPaymentSourceProvider.notifier).select(updatedSource);
     }
   }
 
-  void _onQrFound(String code) async {
-    if (_isProcessing) return;
+  Future<void> _onQrFound(String code) async {
+    print('🎯 [SCAN] _onQrFound called with code: $code');
+    print('🎯 [SCAN] _isProcessing = $_isProcessing');
     
-    final selectedSource = ref.read(selectedPaymentSourceProvider);
-    if (selectedSource == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเลือกบัญชีก่อน')),
-      );
-      context.go('/payment/source');
+    if (_isProcessing) {
+      print('⏸️ [SCAN] Already processing, skipping...');
       return;
     }
-
+    
+    print('🔍 [SCAN] QR Code found: $code');
+    
+    final selectedSource = ref.read(selectedPaymentSourceProvider);
+    print('🔍 [SCAN] selectedSource = $selectedSource');
+    
+    if (selectedSource == null) {
+      print('❌ [SCAN] No payment source selected');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณาเลือกบัญชีก่อน')));
+      return;
+    }
+    
+    print('✅ [SCAN] Payment source: ${selectedSource.sourceName}');
     setState(() => _isProcessing = true);
+    print('✅ [SCAN] Set _isProcessing = true');
     
     try {
+      print('🔄 [SCAN] Resolving QR code...');
       final merchant = await paymentServiceProvider.resolveQr(code);
+      print('✅ [SCAN] QR resolved: $merchant');
+      
       if (mounted) {
-        // Pass both merchant and source to payment input
+        print('🚀 [SCAN] Navigating to payment input...');
         await context.push('/payment/input', extra: {
           ...merchant,
           'selectedSource': selectedSource,
         });
+        print('✅ [SCAN] Returned from payment input');
         if (mounted) setState(() => _isProcessing = false);
       }
     } catch (e) {
+      print('❌ [SCAN] Error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('QR Code ไม่ถูกต้อง: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('QR Code ไม่ถูกต้อง: $e')));
         setState(() => _isProcessing = false);
       }
     }
   }
 
+  String _generateReceiveQrData(DepositAccount account) {
+    final amount = _amountController.text;
+    String url = 'coop://pay?account_id=${account.id}&name=${Uri.encodeComponent(account.accountName)}';
+    if (amount.isNotEmpty) url += '&amount=$amount';
+    return url;
+  }
+
+  Future<void> _saveQrImage() async {
+    if (_isSavingQrImage) return;
+    
+    setState(() => _isSavingQrImage = true);
+    
+    try {
+      // Find the RenderRepaintBoundary
+      RenderRepaintBoundary boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      
+      // Capture the image
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData!.buffer.asUint8List();
+      
+      // Save to gallery
+      final imageSaver = getImageSaver();
+      await imageSaver.saveImage(
+        pngBytes,
+        'receive_qr_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ บันทึกรูป QR Code เรียบร้อยแล้ว'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingQrImage = false);
+    }
+  }
+
+
+
+  Future<void> _scanFromGallery() async {
+    print('📷 [GALLERY] Starting gallery scan...');
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image == null) {
+      print('❌ [GALLERY] No image selected');
+      return;
+    }
+
+    print('✅ [GALLERY] Image selected: ${image.path}');
+    // Don't set _isProcessing here - let _onQrFound handle it
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กำลังสแกนรูปภาพ...'), duration: Duration(seconds: 1)),
+      );
+    }
+    
+    try {
+      String? code;
+      
+      if (kIsWeb) {
+        print('🌐 [GALLERY] Processing on Web...');
+        final bytes = await image.readAsBytes();
+        img.Image? decodedImg = img.decodeImage(bytes);
+        
+        if (decodedImg != null) {
+          // 1. First try: Direct scan
+          final qrCode = vision.QrCode();
+          qrCode.scanRgbaBytes(decodedImg.getBytes(order: img.ChannelOrder.rgba), decodedImg.width, decodedImg.height);
+          code = qrCode.content?.text;
+
+          // 2. Second try: Resize if large + Grayscale + Contrast
+          if (code == null) {
+            // Resize to improve performance and detection on web
+            if (decodedImg.width > 1024 || decodedImg.height > 1024) {
+              decodedImg = img.copyResize(decodedImg, width: 1024);
+            }
+            
+            final grayscale = img.grayscale(decodedImg);
+            final enhanced = img.contrast(grayscale, contrast: 150);
+            
+            qrCode.scanRgbaBytes(enhanced.getBytes(order: img.ChannelOrder.rgba), enhanced.width, enhanced.height);
+            code = qrCode.content?.text;
+          }
+
+          // 3. Third try: Higher contrast binarization
+          if (code == null) {
+             final binarized = img.contrast(decodedImg, contrast: 250);
+             qrCode.scanRgbaBytes(binarized.getBytes(order: img.ChannelOrder.rgba), binarized.width, binarized.height);
+             code = qrCode.content?.text;
+          }
+        }
+      } else {
+        // Mobile logic: Use mobile_scanner (Native)
+        print('📱 [GALLERY] Processing on Mobile...');
+        final barcodes = await controller.analyzeImage(image.path);
+        print('🔍 [GALLERY] Barcodes result: ${barcodes?.barcodes.length ?? 0} barcodes found');
+        if (barcodes != null && barcodes.barcodes.isNotEmpty) {
+          code = barcodes.barcodes.first.rawValue;
+          print('✅ [GALLERY] QR Code extracted: $code');
+        }
+      }
+
+      if (code != null) {
+        print('✅ [GALLERY] QR Code found, calling _onQrFound...');
+        await _onQrFound(code);
+      } else {
+        print('❌ [GALLERY] No QR Code found in image');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ไม่พบ QR Code ในรูปภาพ')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาดในการอ่านรูปภาพ: $e')),
+        );
+      }
+    }
+    // Don't need finally - _onQrFound handles _isProcessing
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedSource = ref.watch(selectedPaymentSourceProvider);
-
-    // Redirect if no source selected
-    if (selectedSource == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.go('/payment/source');
-      });
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    final accountsAsync = ref.watch(depositAccountsAsyncProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
+      backgroundColor: _tabController.index == 0 ? Colors.black : AppColors.background,
+      body: Column(
         children: [
-          // Real Camera Preview
-          MobileScanner(
-            controller: controller,
-            onDetect: (capture) {
-              final List<Barcode> barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
-                if (barcode.rawValue != null) {
-                  _onQrFound(barcode.rawValue!);
-                  break;
-                }
-              }
-            },
-          ),
-          
-          // Outer overlay (dim background)
-          ColorFiltered(
-            colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(0.5),
-              BlendMode.srcOut,
-            ),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                  ),
-                ),
-                Center(
-                  child: Container(
-                    width: 250,
-                    height: 250,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Scan Frame (Border)
-          Center(
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 4),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: _isProcessing 
-                ? const Center(child: CircularProgressIndicator())
-                : null,
-            ),
-          ),
-          
-          // Overlay UI
-          SafeArea(
+          // Unified Header
+          Container(
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+            color: _tabController.index == 0 ? Colors.black.withOpacity(0.5) : AppColors.primary,
             child: Column(
               children: [
-                // Header
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white, size: 32),
-                        onPressed: () => context.go('/home'),
+                        icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                        onPressed: () {
+                          // Refresh deposit accounts before closing
+                          // This ensures the user sees updated balance when they return to home
+                          ref.invalidate(depositAccountsAsyncProvider);
+                          ref.invalidate(totalDepositExcludingLoanAsyncProvider);
+                          ref.invalidate(loanAccountBalanceAsyncProvider);
+                          context.go('/home');
+                        },
                       ),
                       const Text(
-                        'สแกน QR Code',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        'จ่าย/รับ',
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      IconButton(
-                        icon: ValueListenableBuilder(
-                          valueListenable: controller,
-                          builder: (context, state, child) {
-                            switch (state.torchState) {
-                              case TorchState.off:
-                                return const Icon(Icons.flash_off, color: Colors.white);
-                              case TorchState.on:
-                                return const Icon(Icons.flash_on, color: Colors.yellow);
-                              default:
-                                return const Icon(Icons.flash_off, color: Colors.white);
-                            }
-                          },
-                        ),
-                        onPressed: () => controller.toggleTorch(),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Selected Source Card
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: selectedSource.type.color.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          selectedSource.type.icon,
-                          color: selectedSource.type.color,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'จ่ายจาก: ${selectedSource.sourceName}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'ยอดคงเหลือ ${selectedSource.displayBalance}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => context.pop(),
-                        child: const Text(
-                          'เปลี่ยน',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
+                      if (_tabController.index == 0)
+                        IconButton(
+                          icon: ValueListenableBuilder(
+                            valueListenable: controller,
+                            builder: (context, state, child) {
+                              return Icon(
+                                state.torchState == TorchState.on ? Icons.flash_on : Icons.flash_off,
+                                color: state.torchState == TorchState.on ? Colors.yellow : Colors.white,
+                              );
+                            },
                           ),
-                        ),
-                      ),
+                          onPressed: () => controller.toggleTorch(),
+                        )
+                      else
+                        const SizedBox(width: 48),
                     ],
                   ),
                 ),
+                TabBar(
+                  controller: _tabController,
+                  indicatorColor: Colors.white,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white70,
+                  tabs: const [
+                    Tab(text: 'จ่าย (สแกน)'),
+                    Tab(text: 'รับ (QR ของฉัน)'),
+                  ],
+                ),
+              ],
+            ),
+          ),
 
-                const SizedBox(height: 24),
-                const Text(
-                  'วาง QR Code ในกรอบเพื่อสแกน',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                ),
+          // Content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                // PAY TAB
+                _buildPayTab(selectedSource),
                 
-                const Spacer(),
-                
-                // Gallery / Manual Input (Subtle)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 40),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildBottomAction(
-                        icon: Icons.image,
-                        label: 'อัลบั้มภาพ',
-                        onTap: () async {
-                          // TODO: Implement picking from gallery if needed
-                        },
-                      ),
-                      const SizedBox(width: 40),
-                      _buildBottomAction(
-                        icon: Icons.keyboard,
-                        label: 'ใส่รหัสเอง',
-                        onTap: () {
-                          // TODO: Implement manual entry if needed
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                // RECEIVE TAB
+                _buildReceiveTab(accountsAsync),
               ],
             ),
           ),
@@ -319,28 +360,305 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     );
   }
 
-  Widget _buildBottomAction({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildPayTab(PaymentSource? selectedSource) {
+    if (selectedSource == null) {
+       return Center(
+         child: ElevatedButton(
+           onPressed: () => context.push('/payment/source'),
+           child: const Text('เลือกบัญชีจ่ายเงิน'),
+         ),
+       );
+    }
+
+    return Stack(
+      children: [
+        MobileScanner(
+          controller: controller,
+          onDetect: (capture) {
+            final List<Barcode> barcodes = capture.barcodes;
+            for (final barcode in barcodes) {
+              if (barcode.rawValue != null) {
+                _onQrFound(barcode.rawValue!);
+                break;
+              }
+            }
+          },
+        ),
+        // Overlay logic from original ScanScreen
+        ColorFiltered(
+          colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.5), BlendMode.srcOut),
+          child: Stack(
+            children: [
+              Container(color: Colors.black),
+              Center(
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Center(
+          child: Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.primary, width: 4),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: _isProcessing ? const Center(child: CircularProgressIndicator()) : null,
+          ),
+        ),
+        Positioned(
+          top: 20,
+          left: 24,
+          right: 24,
+          child: _buildSourceCard(selectedSource),
+        ),
+        const Positioned(
+          bottom: 160,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Text('วาง QR Code ในกรอบเพื่อสแกน', style: TextStyle(color: Colors.white70, fontSize: 16)),
+          ),
+        ),
+        Positioned(
+          bottom: 40,
+          left: 0,
+          right: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildBottomAction(
+                icon: Icons.image,
+                label: 'อัลบั้มภาพ',
+                onTap: _scanFromGallery,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReceiveTab(AsyncValue<List<DepositAccount>> accountsAsync) {
+    return accountsAsync.when(
+      data: (accounts) {
+        if (accounts.isEmpty) return const Center(child: Text('ไม่พบบัญชีเงินฝาก'));
+        
+        // Initialize state without setState during build if possible, 
+        // but since we need it for the dropdown value, we ensure it's set.
+        // To avoid "setState during build", we can use WidgetsBinding or just 
+        // ensure we don't trigger a rebuild from here.
+        _selectedReceiveAccountId ??= accounts.first.id;
+        
+        final selectedAccount = accounts.firstWhere(
+          (acc) => acc.id == _selectedReceiveAccountId,
+          orElse: () => accounts.first,
+        );
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('เลือกบัญชีรับเงิน', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedReceiveAccountId,
+                    isExpanded: true,
+                    items: accounts.map((acc) => DropdownMenuItem(
+                      value: acc.id,
+                      child: Text('${acc.accountName} (${acc.accountNumber})'),
+                    )).toList(),
+                    onChanged: (val) => setState(() { _selectedReceiveAccountId = val; _showReceiveQr = false; }),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('ยอดเงิน (ไม่บังคับ)', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: '0.00',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+                onChanged: (_) => setState(() => _showReceiveQr = false),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => setState(() => _showReceiveQr = true),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                  child: const Text('สร้าง QR Code'),
+                ),
+              ),
+              if (_showReceiveQr) ...[
+                const SizedBox(height: 32),
+                Center(
+                  child: Column(
+                    children: [
+                      RepaintBoundary(
+                        key: _qrKey,
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Header for printed QR
+                              Text(
+                                'สแกนเพื่อจ่ายเงิน',
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: 200,
+                                height: 200,
+                                child: PrettyQrView.data(
+                                  data: _generateReceiveQrData(selectedAccount),
+                                  decoration: const PrettyQrDecoration(
+                                    shape: PrettyQrSmoothSymbol(
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                selectedAccount.accountName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                'เลขที่บัญชี: ${selectedAccount.accountNumber}',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              if (_amountController.text.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    'ยอดเงิน: ${_amountController.text} บาท',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isSavingQrImage ? null : _saveQrImage,
+                              icon: _isSavingQrImage
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.download),
+                              label: Text(_isSavingQrImage ? 'กำลังบันทึก...' : 'บันทึกรูป QR Code'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppColors.primary,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(color: AppColors.primary.withOpacity(0.2)),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+    );
+  }
+
+  Widget _buildSourceCard(PaymentSource source) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(source.type.icon, color: source.type.color),
+          const SizedBox(width: 12),
+          Expanded(child: Text(source.sourceName, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+          TextButton(onPressed: () => context.push('/payment/source'), child: const Text('เปลี่ยน')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomAction({required IconData icon, required String label, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
             child: Icon(icon, color: Colors.white, size: 28),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
         ],
       ),
     );

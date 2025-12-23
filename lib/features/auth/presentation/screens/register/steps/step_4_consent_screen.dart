@@ -30,7 +30,6 @@ class _Step4ConsentScreenState extends ConsumerState<Step4ConsentScreen> {
     final notifier = ref.read(registrationProvider.notifier);
 
     final isAllAccepted = consent.ruleAccepted && 
-                          consent.nonMemberElsewhere && 
                           consent.feeAgreement && 
                           consent.pdpaAccepted;
 
@@ -70,11 +69,6 @@ class _Step4ConsentScreenState extends ConsumerState<Step4ConsentScreen> {
             title: 'ข้าพเจ้ายอมรับระเบียบและข้อบังคับของสหกรณ์',
             value: consent.ruleAccepted,
             onChanged: (val) => notifier.updateConsent(consent.copyWith(ruleAccepted: val)),
-          ),
-          _buildCheckbox(
-            title: 'ข้าพเจ้าขอรับรองว่าไม่ได้เป็นสมาชิกสหกรณ์ออมทรัพย์อื่น',
-            value: consent.nonMemberElsewhere,
-            onChanged: (val) => notifier.updateConsent(consent.copyWith(nonMemberElsewhere: val)),
           ),
           _buildCheckbox(
             title: 'ข้าพเจ้ายินยอมให้หักเงินค่าธรรมเนียมแรกเข้า',

@@ -11,10 +11,10 @@ class WalletCard extends ConsumerStatefulWidget {
   const WalletCard({super.key});
 
   @override
-  ConsumerState<WalletCard> createState() => _WalletCardState();
+  ConsumerState<WalletCard> createState() => WalletCardState();
 }
 
-class _WalletCardState extends ConsumerState<WalletCard> {
+class WalletCardState extends ConsumerState<WalletCard> {
   bool _isVisible = true;
   bool _isLoading = true;
   double _loanRemainingAmount = 0;
@@ -27,6 +27,13 @@ class _WalletCardState extends ConsumerState<WalletCard> {
     super.initState();
     _loadLoanData();
     _loadShareData();
+  }
+
+  /// Public method to refresh all data (called from parent HomeScreen)
+  void refreshAllData() {
+    _loadLoanData();
+    _loadShareData();
+    // Providers are already invalidated by HomeScreen
   }
 
   Future<void> _loadLoanData() async {

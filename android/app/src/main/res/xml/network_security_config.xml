@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- อนุญาตให้ใช้ HTTP สำหรับ development -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">192.168.1.5</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+    
+    <!-- ใช้ HTTPS สำหรับ production -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">member.rspcoop.com</domain>
+    </domain-config>
+    
+    <!-- อนุญาต cleartext traffic ทั้งหมดสำหรับ dev (ปลอดภัยน้อยกว่า แต่ใช้งานง่าย) -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

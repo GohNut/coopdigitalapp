@@ -1,0 +1,91 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (Android)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "119022547V004624",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define=ENV=dev"
+            ]
+        },
+        {
+            "name": "Dev (Android)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "119022547V004624",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define=ENV=dev"
+            ]
+        },
+        {
+            "name": "Staging (Android)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "119022547V004624",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define=ENV=staging"
+            ]
+        },
+        {
+            "name": "UAT (Android)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "119022547V004624",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define=ENV=uat"
+            ]
+        },
+        {
+            "name": "Production (Android)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "119022547V004624",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define=ENV=production"
+            ]
+        },
+        {
+            "name": "Debug (macOS)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "macos",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define=ENV=dev"
+            ]
+        },
+        {
+            "name": "Debug (Web)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "chrome",
+            "flutterMode": "debug",
+            "args": [
+                "--dart-define=ENV=dev"
+            ]
+        },
+        {
+            "name": "Release Mode",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "All Devices (Dev)",
+            "configurations": [
+                "Debug (Android)",
+                "Debug (macOS)",
+                "Debug (Web)"
+            ]
+        }
+    ]
+}

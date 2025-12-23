@@ -40,7 +40,7 @@ class QuickActionsGrid extends StatelessWidget {
               'โอน', 
               () => context.push('/transfer'),
             ),
-            _buildActionItem(context, LucideIcons.scanLine, 'จ่าย', () => context.push('/payment/source')),
+            _buildActionItem(context, LucideIcons.scanLine, 'จ่าย/รับ', () => context.push('/payment/source')),
           ],
         ),
       ),

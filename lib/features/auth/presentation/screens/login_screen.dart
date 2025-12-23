@@ -212,6 +212,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final idCard = _idCardController.text.trim();
     final password = _passwordController.text.trim();
     
+    print('🔐 [LOGIN] Attempting login with ID: $idCard');
+    
     if (idCard.length != 13) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณากรอกเลขบัตรประชาชนให้ครบ 13 หลัก')),
@@ -223,7 +225,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       // Call API to check member
+      print('🔐 [LOGIN] Calling getMember API...');
       final memberData = await DynamicDepositApiService.getMember(idCard);
+      
+      print('🔐 [LOGIN] Member data received: ${memberData != null ? "Found" : "Not found"}');
+      if (memberData != null) {
+        print('🔐 [LOGIN] Member data: $memberData');
+      }
       
       if (!mounted) return;
 
@@ -329,9 +337,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
       }
     } catch (e) {
+      print('❌ [LOGIN] Error occurred: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาด: $e'),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 5),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

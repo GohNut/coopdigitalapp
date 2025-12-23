@@ -123,6 +123,7 @@ class PaymentActionNotifier extends AsyncNotifier<void> {
     required String merchantId,
     required String merchantName,
     required double amount,
+    bool isInternal = false,
   }) async {
     state = const AsyncLoading();
 
@@ -133,16 +134,28 @@ class PaymentActionNotifier extends AsyncNotifier<void> {
       }
 
       if (source.type == PaymentSourceType.deposit) {
-        // หักเงินจากบัญชีเงินฝาก (ใช้ payment method)
-        await DynamicDepositApiService.payment(
-          accountId: source.sourceId,
-          amount: amount,
-          currentBalance: source.balance,
-          description: 'จ่ายเงินให้ $merchantName',
-          merchantId: merchantId,
-        );
+        // หักเงินจากบัญชีเงินฝาก
+        if (isInternal) {
+           await DynamicDepositApiService.internalTransfer(
+            sourceAccountId: source.sourceId,
+            destAccountId: merchantId,
+            amount: amount,
+            description: 'โอนเงินให้ $merchantName',
+          );
+        } else {
+          // จ่ายบิล/ร้านค้าทั่วไป
+          await DynamicDepositApiService.payment(
+            accountId: source.sourceId,
+            amount: amount,
+            currentBalance: source.balance,
+            description: 'จ่ายเงินให้ $merchantName',
+            merchantId: merchantId,
+          );
+        }
 
         // Refresh deposit providers to update UI (Account Book)
+        // NOTE: การ invalidate นี้จะ refresh เฉพาะข้อมูลของผู้จ่ายเงินเท่านั้น
+        // ผู้รับเงินจะต้องรอ lifecycle refresh (กลับมาที่แอป) หรือ manual refresh
         ref.invalidate(depositAccountsAsyncProvider);
         ref.invalidate(depositTransactionsAsyncProvider(source.sourceId));
         ref.invalidate(depositAccountByIdAsyncProvider(source.sourceId));

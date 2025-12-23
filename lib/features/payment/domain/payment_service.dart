@@ -1,13 +1,26 @@
 class PaymentService {
   Future<Map<String, dynamic>> resolveQr(String qrData) async {
+    // Check if it's a coop payment URL
+    if (qrData.startsWith('coop://pay')) {
+      final uri = Uri.parse(qrData);
+      return {
+        'merchant_id': uri.queryParameters['account_id'] ?? '',
+        'merchant_name': uri.queryParameters['name'] ?? 'สมาชิกสหกรณ์',
+        'merchant_img': 'https://illustrations.popsy.co/amber/shoppping.svg',
+        'amount': double.tryParse(uri.queryParameters['amount'] ?? ''),
+        'is_internal': true,
+      };
+    }
+
     await Future.delayed(const Duration(seconds: 1));
-    // Mock parsing QR
+    // Mock parsing others
     return {
       'merchant_id': 'M-778899',
       'merchant_name': 'ร้านสวัสดิการสหกรณ์',
       'merchant_img': 'https://illustrations.popsy.co/amber/shoppping.svg',
       // Dynamic QR might have amount
       'amount': null, 
+      'is_internal': false,
     };
   }
 
