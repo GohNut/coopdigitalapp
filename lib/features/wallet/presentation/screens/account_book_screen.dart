@@ -13,7 +13,6 @@ class AccountBookScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accounts = ref.watch(depositAccountsProvider);
-    final totalBalance = ref.watch(totalDepositBalanceProvider);
     final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '');
 
     return Scaffold(
@@ -38,8 +37,6 @@ class AccountBookScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // Total Balance Header
-          _buildBalanceHeader(context, totalBalance, accounts.length, currencyFormat),
           // Account List
           Expanded(
             child: ListView.builder(
@@ -69,105 +66,6 @@ class AccountBookScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBalanceHeader(BuildContext context, double totalBalance, int accountCount, NumberFormat currencyFormat) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.primary, AppColors.primary.withOpacity(0.9)],
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      child: Column(
-        children: [
-          Text(
-            'ยอดเงินฝากทั้งหมด',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            currencyFormat.format(totalBalance),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              '$accountCount บัญชี',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Action Buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildHeaderAction(
-                context,
-                icon: LucideIcons.qrCode,
-                label: 'จ่าย/รับ',
-                onTap: () => context.push('/scan'),
-              ),
-              const SizedBox(width: 16),
-              _buildHeaderAction(
-                context,
-                icon: LucideIcons.plusCircle,
-                label: 'เพิ่มบัญชี',
-                onTap: () => context.push('/deposit/create'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderAction(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -12,6 +13,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:qr_code_vision/qr_code_vision.dart' as vision;
 import 'package:image/image.dart' as img;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
 import '../../../deposit/domain/deposit_account.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../data/payment_providers.dart';
@@ -138,7 +140,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   }
 
   String _generateReceiveQrData(DepositAccount account) {
-    final amount = _amountController.text;
+    final amount = _amountController.text.replaceAll(',', '');
     String url = 'coop://pay?account_id=${account.id}&name=${Uri.encodeComponent(account.accountName)}';
     if (amount.isNotEmpty) url += '&amount=$amount';
     return url;
@@ -491,7 +493,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
               const SizedBox(height: 8),
               TextField(
                 controller: _amountController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  CurrencyInputFormatter(),
+                ],
                 decoration: InputDecoration(
                   hintText: '0.00',
                   filled: true,

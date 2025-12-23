@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
 import '../../../../core/widgets/kyc_required_dialog.dart';
 import '../../data/payment_providers.dart';
 import '../../domain/payment_source_model.dart';
@@ -32,7 +35,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
     super.initState();
     _amountFocusNode.addListener(() => setState(() {}));
     if (_fixedAmount != null) {
-      _amountController.text = _fixedAmount!.toStringAsFixed(2);
+      _amountController.text = NumberFormat('#,##0.00').format(_fixedAmount);
     }
   }
 
@@ -53,7 +56,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
       return;
     }
 
-    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณาระบุยอดเงิน')),
@@ -232,6 +235,12 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
                     focusNode: _amountFocusNode,
                     enabled: _fixedAmount == null,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: _fixedAmount == null
+                        ? [
+                            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                            CurrencyInputFormatter(),
+                          ]
+                        : [],
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 48,

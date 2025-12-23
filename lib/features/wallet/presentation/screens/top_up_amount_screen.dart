@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../deposit/data/deposit_providers.dart';
@@ -46,7 +47,7 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
 
   void _onChipSelected(double amount) {
     setState(() {
-      _amountController.text = amount.toStringAsFixed(0);
+      _amountController.text = NumberFormat('#,###').format(amount.toInt());
       _errorText = null;
     });
   }
