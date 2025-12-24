@@ -104,15 +104,15 @@ class RegistrationNotifier extends Notifier<RegistrationState> {
   }
 
   Future<String> _generateUniqueMemberNumber() async {
-    final random = DateTime.now().microsecondsSinceEpoch % 100000;
-    String memberNumber = 'M${random.toString().padLeft(5, '0')}';
+    final random = DateTime.now().microsecondsSinceEpoch % 100000000;
+    String memberNumber = 'M${random.toString().padLeft(8, '0')}';
     
     // Check uniqueness
     bool isUnique = await DynamicDepositApiService.isMemberNumberUnique(memberNumber);
     int attempts = 0;
     while (!isUnique && attempts < 10) {
-      final nextRandom = (DateTime.now().microsecondsSinceEpoch + attempts) % 100000;
-      memberNumber = 'M${nextRandom.toString().padLeft(5, '0')}';
+      final nextRandom = (DateTime.now().microsecondsSinceEpoch + attempts) % 100000000;
+      memberNumber = 'M${nextRandom.toString().padLeft(8, '0')}';
       isUnique = await DynamicDepositApiService.isMemberNumberUnique(memberNumber);
       attempts++;
     }
