@@ -67,7 +67,9 @@ class _OfficerDepositCheckScreenState extends State<OfficerDepositCheckScreen> {
             );
           }
 
-          final deposits = snapshot.data ?? [];
+          final deposits = (snapshot.data != null && snapshot.data is List<Map<String, dynamic>>)
+              ? snapshot.data!
+              : <Map<String, dynamic>>[];
 
           if (deposits.isEmpty) {
             return Center(

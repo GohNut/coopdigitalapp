@@ -140,9 +140,9 @@ class LoanRepositoryImpl implements LoanRepository {
       final response = await DynamicLoanApiService.getLoans(filter);
       
       if (response['status'] == 'success') {
-        if (response['data'] is List) {
-          final List<dynamic> data = response['data'];
-          var apps = data.map((json) => LoanApplication.fromJson(json)).toList();
+        final dynamic dataField = response['data'];
+        if (dataField != null && dataField is List) {
+          var apps = (dataField as List).map((json) => LoanApplication.fromJson(json)).toList();
 
           // If Officer Review Mode: Filter OUT own loans to prevent self-approval
           if (forOfficerReview) {

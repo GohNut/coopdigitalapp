@@ -50,7 +50,9 @@ class _OfficerKYCListScreenState extends State<OfficerKYCListScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          final pendingKYC = snapshot.data ?? [];
+          final pendingKYC = (snapshot.data != null && snapshot.data is List<Map<String, dynamic>>)
+              ? snapshot.data!
+              : <Map<String, dynamic>>[];
 
           if (pendingKYC.isEmpty) {
             return const Center(child: Text('ไม่มีรายการรอตรวจสอบ'));

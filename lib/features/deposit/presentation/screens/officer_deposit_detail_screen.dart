@@ -9,6 +9,7 @@ import '../../../../services/dynamic_deposit_api.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../notification/domain/notification_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../../core/widgets/full_screen_image_viewer.dart';
 
 class OfficerDepositDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> deposit;
@@ -188,28 +189,58 @@ class _OfficerDepositDetailScreenState extends ConsumerState<OfficerDepositDetai
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: kIsWeb 
-                   ? Image.network(
-                       slipPath,
-                       width: double.infinity,
-                       fit: BoxFit.cover,
-                       loadingBuilder: (ctx, child, loading) {
-                         if (loading == null) return child;
-                         return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-                       },
-                       errorBuilder: (ctx, err, stack) => Container(
-                         height: 200,
-                         color: Colors.grey[200],
-                         child: const Center(child: Text('ไม่สามารถโหลดรูปภาพได้')),
+                   ? GestureDetector(
+                       onTap: () => Navigator.push(
+                         context,
+                         MaterialPageRoute(
+                           builder: (context) => FullScreenImageViewer(
+                             imagePath: slipPath,
+                             isNetwork: true,
+                             title: 'สลิปโอนเงิน',
+                           ),
+                         ),
+                       ),
+                       child: Hero(
+                         tag: slipPath,
+                         child: Image.network(
+                             slipPath,
+                             width: double.infinity,
+                             fit: BoxFit.cover,
+                             loadingBuilder: (ctx, child, loading) {
+                               if (loading == null) return child;
+                               return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+                             },
+                             errorBuilder: (ctx, err, stack) => Container(
+                               height: 200,
+                               color: Colors.grey[200],
+                               child: const Center(child: Text('ไม่สามารถโหลดรูปภาพได้')),
+                             ),
+                           ),
                        ),
                      )
-                   : Image.file(
-                       File(slipPath),
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) => Container(
-                         height: 200,
-                         color: Colors.grey[200],
-                         child: const Center(child: Text('ไฟล์รูปภาพไม่ถูกต้อง')),
+                   : GestureDetector(
+                       onTap: () => Navigator.push(
+                         context,
+                         MaterialPageRoute(
+                           builder: (context) => FullScreenImageViewer(
+                             imagePath: slipPath,
+                             isNetwork: false,
+                             title: 'สลิปโอนเงิน',
+                           ),
+                         ),
+                       ),
+                       child: Hero(
+                         tag: slipPath,
+                         child: Image.file(
+                             File(slipPath),
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, err, stack) => Container(
+                               height: 200,
+                               color: Colors.grey[200],
+                               child: const Center(child: Text('ไฟล์รูปภาพไม่ถูกต้อง')),
+                             ),
+                           ),
                        ),
                      ),
               )

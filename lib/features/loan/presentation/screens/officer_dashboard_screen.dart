@@ -104,7 +104,10 @@ class _OfficerDashboardScreenState extends State<OfficerDashboardScreen> with Si
           return Center(child: Text('Error: ${snapshot.error}'));
         }
 
-        final allApplications = snapshot.data ?? [];
+        // ตรวจสอบ type และ null safety
+        final allApplications = (snapshot.data != null && snapshot.data is List<LoanApplication>)
+            ? snapshot.data!
+            : <LoanApplication>[];
         final applications = allApplications
             .where((app) => app.status == status)
             .toList();

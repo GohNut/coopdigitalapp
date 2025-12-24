@@ -7,6 +7,7 @@ import '../../data/kyc_service.dart';
 import '../../../notification/domain/notification_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/widgets/full_screen_image_viewer.dart';
 
 class OfficerKYCDetailScreen extends ConsumerStatefulWidget {
   final String memberId;
@@ -246,15 +247,30 @@ class _OfficerKYCDetailScreenState extends ConsumerState<OfficerKYCDetailScreen>
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              url,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const Center(child: CircularProgressIndicator());
-              },
-              errorBuilder: (context, error, stackTrace) => 
-                  const Center(child: Icon(LucideIcons.imageOff, color: Colors.grey)),
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FullScreenImageViewer(
+                    imagePath: url,
+                    isNetwork: true,
+                    title: label,
+                  ),
+                ),
+              ),
+              child: Hero(
+                tag: url,
+                child: Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                  errorBuilder: (context, error, stackTrace) => 
+                      const Center(child: Icon(LucideIcons.imageOff, color: Colors.grey)),
+                ),
+              ),
             ),
           ),
         ),

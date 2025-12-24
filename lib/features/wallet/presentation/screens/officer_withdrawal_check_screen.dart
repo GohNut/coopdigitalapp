@@ -67,7 +67,9 @@ class _OfficerWithdrawalCheckScreenState extends State<OfficerWithdrawalCheckScr
             );
           }
 
-          final withdrawals = snapshot.data ?? [];
+          final withdrawals = (snapshot.data != null && snapshot.data is List<Map<String, dynamic>>)
+              ? snapshot.data!
+              : <Map<String, dynamic>>[];
 
           if (withdrawals.isEmpty) {
             return Center(

@@ -118,32 +118,35 @@ class KYCService {
 
   // Get Pending KYC Requests
   static Future<List<Map<String, dynamic>>> getPendingKYCRequests() async {
-    final token = await _getToken();
-    final response = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/officer/kyc/pending'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final token = await _getToken();
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/officer/kyc/pending'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return data.cast<Map<String, dynamic>>();
-    } else {
-      // Mock data if API fails or backend not reachable yet
-      print('Failed to fetch pending KYC: ${response.statusCode}');
-      return [
-        {
-          'memberid': 'MOCK001',
-          'name_th': 'ทดสอบ สมมติ (Mock)',
-          'kyc_submitted_at': DateTime.now().toIso8601String(),
-        },
-        {
-          'memberid': 'MOCK002',
-          'name_th': 'ตัวอย่าง รอตรวจสอบ',
-          'kyc_submitted_at': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
-        },
-      ];
+      if (response.statusCode == 200) {
+        final dynamic decodedData = json.decode(response.body);
+        
+        // ตรวจสอบว่า decoded data เป็น List หรือไม่
+        if (decodedData != null && decodedData is List) {
+          return decodedData.cast<Map<String, dynamic>>();
+        }
+        
+        // ถ้าไม่ใช่ List ให้ return empty list
+        print('KYC API returned non-list data: $decodedData');
+        return [];
+      } else {
+        // API error, return empty list
+        print('Failed to fetch pending KYC: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      // Handle any errors (network, parsing, etc.)
+      print('Error fetching pending KYC requests: $e');
+      return [];
     }
   }
 

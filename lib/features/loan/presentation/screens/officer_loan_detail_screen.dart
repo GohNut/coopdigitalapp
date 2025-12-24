@@ -11,6 +11,8 @@ import '../../../notification/domain/notification_model.dart';
 import '../../../auth/domain/user_role.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../../core/utils/string_extensions.dart';
+import '../../../../core/config/api_config.dart';
+import '../../../../core/widgets/full_screen_image_viewer.dart';
 
 class OfficerLoanDetailScreen extends ConsumerStatefulWidget {
   final LoanApplication application;
@@ -357,6 +359,23 @@ class _OfficerLoanDetailScreenState extends ConsumerState<OfficerLoanDetailScree
                   ],
                 ),
               ),
+              if (doc.url != null || doc.name.isNotEmpty)
+                IconButton(
+                  icon: const Icon(LucideIcons.eye, color: Colors.purple, size: 20),
+                  onPressed: () {
+                    final imageUrl = doc.url ?? '${ApiConfig.baseUrl}/files/${doc.name}';
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FullScreenImageViewer(
+                          imagePath: imageUrl,
+                          isNetwork: true,
+                          title: doc.name,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -435,6 +454,23 @@ class _OfficerLoanDetailScreenState extends ConsumerState<OfficerLoanDetailScree
               ],
             ),
           ),
+          if (doc.url != null || doc.name.isNotEmpty)
+            IconButton(
+              icon: const Icon(LucideIcons.eye, color: AppColors.primary, size: 20),
+              onPressed: () {
+                final imageUrl = doc.url ?? '${ApiConfig.baseUrl}/files/${doc.name}';
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FullScreenImageViewer(
+                      imagePath: imageUrl,
+                      isNetwork: true,
+                      title: doc.name,
+                    ),
+                  ),
+                );
+              },
+            ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -454,6 +490,7 @@ class _OfficerLoanDetailScreenState extends ConsumerState<OfficerLoanDetailScree
       ),
     );
   }
+
 
   Widget _buildActionSection() {
     return Column(

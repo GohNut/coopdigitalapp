@@ -11,6 +11,7 @@ import '../../../payment/data/payment_providers.dart'; // Added import
 import '../../../home/presentation/providers/profile_image_provider.dart';
 import '../../../../core/providers/token_provider.dart';
 import '../../../../core/utils/external_navigation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -26,10 +27,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordFocusNode = FocusNode();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
+  late Future<PackageInfo> _packageInfoFuture;
 
   @override
   void initState() {
     super.initState();
+    _packageInfoFuture = PackageInfo.fromPlatform();
     _idCardFocusNode.addListener(() => setState(() {}));
     _passwordFocusNode.addListener(() => setState(() {}));
   }
@@ -202,6 +205,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: const Text('ยังไม่มีบัญชี? สมัครสมาชิก'),
               ),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: FutureBuilder<PackageInfo>(
+            future: _packageInfoFuture,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Text(
+                  'Version ${snapshot.data!.version} (Build ${snapshot.data!.buildNumber})',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ),
       ),

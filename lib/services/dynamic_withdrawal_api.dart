@@ -116,26 +116,34 @@ class DynamicWithdrawalApiService {
 
   /// ดึงรายการถอนเงินที่รอตรวจสอบ (Pending)
   static Future<List<Map<String, dynamic>>> getPendingWithdrawals() async {
-    final response = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}/get'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'collection': 'deposit_transactions',
-        'filter': {
-            'status': 'pending',
-            'type': 'withdrawal'
-        },
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/get'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'collection': 'deposit_transactions',
+          'filter': {
+              'status': 'pending',
+              'type': 'withdrawal'
+          },
+        }),
+      );
 
-    if (response.statusCode == 200) {
-      final result = jsonDecode(response.body);
-      if (result['status'] == 'success' && result['data'] is List) {
-        return List<Map<String, dynamic>>.from(result['data']);
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        final dynamic dataField = result['data'];
+        
+        if (result['status'] == 'success' && dataField != null && dataField is List) {
+          return List<Map<String, dynamic>>.from(dataField);
+        }
+        return [];
+      } else {
+        print('Failed to get pending withdrawals: ${response.statusCode}');
+        return [];
       }
+    } catch (e) {
+      print('Error fetching pending withdrawals: $e');
       return [];
-    } else {
-      throw Exception('Failed to get pending withdrawals: ${response.body}');
     }
   }
 
