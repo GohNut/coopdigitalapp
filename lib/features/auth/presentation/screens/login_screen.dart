@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/responsive_text.dart';
+import '../../../../core/utils/responsive_spacing.dart';
+import '../../../../core/utils/responsive_utils.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../services/dynamic_deposit_api.dart';
 import '../../domain/user_role.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../deposit/data/deposit_providers.dart';
-import '../../../payment/data/payment_providers.dart'; // Added import
+import '../../../payment/data/payment_providers.dart';
 import '../../../home/presentation/providers/profile_image_provider.dart';
 import '../../../../core/providers/token_provider.dart';
 import '../../../../core/utils/external_navigation.dart';
@@ -46,6 +50,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// Helper method to create TextFormField with locked zoom
+  Widget _buildLockedTextFormField({
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    TextInputType? keyboardType,
+    int? maxLength,
+    String? labelText,
+    String? hintText,
+    Widget? prefixIcon,
+    Widget? suffixIcon,
+    bool obscureText = false,
+  }) {
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+      child: TextFormField(
+        controller: controller,
+        focusNode: focusNode,
+        keyboardType: keyboardType,
+        maxLength: maxLength,
+        obscureText: obscureText,
+        decoration: InputDecoration(
+          labelText: focusNode.hasFocus ? null : labelText,
+          hintText: focusNode.hasFocus ? null : hintText,
+          prefixIcon: prefixIcon,
+          suffixIcon: suffixIcon,
+          counterText: '',
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary),
+          ),
+          contentPadding: context.formFieldPadding,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,169 +108,148 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           icon: const Icon(LucideIcons.arrowLeft, color: AppColors.primary),
           tooltip: 'กลับไป iLife',
         ),
-        title: const Text(
+        title: Text(
           'กลับไป iLife',
-          style: TextStyle(
+          style: context.headlineMediumText.copyWith(
             color: AppColors.primary,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
           ),
         ),
         titleSpacing: 0,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo or Icon
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    LucideIcons.landmark,
-                    size: 64,
-                    color: AppColors.primary,
-                  ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: context.screenPadding,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - context.safeArea.top - context.safeArea.bottom,
                 ),
-              ),
-              const SizedBox(height: 32),
-              
-              const Text(
-                'เข้าสู่ระบบสหกรณ์',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'ระบบสหกรณ์ รสพ. ดิจิตอล',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              
-              const SizedBox(height: 48),
+                child: IntrinsicHeight(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Logo or Icon
+                      Center(
+                        child: Container(
+                          padding: EdgeInsets.all(context.spacingL),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            LucideIcons.landmark,
+                            size: context.isSmallScreen ? 48 : 64,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      context.spacerM,
+                      
+                      ResponsiveTextWidget(
+                        text: 'เข้าสู่ระบบสหกรณ์',
+                        textAlign: TextAlign.center,
+                        style: context.displayLargeText.copyWith(
+                          color: Colors.black87,
+                        ),
+                      ),
+                      context.spacerS,
+                      
+                      ResponsiveTextWidget(
+                        text: 'ระบบสหกรณ์ รสพ. ดิจิตอล',
+                        textAlign: TextAlign.center,
+                        style: context.bodyLargeText.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      
+                      context.spacerL,
 
-              // ID Card Input
-              TextFormField(
-                controller: _idCardController,
-                focusNode: _idCardFocusNode,
-                keyboardType: TextInputType.number,
-                maxLength: 13,
-                decoration: InputDecoration(
-                  labelText: _idCardFocusNode.hasFocus ? null : 'เลขบัตรประชาชน',
-                  hintText: _idCardFocusNode.hasFocus ? null : 'กรอกเลข 13 หลัก',
-                  prefixIcon: const Icon(LucideIcons.creditCard),
-                  counterText: '',
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary),
+                      // ID Card Input
+                      _buildLockedTextFormField(
+                        controller: _idCardController,
+                        focusNode: _idCardFocusNode,
+                        keyboardType: TextInputType.number,
+                        maxLength: 13,
+                        labelText: 'เลขบัตรประชาชน',
+                        hintText: 'กรอกเลข 13 หลัก',
+                        prefixIcon: const Icon(LucideIcons.creditCard),
+                      ),
+                      
+                      context.spacerM,
+
+                      // Password Input
+                      _buildLockedTextFormField(
+                        controller: _passwordController,
+                        focusNode: _passwordFocusNode,
+                        obscureText: !_isPasswordVisible,
+                        labelText: 'รหัสผ่าน',
+                        hintText: 'กรอกรหัสผ่าน (สำหรับสมาชิกใหม่)',
+                        prefixIcon: const Icon(LucideIcons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
+                          ),
+                          onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                        ),
+                      ),
+                      
+                      context.spacerL,
+
+                      // Login Button
+                      SizedBox(
+                        height: context.isSmallScreen ? 48 : 54,
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : _handleLogin,
+                          icon: _isLoading
+                            ? SizedBox(
+                                width: context.isSmallScreen ? 20 : 24,
+                                height: context.isSmallScreen ? 20 : 24,
+                                child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                              )
+                            : const Icon(LucideIcons.logIn),
+                          label: ResponsiveTextWidget(
+                            text: _isLoading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ',
+                            style: context.buttonTextStyle,
+                          ),
+                          style: AppTheme.responsiveButtonStyle(context),
+                        ),
+                      ),
+                      
+                      context.spacerM,
+
+                      // Register Button
+                      TextButton(
+                        onPressed: () => context.go('/register'),
+                        child: ResponsiveTextWidget(
+                          text: 'ยังไม่มีบัญชี? สมัครสมาชิก',
+                          style: context.bodyLargeText.copyWith(
+                            color: AppColors.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 16),
-
-              // Password Input
-              TextFormField(
-                controller: _passwordController,
-                focusNode: _passwordFocusNode,
-                obscureText: !_isPasswordVisible,
-                decoration: InputDecoration(
-                  labelText: _passwordFocusNode.hasFocus ? null : 'รหัสผ่าน',
-                  hintText: _passwordFocusNode.hasFocus ? null : 'กรอกรหัสผ่าน (สำหรับสมาชิกใหม่)',
-                  prefixIcon: const Icon(LucideIcons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isPasswordVisible ? LucideIcons.eyeOff : LucideIcons.eye,
-                    ),
-                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-
-              // Login Button
-              SizedBox(
-                height: 54,
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _handleLogin,
-                  icon: _isLoading 
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(LucideIcons.logIn),
-                  label: Text(_isLoading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-
-              // Register Button
-              TextButton(
-                onPressed: () => context.go('/register'),
-                child: const Text('ยังไม่มีบัญชี? สมัครสมาชิก'),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
+          padding: context.screenPadding,
           child: FutureBuilder<PackageInfo>(
             future: _packageInfoFuture,
             builder: (context, snapshot) {
               if (snapshot.hasData) {
-                return Text(
-                  'Version ${snapshot.data!.version} (Build ${snapshot.data!.buildNumber})',
+                return ResponsiveTextWidget(
+                  text: 'Version ${snapshot.data!.version} (Build ${snapshot.data!.buildNumber})',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: context.bodyMediumText.copyWith(
                     color: Colors.grey.shade500,
-                    fontSize: 12,
                   ),
                 );
               }

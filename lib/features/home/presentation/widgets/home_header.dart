@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/responsive_text.dart';
+import '../../../../core/utils/responsive_spacing.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../../auth/domain/user_role.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../providers/profile_image_provider.dart';
 import '../../../../core/providers/token_provider.dart';
@@ -21,10 +22,15 @@ class HomeHeader extends ConsumerWidget {
     // Watch profile image URL changes - use provider value or fallback to CurrentUser
     final providerImageUrl = ref.watch(profileImageUrlProvider);
     final profileImageUrl = providerImageUrl ?? CurrentUser.profileImageUrl;
-    final topPadding = MediaQuery.of(context).padding.top;
+    final topPadding = context.safeArea.top;
     
     return Container(
-      padding: EdgeInsets.only(top: topPadding + 16, left: 24, right: 24, bottom: 20),
+      padding: EdgeInsets.only(
+        top: topPadding + context.spacingM,
+        left: context.spacingL,
+        right: context.spacingL,
+        bottom: context.spacingL,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -38,63 +44,75 @@ class HomeHeader extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: () => context.push('/profile'),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.secondary],
-                    ),
-                  ),
-                  child: profileImageUrl != null && profileImageUrl.isNotEmpty
-                      ? CircleAvatar(
-                          radius: 22,
-                          backgroundImage: NetworkImage(profileImageUrl),
-                          backgroundColor: Colors.white,
-                          onBackgroundImageError: (_, __) {},
-                        )
-                      : const CircleAvatar(
-                          radius: 22,
-                          backgroundColor: Colors.white,
-                          child: Icon(LucideIcons.user, color: AppColors.primary, size: 24),
-                        ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'สวัสดี 👋',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+          Flexible(
+            child: GestureDetector(
+              onTap: () => context.push('/profile'),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.secondary],
                       ),
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          CurrentUser.name,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                    child: profileImageUrl != null && profileImageUrl.isNotEmpty
+                        ? CircleAvatar(
+                            radius: context.isSmallScreen ? 20 : 22,
+                            backgroundImage: NetworkImage(profileImageUrl),
+                            backgroundColor: Colors.white,
+                            onBackgroundImageError: (_, __) {},
+                          )
+                        : CircleAvatar(
+                            radius: context.isSmallScreen ? 20 : 22,
+                            backgroundColor: Colors.white,
+                            child: Icon(
+                              LucideIcons.user,
+                              color: AppColors.primary,
+                              size: context.isSmallScreen ? 22 : 24
+                            ),
                           ),
-                          overflow: TextOverflow.ellipsis,
+                  ),
+                  context.hSpacerM,
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ResponsiveTextWidget(
+                          text: 'สวัสดี 👋',
+                          style: context.bodyMediumText.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
-                        if (CurrentUser.kycStatus == 'verified') ...[
-                          const SizedBox(width: 6),
-                          const Icon(LucideIcons.badgeCheck, color: Colors.green, size: 20),
-                        ],
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: ResponsiveTextWidget(
+                                text: CurrentUser.name,
+                                style: context.headlineMediumText.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                            if (CurrentUser.kycStatus == 'verified') ...[
+                              context.hSpacerXS,
+                              const Icon(LucideIcons.badgeCheck, color: Colors.green, size: 20),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // ปุ่มกลับไป iLife App (ถ้ามี Token)
               if (ref.watch(tokenProvider) != null) ...[
@@ -109,7 +127,7 @@ class HomeHeader extends ConsumerWidget {
                     tooltip: 'กลับไป iLife',
                   ),
                 ),
-                const SizedBox(width: 8),
+                context.hSpacerS,
               ],
               Container(
                 decoration: BoxDecoration(
@@ -122,7 +140,7 @@ class HomeHeader extends ConsumerWidget {
                   tooltip: 'ออกจากระบบ',
                 ),
               ),
-              const SizedBox(width: 8),
+              context.hSpacerS,
               Stack(
                 children: [
                   Container(
@@ -138,7 +156,7 @@ class HomeHeader extends ConsumerWidget {
                   Positioned(
                     right: 10,
                     top: 10,
-                    child: unreadCount > 0 
+                    child: unreadCount > 0
                       ? Container(
                           width: 10,
                           height: 10,
