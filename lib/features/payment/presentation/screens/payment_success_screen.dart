@@ -31,24 +31,56 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   Future<void> _handleAutoSave() async {
     if (_hasSaved) return;
     
+    print('🔍 [SLIP] Starting auto-save...');
+    print('🔍 [SLIP] slip_info: ${widget.args['slip_info']}');
+    
     setState(() {
       _isSaving = true;
     });
 
-    final success = await SlipService.saveSlipToGallery(context, widget.args['slip_info']);
-    
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
-        _hasSaved = success;
-      });
+    try {
+      print('🔍 [SLIP] Calling SlipService.saveSlipToGallery...');
+      final success = await SlipService.saveSlipToGallery(context, widget.args['slip_info']);
+      print('🔍 [SLIP] Save result: $success');
+      
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _hasSaved = success;
+        });
 
-      if (success) {
+        if (success) {
+          print('✅ [SLIP] Showing success snackbar');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('บันทึกสลิปลงอัลบั้มรูปแล้ว'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          print('⚠️ [SLIP] Save failed, showing warning');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ไม่สามารถบันทึกสลิปได้ กรุณาตรวจสอบสิทธิ์การเข้าถึงอัลบั้ม'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e, stack) {
+      print('❌ [SLIP] Error during save: $e');
+      print('❌ [SLIP] Stack trace: $stack');
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('บันทึกสลิปลงอัลบั้มรูปแล้ว'),
-            backgroundColor: AppColors.success,
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
