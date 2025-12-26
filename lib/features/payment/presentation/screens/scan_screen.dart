@@ -19,7 +19,7 @@ import '../../../deposit/data/deposit_providers.dart';
 import '../../data/payment_providers.dart';
 import '../../domain/payment_service.dart';
 import '../../domain/payment_source_model.dart';
-import '../../../../core/utils/image_saver/image_saver.dart';
+import '../../services/qr_save_service.dart';
 import '../../../notification/domain/notification_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import 'package:intl/intl.dart';
@@ -151,7 +151,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     } catch (e) {
       print('❌ [SCAN] Error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('QR Code ไม่ถูกต้อง: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('QR ไม่ถูกต้อง: $e')));
         setState(() => _isProcessing = false);
       }
     }
@@ -178,26 +178,34 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
       
-      // Save to gallery
-      final imageSaver = getImageSaver();
-      await imageSaver.saveImage(
+      // Save to Coop album using QrSaveService
+      final success = await QrSaveService.saveQrToGallery(
         pngBytes,
         'receive_qr_${DateTime.now().millisecondsSinceEpoch}.png',
       );
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ บันทึกรูป QR Code เรียบร้อยแล้ว'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('บันทึกรูป QR ลงอัลบั้ม Coop แล้ว'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ไม่สามารถบันทึกรูปได้ กรุณาอนุญาตสิทธิ์การเข้าถึงอัลบั้ม'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            content: Text('เกิดข้อผิดพลาด: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -280,7 +288,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
         print('❌ [GALLERY] No QR Code found in image');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('ไม่พบ QR Code ในรูปภาพ')),
+            const SnackBar(content: Text('ไม่พบ QR ในรูปภาพ')),
           );
         }
       }
@@ -465,7 +473,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
           left: 0,
           right: 0,
           child: Center(
-            child: Text('วาง QR Code ในกรอบเพื่อสแกน', style: TextStyle(color: Colors.white70, fontSize: 16)),
+            child: Text('วาง QR ในกรอบเพื่อสแกน', style: TextStyle(color: Colors.white70, fontSize: 16)),
           ),
         ),
         Positioned(
@@ -565,7 +573,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 child: ElevatedButton(
                   onPressed: () => setState(() => _showReceiveQr = true),
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-                  child: const Text('สร้าง QR Code'),
+                  child: const Text('สร้าง QR'),
                 ),
               ),
               if (_showReceiveQr) ...[
@@ -663,7 +671,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                                       child: CircularProgressIndicator(strokeWidth: 2),
                                     )
                                   : const Icon(Icons.download),
-                              label: Text(_isSavingQrImage ? 'กำลังบันทึก...' : 'บันทึกรูป QR Code'),
+                              label: Text(_isSavingQrImage ? 'กำลังบันทึก...' : 'บันทึกรูป QR'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: AppColors.primary,

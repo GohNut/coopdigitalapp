@@ -284,7 +284,7 @@ class _PaymentInputScreenState extends ConsumerState<PaymentInputScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
-                          'ยอดเงินถูกกำหนดจาก QR Code',
+                          'ยอดเงินถูกกำหนดจาก QR',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.orange,

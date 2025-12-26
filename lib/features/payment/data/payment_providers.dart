@@ -136,12 +136,34 @@ class PaymentActionNotifier extends AsyncNotifier<void> {
       if (source.type == PaymentSourceType.deposit) {
         // หักเงินจากบัญชีเงินฝาก
         if (isInternal) {
-           await DynamicDepositApiService.internalTransfer(
+          final response = await DynamicDepositApiService.internalTransfer(
             sourceAccountId: source.sourceId,
             destAccountId: merchantId,
             amount: amount,
             description: 'โอนเงินให้ $merchantName',
           );
+          
+          final result = {
+            'transaction_id': response['transaction_id'] ?? 'PAY-${DateTime.now().millisecondsSinceEpoch}',
+            'status': 'SUCCESS',
+            'amount': amount,
+            'source_type': source.type.name,
+            'source_name': source.sourceName,
+            'merchant_id': merchantId,
+            'merchant_name': merchantName,
+            'timestamp': DateTime.now().toIso8601String(),
+            'slip_info': response['slip_info'], 
+          };
+
+          // Refresh deposit providers
+          ref.invalidate(depositAccountsAsyncProvider);
+          ref.invalidate(depositTransactionsAsyncProvider(source.sourceId));
+          ref.invalidate(depositAccountByIdAsyncProvider(source.sourceId));
+          ref.invalidate(totalDepositBalanceAsyncProvider);
+          ref.invalidate(paymentSourcesProvider);
+
+          state = const AsyncData(null);
+          return result;
         } else {
           // จ่ายบิล/ร้านค้าทั่วไป
           await DynamicDepositApiService.payment(
@@ -151,24 +173,19 @@ class PaymentActionNotifier extends AsyncNotifier<void> {
             description: 'จ่ายเงินให้ $merchantName',
             merchantId: merchantId,
           );
+          
+          ref.invalidate(depositAccountsAsyncProvider);
+          ref.invalidate(depositTransactionsAsyncProvider(source.sourceId));
+          ref.invalidate(depositAccountByIdAsyncProvider(source.sourceId));
+          ref.invalidate(totalDepositBalanceAsyncProvider);
+          ref.invalidate(paymentSourcesProvider);
         }
-
-        // Refresh deposit providers to update UI (Account Book)
-        // NOTE: การ invalidate นี้จะ refresh เฉพาะข้อมูลของผู้จ่ายเงินเท่านั้น
-        // ผู้รับเงินจะต้องรอ lifecycle refresh (กลับมาที่แอป) หรือ manual refresh
-        ref.invalidate(depositAccountsAsyncProvider);
-        ref.invalidate(depositTransactionsAsyncProvider(source.sourceId));
-        ref.invalidate(depositAccountByIdAsyncProvider(source.sourceId));
-        ref.invalidate(totalDepositBalanceAsyncProvider);
-        
-        // Refresh payment sources to ensure fresh balance on next scan
-        ref.invalidate(paymentSourcesProvider);
       } else {
         // หักจากวงเงินสินเชื่อ - บันทึกเป็น payment
         await DynamicLoanApiService.recordPayment(
           applicationId: source.sourceId,
           memberId: CurrentUser.id,
-          installmentNo: 0, // 0 = การใช้วงเงิน
+          installmentNo: 0,
           amount: amount,
           paymentMethod: 'qr_payment',
           paymentType: 'spending',

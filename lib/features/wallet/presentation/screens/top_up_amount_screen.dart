@@ -252,7 +252,7 @@ class _TopUpAmountScreenState extends ConsumerState<TopUpAmountScreen> {
                   elevation: 0,
                 ),
                 child: const Text(
-                  'สร้าง QR Code',
+                  'สร้าง QR',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

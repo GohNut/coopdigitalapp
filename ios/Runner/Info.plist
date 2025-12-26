@@ -46,6 +46,8 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>แอปต้องการสิทธิ์เพื่อบันทึกรูป QR Code ลงในคลังรูปภาพของคุณ</string>
+	<string>แอปต้องการสิทธิ์เพื่อบันทึกรูปสลิปลงในคลังรูปภาพของคุณ</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>แอปต้องการสิทธิ์เพื่อบันทึกรูปสลิปลงในคลังรูปภาพของคุณ</string>
 </dict>
 </plist>

@@ -2,23 +2,72 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../services/slip_service.dart';
 
-class PaymentSuccessScreen extends StatelessWidget {
+class PaymentSuccessScreen extends StatefulWidget {
   final Map<String, dynamic> args;
 
   const PaymentSuccessScreen({super.key, required this.args});
 
   @override
+  State<PaymentSuccessScreen> createState() => _PaymentSuccessScreenState();
+}
+
+class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
+  bool _isSaving = false;
+  bool _hasSaved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-save slip if slip_info is present
+    if (widget.args['slip_info'] != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleAutoSave();
+      });
+    }
+  }
+
+  Future<void> _handleAutoSave() async {
+    if (_hasSaved) return;
+    
+    setState(() {
+      _isSaving = true;
+    });
+
+    final success = await SlipService.saveSlipToGallery(context, widget.args['slip_info']);
+    
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+        _hasSaved = success;
+      });
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('บันทึกสลิปลงอัลบั้มรูปแล้ว'),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final amount = args['amount'] as double;
-    final timestamp = DateTime.parse(args['timestamp']);
-    final sourceName = args['source_name'] ?? '';
-    final sourceType = args['source_type'];
+    final amount = widget.args['amount'] as double;
+    final timestamp = DateTime.parse(widget.args['timestamp']);
+    final sourceName = widget.args['source_name'] ?? '';
+    final sourceType = widget.args['source_type'];
     final sourceDisplay = sourceType == 'deposit' 
         ? 'บัญชีเงินฝาก: $sourceName' 
         : sourceType == 'loan'
             ? 'วงเงินสินเชื่อ: $sourceName'
             : sourceName;
+
+    final hasSlipInfo = widget.args['slip_info'] != null;
 
     return PopScope(
       canPop: false,
@@ -56,7 +105,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  '${NumberFormat('#,##0.00').format(amount)}',
+                  NumberFormat('#,##0.00').format(amount),
                   style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.red),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -69,7 +118,34 @@ class PaymentSuccessScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 
-                const SizedBox(height: 60),
+                const SizedBox(height: 40),
+                if (hasSlipInfo) ...[
+                  if (_isSaving)
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(width: 8),
+                        Text('กำลังบันทึกสลิป...', style: TextStyle(color: AppColors.textSecondary)),
+                      ],
+                    )
+                  else if (_hasSaved)
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                        SizedBox(width: 8),
+                        Text('บันทึกสลิปลงอัลบั้มแล้ว', style: TextStyle(color: AppColors.success)),
+                      ],
+                    )
+                  else
+                    TextButton.icon(
+                      onPressed: _handleAutoSave,
+                      icon: const Icon(Icons.save_alt),
+                      label: const Text('บันทึกสลิปลงเครื่อง'),
+                    ),
+                ],
+
                 const SizedBox(height: 60),
                 Row(
                   children: [

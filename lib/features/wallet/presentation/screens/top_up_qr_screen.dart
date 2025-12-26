@@ -474,7 +474,7 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
                           const Icon(LucideIcons.clock, size: 16, color: AppColors.warning),
                           const SizedBox(width: 8),
                           Text(
-                            'QR Code นี้จะหมดอายุใน $_formattedTime นาที',
+                            'QR นี้จะหมดอายุใน $_formattedTime นาที',
                             style: const TextStyle(
                               color: AppColors.warning,
                               fontWeight: FontWeight.w600,
