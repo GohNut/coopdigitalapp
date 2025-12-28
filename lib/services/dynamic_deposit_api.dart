@@ -703,6 +703,7 @@ class DynamicDepositApiService {
           title: 'เงินฝากได้รับอนุมัติ',
           message: 'รายการฝากเงินของคุณได้รับการยืนยันแล้ว สามารถตรวจสอบยอดเงินได้ในบัญชี',
           type: 'success',
+          route: '/wallet',
         );
       }
     } catch (e) {
@@ -753,6 +754,7 @@ class DynamicDepositApiService {
           title: 'รายการฝากเงินถูกปฏิเสธ',
           message: 'รายการฝากเงินถูกยกเลิกเนื่องจาก: ${reason ?? "ข้อมูลไม่ถูกต้อง"}',
           type: 'error',
+          route: '/wallet',
         );
       }
     } catch (e) {

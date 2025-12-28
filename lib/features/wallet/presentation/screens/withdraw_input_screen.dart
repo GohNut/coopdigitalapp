@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/financial_refresh_provider.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
 import '../../../auth/presentation/screens/pin_verification_screen.dart'; // Import PIN screen
@@ -37,6 +38,14 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
     _loadBanks();
     _accountFocusNode.addListener(() => setState(() {}));
     _amountFocusNode.addListener(() => setState(() {}));
+    
+    // Refresh financial data when entering screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(financialRefreshProvider.notifier).refreshDepositAndLoan();
+      }
+    });
+    
     // Pre-select first account
     ref.read(depositAccountsAsyncProvider.future).then((accounts) {
       if (accounts.isNotEmpty && mounted && _selectedSourceAccountId == null) {
@@ -160,21 +169,24 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(depositAccountsAsyncProvider);
     final isProcessing = ref.watch(depositActionProvider).isLoading;
+    final refreshState = ref.watch(financialRefreshProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
-        ),
-        title: const Text('ถอนเงิน'),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
-        elevation: 0,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.go('/home'),
+            ),
+            title: const Text('ถอนเงิน'),
+            centerTitle: true,
+            backgroundColor: AppColors.primary,
+            elevation: 0,
+            foregroundColor: Colors.white,
+          ),
+          body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,8 +369,33 @@ class _WithdrawInputScreenState extends ConsumerState<WithdrawInputScreen> {
               ),
             ),
           ],
+          ),
         ),
       ),
+        // Loading Overlay
+        if (refreshState.isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.3),
+            child: const Center(
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text(
+                        'กำลังโหลดข้อมูล...',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

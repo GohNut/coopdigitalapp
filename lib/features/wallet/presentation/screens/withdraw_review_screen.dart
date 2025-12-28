@@ -8,6 +8,8 @@ import '../../../../services/dynamic_withdrawal_api.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../notification/domain/notification_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../../core/utils/notification_helper.dart';
+import '../../../auth/domain/user_role.dart';
 
 class WithdrawReviewScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
@@ -98,10 +100,19 @@ class _WithdrawReviewScreenState extends ConsumerState<WithdrawReviewScreen> {
         // Add notification
         ref.read(notificationProvider.notifier).addNotification(
           NotificationModel.now(
-            title: 'ส่งคำขอถอนเงินสำเร็จ',
-            message: 'คำขอถอนเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท กำลังรอเจ้าหน้าที่ตรวจสอบ',
+            title: 'ส่งคำขอถอนเงินแล้ว',
+            message: 'การส่งคำขอถอนเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท สำเร็จแล้ว อยู่ในสถานะรอการยืนยันจากเจ้าหน้าที่',
             type: NotificationType.warning,
           ),
+        );
+
+        // Send notification to officers (Step 2)
+        NotificationHelper.notifyOfficers(
+          ref: ref,
+          title: 'มีคำขอถอนเงินใหม่',
+          message: 'สมาชิก ${CurrentUser.name} ได้ส่งคำขอถอนเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท กรุณาตรวจสอบและอนุมัติ',
+          type: 'info',
+          route: '/officer/withdrawal-check',
         );
 
         if (mounted) {

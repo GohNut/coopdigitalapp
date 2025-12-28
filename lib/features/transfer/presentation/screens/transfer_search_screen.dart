@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/financial_refresh_provider.dart';
 import '../../../../services/dynamic_deposit_api.dart';
 
-class TransferSearchScreen extends StatefulWidget {
+class TransferSearchScreen extends ConsumerStatefulWidget {
   const TransferSearchScreen({super.key});
 
   @override
-  State<TransferSearchScreen> createState() => _TransferSearchScreenState();
+  ConsumerState<TransferSearchScreen> createState() => _TransferSearchScreenState();
 }
 
-class _TransferSearchScreenState extends State<TransferSearchScreen> {
+class _TransferSearchScreenState extends ConsumerState<TransferSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _isLoading = false;
@@ -22,6 +24,13 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
   void initState() {
     super.initState();
     _searchFocusNode.addListener(() => setState(() {}));
+    
+    // Refresh financial data when entering screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(financialRefreshProvider.notifier).refreshDepositAndLoan();
+      }
+    });
   }
 
   @override
@@ -92,16 +101,20 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('โอนเงิน'),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Padding(
+    final refreshState = ref.watch(financialRefreshProvider);
+    
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            title: const Text('โอนเงิน'),
+            centerTitle: true,
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
+          body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -277,9 +290,34 @@ class _TransferSearchScreenState extends State<TransferSearchScreen> {
                   ),
                 ),
               ),
-          ],
+              ],
+          ),
         ),
       ),
+        // Loading Overlay
+        if (refreshState.isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.3),
+            child: const Center(
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text(
+                        'กำลังโหลดข้อมูล...',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

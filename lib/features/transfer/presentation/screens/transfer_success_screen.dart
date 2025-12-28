@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/financial_refresh_provider.dart';
 
-class TransferSuccessScreen extends StatelessWidget {
+class TransferSuccessScreen extends ConsumerWidget {
   final Map<String, dynamic> args;
 
   const TransferSuccessScreen({super.key, required this.args});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final amount = args['amount'] as double;
     final targetName = args['target_name'] as String;
     final txnId = args['transaction_id'] as String;
@@ -60,10 +62,13 @@ class TransferSuccessScreen extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
-                            child: const Icon(LucideIcons.arrowRightLeft, color: AppColors.primary),
+                          ClipOval(
+                            child: Image.asset(
+                              'assets/pic/logoCoop.jpg',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           const Expanded(child: Text('สหกรณ์ออมทรัพย์...')),
@@ -118,7 +123,10 @@ class TransferSuccessScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => context.go(repeatRoute),
+                      onPressed: () async {
+                        await ref.read(financialRefreshProvider.notifier).refreshAll();
+                        if (context.mounted) context.go(repeatRoute);
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.primary,
@@ -131,7 +139,10 @@ class TransferSuccessScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => context.go('/home'),
+                      onPressed: () async {
+                        await ref.read(financialRefreshProvider.notifier).refreshAll();
+                        if (context.mounted) context.go('/home');
+                      },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white, width: 2),

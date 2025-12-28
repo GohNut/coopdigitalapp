@@ -7,6 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/kyc_provider.dart';
 import '../../data/kyc_service.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../../core/utils/notification_helper.dart';
+import '../../../auth/domain/user_role.dart';
 
 class KYCReviewScreen extends ConsumerStatefulWidget {
   const KYCReviewScreen({super.key});
@@ -91,6 +95,24 @@ class _KYCReviewScreenState extends ConsumerState<KYCReviewScreen> {
       if (mounted) {
         // Clear state
         ref.read(kycProvider.notifier).reset();
+
+        // Add persistent notification
+        ref.read(notificationProvider.notifier).addNotification(
+          NotificationModel.now(
+            title: 'ส่งคำขอยืนยันตัวตนแล้ว',
+            message: 'การส่งเรื่องยืนยันตัวตนสำเร็จแล้ว อยู่ในสถานะรอการยืนยันจากเจ้าหน้าที่',
+            type: NotificationType.warning,
+          ),
+        );
+
+        // Send notification to officers (Step 2)
+        NotificationHelper.notifyOfficers(
+          ref: ref,
+          title: 'มีคำขอยืนยันตัวตนใหม่ (KYC)',
+          message: 'สมาชิก ${CurrentUser.name} ได้ส่งคำขอยืนยันตัวตนใหม่ กรุณาตรวจสอบและอนุมัติ',
+          type: 'info',
+          route: '/officer/kyc-detail/${CurrentUser.id}',
+        );
         
         // Navigate to Success
         showDialog(

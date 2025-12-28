@@ -41,14 +41,13 @@ class SlipWidget extends StatelessWidget {
           // Header - Logo & Result
           Row(
             children: [
-              Container(
-                width: 45,
-                height: 45,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
+              ClipOval(
+                child: Image.asset(
+                  'assets/pic/logoCoop.jpg',
+                  width: 45,
+                  height: 45,
+                  fit: BoxFit.cover,
                 ),
-                child: const Icon(Icons.account_balance_rounded, color: Colors.white, size: 28),
               ),
               const SizedBox(width: 12),
               const Column(

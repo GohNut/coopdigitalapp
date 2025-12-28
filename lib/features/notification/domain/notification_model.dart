@@ -59,7 +59,7 @@ class NotificationModel {
       title: json['title'] ?? '',
       message: json['message'] ?? '',
       timestamp: json['created_at'] != null 
-          ? DateTime.parse(json['created_at'] is Map ? json['created_at']['\$date'] : json['created_at'])
+          ? DateTime.parse(json['created_at'] is Map ? json['created_at']['\$date'] : json['created_at']).toLocal()
           : DateTime.now(),
       isRead: json['is_read'] ?? false,
       type: _typeFromString(json['type'] ?? 'info'),

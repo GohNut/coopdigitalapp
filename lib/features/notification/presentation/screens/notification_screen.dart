@@ -52,13 +52,8 @@ class NotificationScreen extends ConsumerWidget {
                 return NotificationItem(
                   notification: notification,
                   onTap: () {
-                    // Mark as read
+                    // Only mark as read, no navigation to avoid errors
                     ref.read(notificationProvider.notifier).markAsRead(notification.id);
-                    
-                    // Navigate if route exists
-                    if (notification.route != null) {
-                      context.push(notification.route!);
-                    }
                   },
                 );
               },

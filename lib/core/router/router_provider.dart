@@ -67,11 +67,15 @@ import '../../features/kyc/presentation/screens/kyc_review_screen.dart';
 import '../../features/kyc/presentation/screens/officer_kyc_list_screen.dart';
 import '../../features/kyc/presentation/screens/officer_kyc_detail_screen.dart';
 import '../../features/share/presentation/screens/officer_share_type_management_screen.dart';
+import '../../features/loan/presentation/screens/officer_loan_detail_screen.dart';
+import '../../features/loan/domain/loan_application_model.dart';
+import '../../features/wallet/presentation/screens/officer_withdrawal_detail_screen.dart';
+import '../../features/deposit/presentation/screens/officer_deposit_detail_screen.dart';
+
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+final shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final rootNavigatorKey = GlobalKey<NavigatorState>();
-  final shellNavigatorKey = GlobalKey<NavigatorState>();
-
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: CurrentUser.id.isNotEmpty ? '/home' : '/login',
@@ -108,6 +112,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/notification',
+        redirect: (context, state) => '/notifications',
       ),
       
       StatefulShellRoute.indexedStack(
@@ -194,10 +202,11 @@ final routerProvider = Provider<GoRouter>((ref) {
              routes: [
                GoRoute(
                  path: 'confirm',
-                 builder: (context, state) {
-                    final args = state.extra as Map<String, dynamic>;
-                    return WithdrawReviewScreen(args: args);
-                 },
+                  builder: (context, state) {
+                     if (state.extra is! Map<String, dynamic>) return const WithdrawInputScreen();
+                     final args = state.extra as Map<String, dynamic>;
+                     return WithdrawReviewScreen(args: args);
+                  },
                ),
              ]
           ),
@@ -210,6 +219,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'input',
             builder: (context, state) {
+              if (state.extra is! Map<String, dynamic>) return const TransferSearchScreen();
               final account = state.extra as Map<String, dynamic>;
               return TransferInputScreen(account: account);
             },
@@ -221,6 +231,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'success',
             builder: (context, state) {
+              if (state.extra is! Map<String, dynamic>) return const TransferSearchScreen();
               final args = state.extra as Map<String, dynamic>;
               return TransferSuccessScreen(args: args);
             },
@@ -249,6 +260,7 @@ final routerProvider = Provider<GoRouter>((ref) {
            GoRoute(
             path: 'input',
             builder: (context, state) {
+              if (state.extra is! Map<String, dynamic>) return const PaymentSourceSelectionScreen();
               final args = state.extra as Map<String, dynamic>;
               return PaymentInputScreen(args: args);
             },
@@ -256,6 +268,7 @@ final routerProvider = Provider<GoRouter>((ref) {
            GoRoute(
             path: 'success',
             builder: (context, state) {
+              if (state.extra is! Map<String, dynamic>) return const PaymentSourceSelectionScreen();
               final args = state.extra as Map<String, dynamic>;
               return PaymentSuccessScreen(args: args);
             },
@@ -284,6 +297,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'info',
             builder: (context, state) {
+              if (state.extra is! LoanRequestArgs) return const LoanDashboardScreen();
               final args = state.extra as LoanRequestArgs;
               return LoanInfoScreen(args: args);
             },
@@ -291,6 +305,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'document',
             builder: (context, state) {
+              if (state.extra is! LoanRequestArgs) return const LoanDashboardScreen();
               final args = state.extra as LoanRequestArgs;
               return LoanDocumentScreen(args: args);
             },
@@ -298,6 +313,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'review',
             builder: (context, state) {
+              if (state.extra is! LoanRequestArgs) return const LoanDashboardScreen();
               final args = state.extra as LoanRequestArgs;
               return LoanReviewScreen(args: args);
             },
@@ -328,6 +344,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'payment/success',
             builder: (context, state) {
+               if (state.extra is! Map<String, dynamic>) return const LoanDashboardScreen();
                final args = state.extra as Map<String, dynamic>;
                return LoanPaymentSuccessScreen(args: args);
             },
@@ -384,6 +401,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'payment',
                 builder: (context, state) {
+                  if (state.extra is! Map<String, dynamic>) return const BuyExtraShareScreen();
                   final args = state.extra as Map<String, dynamic>;
                   return SharePaymentMethodScreen(args: args);
                 },
@@ -391,6 +409,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'confirm',
                 builder: (context, state) {
+                  if (state.extra is! Map<String, dynamic>) return const BuyExtraShareScreen();
                   final args = state.extra as Map<String, dynamic>;
                   return ShareConfirmationScreen(args: args);
                 },
@@ -398,6 +417,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'qr',
                 builder: (context, state) {
+                  if (state.extra is! Map<String, dynamic>) return const BuyExtraShareScreen();
                   final args = state.extra as Map<String, dynamic>;
                   return ShareQrPaymentScreen(args: args);
                 },
@@ -427,6 +447,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'request',
                 builder: (context, state) {
+                  if (state.extra is! Map<String, dynamic>) return const DividendDetailScreen();
                   final args = state.extra as Map<String, dynamic>;
                   return DividendRequestScreen(args: args);
                 },
@@ -454,6 +475,41 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final memberId = state.pathParameters['memberId']!;
           return OfficerKYCDetailScreen(memberId: memberId);
+        },
+      ),
+      GoRoute(
+        path: '/officer/loan-detail/:applicationId',
+        builder: (context, state) {
+          final appId = state.pathParameters['applicationId']!;
+          // Using state.extra if available, otherwise we might need a way to fetch by ID
+          // For now, let's assume detail screen can fetch if we pass ID or we update it.
+          // Adjusting OfficerLoanDetailScreen to support ID might be better for deep links.
+          // But for now let's see if we can pass via extra and if not, we need a fetch logic.
+          if (state.extra is LoanApplication) {
+            return OfficerLoanDetailScreen(application: state.extra as LoanApplication);
+          }
+          // Redirect to check screen if no data, OR ideally detail screen handles it
+          return const LoanDashboardScreen(); // Fallback
+        },
+      ),
+      GoRoute(
+        path: '/officer/withdrawal-detail',
+        builder: (context, state) {
+           if (state.extra is! Map<String, dynamic>) {
+             return const OfficerWithdrawalCheckScreen();
+           }
+           final withdrawal = state.extra as Map<String, dynamic>;
+           return OfficerWithdrawalDetailScreen(withdrawal: withdrawal);
+        },
+      ),
+      GoRoute(
+        path: '/officer/deposit-detail',
+        builder: (context, state) {
+           if (state.extra is! Map<String, dynamic>) {
+             return const OfficerDepositCheckScreen();
+           }
+           final deposit = state.extra as Map<String, dynamic>;
+           return OfficerDepositDetailScreen(deposit: deposit);
         },
       ),
       GoRoute(

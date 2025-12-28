@@ -189,23 +189,21 @@ class HomeHeader extends ConsumerWidget {
             child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
               // Logout Logic
               ref.invalidate(depositAccountsAsyncProvider);
               ref.invalidate(totalDepositBalanceAsyncProvider);
-              ref.read(tokenProvider.notifier).clearToken(); // Clear token provider
+              ref.read(tokenProvider.notifier).clearToken(); 
               
-              // Clear notifications for current user
-              ref.read(notificationProvider.notifier).clearNotifications();
+              // Reset notification state locally without deleting from DB
+              ref.invalidate(notificationProvider);
               
-              CurrentUser.setUser(
-                newName: '',
-                newId: '',
-                newRole: UserRole.member,
-                newIsMember: false,
-              );
-              context.go('/login');
+              // Clear local user session and navigate
+              await CurrentUser.clearUser();
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
             child: const Text('ยืนยัน', style: TextStyle(color: AppColors.error)),
           ),

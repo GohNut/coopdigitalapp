@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/financial_refresh_provider.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import '../providers/profile_image_provider.dart';
@@ -8,6 +9,9 @@ import '../widgets/home_header.dart';
 import '../widgets/quick_actions_grid.dart';
 import '../widgets/service_menu_grid.dart';
 import '../widgets/wallet_card.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../../../../core/utils/responsive_text.dart';
+import '../../../../core/utils/responsive_spacing.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -18,10 +22,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final GlobalKey<WalletCardState> _walletCardKey = GlobalKey<WalletCardState>();
+  late Future<PackageInfo> _packageInfoFuture;
 
   @override
   void initState() {
     super.initState();
+    _packageInfoFuture = PackageInfo.fromPlatform();
     // Refresh data when entering this screen (after first frame)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -31,17 +37,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _refreshAllData() {
-    // Refresh all deposit-related providers
-    ref.invalidate(depositAccountsAsyncProvider);
-    ref.invalidate(totalDepositExcludingLoanAsyncProvider);
-    ref.invalidate(loanAccountBalanceAsyncProvider);
-    
-    // Note: We don't invalidate notificationProvider here because it causes
-    // LateInitializationError. The notification provider will update itself
-    // when new notifications arrive via API.
-    
-    // Note: Profile image provider doesn't need invalidation as it's updated
-    // only when user uploads a new image
+    // Use centralized financial refresh provider
+    ref.read(financialRefreshProvider.notifier).refreshAll();
     
     // Trigger wallet card to refresh loan and share data
     _walletCardKey.currentState?.refreshAllData();
@@ -67,6 +64,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
              Transform.translate(
               offset: const Offset(0, -30),
               child: const ServiceMenuGrid(),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 100), // เพิ่ม padding เพื่อไม่ให้โดน FAB บัง
+              child: FutureBuilder<PackageInfo>(
+                future: _packageInfoFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Text(
+                      'Version ${snapshot.data!.version} (Build ${snapshot.data!.buildNumber})',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: 12, // ขนาดเท่ากับไอคอนยืนยันตัวตน
+                        color: Colors.grey.shade500,
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
             ),
           ],
         ),

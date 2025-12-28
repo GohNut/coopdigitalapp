@@ -191,6 +191,7 @@ class DynamicWithdrawalApiService {
           title: 'รายการถอนเงินสำเร็จ',
           message: 'คำขอถอนเงินของคุณได้รับการอนุมัติแล้ว',
           type: 'success',
+          route: '/wallet',
         );
       }
     } catch (e) {
@@ -271,6 +272,7 @@ class DynamicWithdrawalApiService {
           title: 'รายการถอนเงินถูกปฏิเสธ',
           message: 'คำขอถอนเงินของคุณถูกปฏิเสธและคืนเงินเข้าบัญชี: ${reason ?? ""}',
           type: 'error',
+          route: '/wallet',
         );
       }
     } catch (e) {

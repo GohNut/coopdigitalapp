@@ -20,6 +20,8 @@ import '../../../deposit/data/deposit_providers.dart';
 import '../../../../services/dynamic_deposit_api.dart';
 import '../../../notification/domain/notification_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../../core/utils/notification_helper.dart';
+import '../../../auth/domain/user_role.dart';
 
 
 
@@ -244,10 +246,19 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
       // Add notification
       ref.read(notificationProvider.notifier).addNotification(
         NotificationModel.now(
-          title: 'ส่งคำขอฝากเงินสำเร็จ',
-          message: 'คำขอฝากเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท (รหัส: $refNo) กำลังรอเจ้าหน้าที่ตรวจสอบ',
+          title: 'ส่งคำขอฝากเงินแล้ว',
+          message: 'การส่งคำขอฝากเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท (รหัส: $refNo) สำเร็จแล้ว อยู่ในสถานะรอการยืนยันจากเจ้าหน้าที่',
           type: NotificationType.warning,
         ),
+      );
+
+      // Send notification to officers (Step 2)
+      NotificationHelper.notifyOfficers(
+        ref: ref,
+        title: 'มีคำขอฝากเงินใหม่',
+        message: 'สมาชิก ${CurrentUser.name} ได้ส่งคำขอฝากเงินจำนวน ${NumberFormat('#,##0.00').format(amount)} บาท กรุณาตรวจสอบและอนุมัติ',
+        type: 'info',
+        route: '/officer/deposit-check',
       );
       
       if (mounted) {

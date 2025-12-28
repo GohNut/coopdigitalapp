@@ -5,14 +5,19 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/loan_request_args.dart';
 import '../../data/loan_repository_impl.dart';
 import '../../../auth/domain/user_role.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/notification_helper.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../domain/loan_application_model.dart';
 
-class LoanReviewScreen extends StatelessWidget {
+class LoanReviewScreen extends ConsumerWidget {
   final LoanRequestArgs args;
 
   const LoanReviewScreen({super.key, required this.args});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -216,6 +221,24 @@ class LoanReviewScreen extends StatelessWidget {
                       depositAccountId: args.depositAccountId,
                       depositAccountNumber: args.depositAccountNumber,
                       depositAccountName: args.depositAccountName,
+                    );
+
+                    // Add persistent notification
+                    ref.read(notificationProvider.notifier).addNotification(
+                      NotificationModel.now(
+                        title: 'ส่งคำขอกู้เงินแล้ว',
+                        message: 'การส่งคำขอกู้${args.product.name}สำเร็จแล้ว อยู่ในสถานะรอการยืนยันจากเจ้าหน้าที่',
+                        type: NotificationType.warning,
+                      ),
+                    );
+
+                    // Send notification to officers (Step 2)
+                    NotificationHelper.notifyOfficers(
+                      ref: ref,
+                      title: 'มีคำขอสินเชื่อใหม่',
+                      message: 'สมาชิก ${CurrentUser.name} ได้ส่งคำขอสินเชื่อใหม่ (${args.product.name}) กรุณาตรวจสอบและอนุมัติ',
+                      type: 'info',
+                      route: '/officer/loan-dashboard',
                     );
                     
                     if (context.mounted) {

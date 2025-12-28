@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../services/slip_service.dart';
+import '../../../../core/providers/financial_refresh_provider.dart';
 
-class PaymentSuccessScreen extends StatefulWidget {
+class PaymentSuccessScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
 
   const PaymentSuccessScreen({super.key, required this.args});
 
   @override
-  State<PaymentSuccessScreen> createState() => _PaymentSuccessScreenState();
+  ConsumerState<PaymentSuccessScreen> createState() => _PaymentSuccessScreenState();
 }
 
-class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
+class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
   bool _isSaving = false;
   bool _hasSaved = false;
 
@@ -151,7 +153,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => context.go('/scan'),
+                        onPressed: () async {
+                          await ref.read(financialRefreshProvider.notifier).refreshAll();
+                          if (mounted) context.go('/scan');
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -163,7 +168,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => context.go('/home'),
+                        onPressed: () async {
+                          await ref.read(financialRefreshProvider.notifier).refreshAll();
+                          if (mounted) context.go('/home');
+                        },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary, width: 2),

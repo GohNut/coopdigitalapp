@@ -32,6 +32,7 @@ class DynamicNotificationApiService {
     required String title,
     required String message,
     required String type, // info, success, warning, error
+    String? route,
   }) async {
     final now = DateTime.now();
     final data = {
@@ -43,6 +44,10 @@ class DynamicNotificationApiService {
       'isread': false,
       'created_at': now.toIso8601String(),
     };
+
+    if (route != null) {
+      data['route'] = route;
+    }
 
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}/create'),

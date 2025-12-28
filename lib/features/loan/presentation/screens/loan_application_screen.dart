@@ -7,6 +7,10 @@ import 'package:intl/intl.dart';
 import '../../../../core/providers/repository_providers.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
+import '../../../notification/domain/notification_model.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../../core/utils/notification_helper.dart';
+import '../../../auth/domain/user_role.dart';
 
 class LoanApplicationScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -727,6 +731,26 @@ class _LoanApplicationScreenState extends ConsumerState<LoanApplicationScreen> {
       
       
       if (!mounted) return;
+
+      // Add persistent notification
+      ref.read(notificationProvider.notifier).addNotification(
+        NotificationModel.now(
+          title: 'ส่งคำขอกู้เงินแล้ว',
+          message: 'การส่งคำขอกู้${product.name}สำเร็จแล้ว อยู่ในสถานะรอการยืนยันจากเจ้าหน้าที่',
+          type: NotificationType.warning,
+        ),
+      );
+
+      // Send notification to officers (Step 2)
+      NotificationHelper.notifyOfficers(
+        ref: ref,
+        title: 'มีคำขอสินเชื่อใหม่',
+        message: 'สมาชิก ${CurrentUser.name} ได้ส่งคำขอสินเชื่อใหม่ (${product.name}) กรุณาตรวจสอบและอนุมัติ',
+        type: 'info',
+        // Note: Ideally we pass the ID here if we have it from the submitApplication result
+        // For now, let's go to the list/dashboard
+        route: '/officer/loan-dashboard', 
+      );
       
       showDialog(
         context: context,

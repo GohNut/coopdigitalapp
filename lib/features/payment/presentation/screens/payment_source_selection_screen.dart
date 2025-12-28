@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/financial_refresh_provider.dart';
 import '../../data/payment_providers.dart';
 import '../../domain/payment_source_model.dart';
 
@@ -21,11 +22,25 @@ class _PaymentSourceSelectionScreenState
   PaymentSource? _selectedSource;
 
   @override
+  void initState() {
+    super.initState();
+    // Refresh financial data when entering screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(financialRefreshProvider.notifier).refreshDepositAndLoan();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final sourcesAsync = ref.watch(paymentSourcesProvider);
+    final refreshState = ref.watch(financialRefreshProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
           'เลือกบัญชีจ่ายเงิน',
@@ -296,7 +311,32 @@ class _PaymentSourceSelectionScreenState
               ),
             )
           : null,
-    );
+    ),
+    // Loading Overlay
+    if (refreshState.isLoading)
+      Container(
+        color: Colors.black.withOpacity(0.3),
+        child: const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(
+                    'กำลังโหลดข้อมูล...',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+  ],
+);
   }
 
   Widget _buildSectionHeader({

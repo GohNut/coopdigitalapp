@@ -469,7 +469,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
           child: _buildSourceCard(selectedSource),
         ),
         const Positioned(
-          bottom: 160,
+          bottom: 120,
           left: 0,
           right: 0,
           child: Center(

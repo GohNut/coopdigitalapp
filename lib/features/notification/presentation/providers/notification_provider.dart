@@ -13,12 +13,11 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
 });
 
 class NotificationNotifier extends Notifier<List<NotificationModel>> {
-  late final NotificationRepository _repository;
+  final NotificationRepository _repository = NotificationRepository();
 
   @override
   List<NotificationModel> build() {
-    _repository = NotificationRepository();
-    // Load notifications for current user
+    // CurrentUser.id might be empty initially, _loadNotifications handles it.
     _loadNotifications();
     return [];
   }
@@ -28,6 +27,8 @@ class NotificationNotifier extends Notifier<List<NotificationModel>> {
     if (userId.isNotEmpty) {
       try {
         final notifications = await _repository.getNotifications(userId);
+        // Sort by timestamp descending (latest first)
+        notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         state = notifications;
       } catch (e) {
         print('Error loading notifications: $e');
@@ -39,17 +40,26 @@ class NotificationNotifier extends Notifier<List<NotificationModel>> {
   Future<void> addNotification(NotificationModel notification) async {
     final userId = CurrentUser.id;
     if (userId.isEmpty) return;
-    
+    await addNotificationToMember(memberId: userId, notification: notification);
+  }
+
+  Future<void> addNotificationToMember({
+    required String memberId,
+    required NotificationModel notification,
+  }) async {
     try {
-      // Save to database first (don't add to state optimistically)
-      await _repository.addNotification(userId, notification);
+      // Save to database
+      await _repository.addNotification(memberId, notification);
       
-      // Reload from server to get the correct MongoDB ObjectID
-      await _loadNotifications();
+      // Only reload if it's for the current user to keep local UI in sync
+      if (memberId == CurrentUser.id) {
+        await _loadNotifications();
+      }
     } catch (e) {
-      print('Error adding notification: $e');
-      // Reload from server on error
-      await _loadNotifications();
+      print('Error adding notification for $memberId: $e');
+      if (memberId == CurrentUser.id) {
+        await _loadNotifications();
+      }
     }
   }
 

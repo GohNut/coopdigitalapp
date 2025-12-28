@@ -44,8 +44,9 @@ class _OfficerKYCDetailScreenState extends ConsumerState<OfficerKYCDetailScreen>
         );
 
         // Add notification for member
-        ref.read(notificationProvider.notifier).addNotification(
-          NotificationModel.now(
+        ref.read(notificationProvider.notifier).addNotificationToMember(
+          memberId: widget.memberId,
+          notification: NotificationModel.now(
             title: status == 'verified' ? 'ยืนยันตัวตนสำเร็จ' : 'การยืนยันตัวตนถูกปฏิเสธ',
             message: status == 'verified' 
                 ? 'บัญชีของคุณได้รับการยืนยันตัวตนเรียบร้อยแล้ว' 

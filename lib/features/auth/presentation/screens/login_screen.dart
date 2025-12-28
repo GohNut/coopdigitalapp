@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../payment/data/payment_providers.dart';
 import '../../../home/presentation/providers/profile_image_provider.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../../../core/providers/token_provider.dart';
 import '../../../../core/utils/external_navigation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -132,16 +133,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       // Logo or Icon
                       Center(
-                        child: Container(
-                          padding: EdgeInsets.all(context.spacingL),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            LucideIcons.landmark,
-                            size: context.isSmallScreen ? 48 : 64,
-                            color: AppColors.primary,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/pic/logoCoop.jpg',
+                            width: context.isSmallScreen ? 100 : 130,
+                            height: context.isSmallScreen ? 100 : 130,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
@@ -371,7 +368,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         // Invalidate providers to ensure data is fresh for the new user
         ref.invalidate(depositAccountsAsyncProvider);
         ref.invalidate(totalDepositBalanceAsyncProvider);
-        ref.invalidate(paymentSourcesProvider); // Added: Invalidate payment sources
+        ref.invalidate(paymentSourcesProvider);
+        ref.invalidate(notificationProvider); // Ensure notifications are loaded for new user
         
         // Initialize profile image provider with the loaded URL
         if (profileImageUrl != null) {

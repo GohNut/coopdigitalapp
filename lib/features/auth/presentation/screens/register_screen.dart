@@ -7,6 +7,7 @@ import '../../domain/user_role.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../deposit/data/deposit_providers.dart';
+import '../../../notification/presentation/providers/notification_provider.dart';
 import 'pin_setup_screen.dart'; // Import Pin Setup
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -249,6 +250,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         // Invalidate providers to fetch the newly created account
         ref.invalidate(depositAccountsAsyncProvider);
         ref.invalidate(totalDepositBalanceAsyncProvider);
+        ref.invalidate(notificationProvider);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/financial_refresh_provider.dart';
 
-class BuyShareSuccessScreen extends StatelessWidget {
+class BuyShareSuccessScreen extends ConsumerWidget {
   const BuyShareSuccessScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
@@ -48,7 +50,10 @@ class BuyShareSuccessScreen extends StatelessWidget {
                  children: [
                    Expanded(
                      child: ElevatedButton(
-                       onPressed: () => context.replace('/share/buy'),
+                       onPressed: () async {
+                         await ref.read(financialRefreshProvider.notifier).refreshAll();
+                         if (context.mounted) context.replace('/share/buy');
+                       },
                        style: ElevatedButton.styleFrom(
                          backgroundColor: AppColors.primary,
                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -61,7 +66,10 @@ class BuyShareSuccessScreen extends StatelessWidget {
                    const SizedBox(width: 12),
                    Expanded(
                      child: OutlinedButton(
-                       onPressed: () => context.go('/home'),
+                       onPressed: () async {
+                         await ref.read(financialRefreshProvider.notifier).refreshAll();
+                         if (context.mounted) context.go('/home');
+                       },
                        style: OutlinedButton.styleFrom(
                          foregroundColor: AppColors.primary,
                          side: const BorderSide(color: AppColors.primary, width: 2),

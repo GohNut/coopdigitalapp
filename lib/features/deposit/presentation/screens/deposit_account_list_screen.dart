@@ -4,48 +4,156 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/financial_refresh_provider.dart';
 import '../../data/deposit_providers.dart';
 import '../../domain/deposit_account.dart';
 
-class DepositAccountListScreen extends ConsumerWidget {
+class DepositAccountListScreen extends ConsumerStatefulWidget {
   const DepositAccountListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DepositAccountListScreen> createState() => _DepositAccountListScreenState();
+}
+
+class _DepositAccountListScreenState extends ConsumerState<DepositAccountListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh data when entering this screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(financialRefreshProvider.notifier).refreshDepositAndLoan();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final accounts = ref.watch(depositAccountsProvider);
     final totalBalance = ref.watch(totalDepositBalanceProvider);
     final currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '');
+    final refreshState = ref.watch(financialRefreshProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          // Custom Header with Total Wealth
-          SliverToBoxAdapter(
-            child: _buildHeader(context, totalBalance, currencyFormat),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.background,
+          body: CustomScrollView(
+            slivers: [
+              // Custom Header with Total Wealth
+              SliverToBoxAdapter(
+                child: _buildHeader(context, totalBalance, currencyFormat),
+              ),
+              // Account Cards
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final account = accounts[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _AccountCard(
+                          account: account,
+                          currencyFormat: currencyFormat,
+                          onTap: () => context.push('/deposit/${account.id}'),
+                        ),
+                      );
+                    },
+                    childCount: accounts.length,
+                  ),
+                ),
+              ),
+            ],
           ),
-          // Account Cards
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final account = accounts[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _AccountCard(
-                      account: account,
-                      currencyFormat: currencyFormat,
-                      onTap: () => context.push('/deposit/${account.id}'),
-                    ),
-                  );
-                },
-                childCount: accounts.length,
+        ),
+        // Loading Overlay
+        if (refreshState.isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.3),
+            child: const Center(
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text(
+                        'กำลังโหลดข้อมูล...',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ],
-      ),
+        // Error Overlay
+        if (refreshState.hasError)
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: Card(
+                margin: const EdgeInsets.all(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'เกิดข้อผิดพลาดในการโหลดข้อมูล',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        refreshState.error.toString(),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              ref.read(financialRefreshProvider.notifier).refreshDepositAndLoan();
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('ลองใหม่'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton(
+                            onPressed: () => context.pop(),
+                            child: const Text('ปิด'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

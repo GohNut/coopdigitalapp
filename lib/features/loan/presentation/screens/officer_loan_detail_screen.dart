@@ -92,6 +92,25 @@ class _OfficerLoanDetailScreenState extends ConsumerState<OfficerLoanDetailScree
                     : AppColors.error),
           ),
         );
+
+        // Add notification for member (Step 3)
+        if (newStatus != LoanApplicationStatus.waitingForDocs) {
+          ref.read(notificationProvider.notifier).addNotificationToMember(
+            memberId: widget.application.memberId,
+            notification: NotificationModel.now(
+              title: newStatus == LoanApplicationStatus.approved 
+                  ? 'อนุมัติสินเชื่อสำเร็จ' 
+                  : 'คำขอสินเชื่อถูกปฏิเสธ',
+              message: newStatus == LoanApplicationStatus.approved 
+                  ? 'คำขอสินเชื่อ (${widget.application.productName}) วงเงิน ${NumberFormat.currency(symbol: "฿").format(widget.application.amount)} ได้รับการอนุมัติแล้ว' 
+                  : 'คำขอสินเชื่อ (${widget.application.productName}) ถูกปฏิเสธ: ${_commentController.text.isNotEmpty ? _commentController.text : "ข้อมูลไม่เป็นไปตามเงื่อนไข"}',
+              type: newStatus == LoanApplicationStatus.approved 
+                  ? NotificationType.success 
+                  : NotificationType.error,
+              route: '/loan/tracking',
+            ),
+          );
+        }
         
         // Delay slightly before going back
         Future.delayed(const Duration(seconds: 1), () {

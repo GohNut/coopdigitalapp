@@ -7,6 +7,8 @@ import '../../../../domain/models/registration_form_model.dart';
 import '../../pin_setup_screen.dart';
 import '../../../../../../services/dynamic_deposit_api.dart';
 import '../../../../domain/user_role.dart'; // Import for CurrentUser
+import '../../../../../../features/deposit/data/deposit_providers.dart';
+import '../../../../../../features/notification/presentation/providers/notification_provider.dart';
 
 
 
@@ -174,9 +176,9 @@ class _Step4ConsentScreenState extends ConsumerState<Step4ConsentScreen> {
               );
               
               // Invalidate providers to ensure data is fresh
-              // Note: We need to import the providers if we want to invalidate them here, 
-              // but since we are navigating to Home which likely watches them, simple navigation might be enough.
-              // For robustness, let's just navigate.
+              ref.invalidate(depositAccountsAsyncProvider);
+              ref.invalidate(totalDepositBalanceAsyncProvider);
+              ref.invalidate(notificationProvider);
 
               // Navigate to Home
               if (mounted) context.go('/home');
