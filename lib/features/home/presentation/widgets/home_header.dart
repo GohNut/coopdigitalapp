@@ -199,6 +199,13 @@ class HomeHeader extends ConsumerWidget {
               // Reset notification state locally without deleting from DB
               ref.invalidate(notificationProvider);
               
+              // Clear profile image provider and cache
+              ref.invalidate(profileImageUrlProvider);
+              
+              // Clear Flutter image cache to prevent showing old profile images
+              PaintingBinding.instance.imageCache.clear();
+              PaintingBinding.instance.imageCache.clearLiveImages();
+              
               // Clear local user session and navigate
               await CurrentUser.clearUser();
               if (context.mounted) {
