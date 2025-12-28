@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/deposit/data/deposit_providers.dart';
+import '../../features/payment/data/payment_providers.dart';
 import '../../features/notification/presentation/providers/notification_provider.dart';
 import '../../features/home/presentation/widgets/wallet_card.dart';
 
@@ -25,6 +26,9 @@ class FinancialRefreshNotifier extends AsyncNotifier<void> {
       ref.invalidate(loanAccountBalanceAsyncProvider);
       ref.invalidate(totalDepositBalanceAsyncProvider);
       
+      // 1.1 Invalidate payment sources (สำคัญ! เพื่อให้ยอดในเมนูจ่าย/รับอัปเดต)
+      ref.invalidate(paymentSourcesProvider);
+      
       // 2. Refresh notifications (ใช้ refresh() แทน invalidate เพื่อหลีกเลี่ยง LateInitializationError)
       await ref.read(notificationProvider.notifier).refresh();
       
@@ -47,6 +51,9 @@ class FinancialRefreshNotifier extends AsyncNotifier<void> {
       ref.invalidate(totalDepositExcludingLoanAsyncProvider);
       ref.invalidate(loanAccountBalanceAsyncProvider);
       ref.invalidate(totalDepositBalanceAsyncProvider);
+      
+      // Invalidate payment sources (สำคัญ! เพื่อให้ยอดในเมนูจ่าย/รับอัปเดต)
+      ref.invalidate(paymentSourcesProvider);
       
       await ref.read(depositAccountsAsyncProvider.future);
       

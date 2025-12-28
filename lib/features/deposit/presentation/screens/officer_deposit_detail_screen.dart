@@ -55,6 +55,20 @@ class _OfficerDepositDetailScreenState extends ConsumerState<OfficerDepositDetai
       ref.invalidate(totalDepositBalanceAsyncProvider);
       ref.invalidate(depositTransactionsAsyncProvider(accountId));
       
+      // Add notification for member (Step 3)
+      final memberId = widget.deposit['memberid'] as String?;
+      final amount = (widget.deposit['amount'] ?? 0.0).toDouble();
+      if (memberId != null && memberId.isNotEmpty) {
+        ref.read(notificationProvider.notifier).addNotificationToMember(
+          memberId: memberId,
+          notification: NotificationModel.now(
+            title: 'เงินฝากได้รับการอนุมัติ',
+            message: 'รายการฝากเงินจำนวน ${currencyFormat.format(amount)} ได้รับการอนุมัติและโอนเข้าบัญชีเรียบร้อยแล้ว',
+            type: NotificationType.success,
+          ),
+        );
+      }
+      
       if (mounted) {
         Navigator.pop(context, true); // Return true to refresh list
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('อนุมัติเรียบร้อยแล้ว')));
@@ -111,6 +125,20 @@ class _OfficerDepositDetailScreenState extends ConsumerState<OfficerDepositDetai
       ref.invalidate(depositAccountsAsyncProvider);
       ref.invalidate(totalDepositBalanceAsyncProvider);
       ref.invalidate(depositTransactionsAsyncProvider(accountId));
+      
+      // Add notification for member (Step 3)
+      final memberId = widget.deposit['memberid'] as String?;
+      final amount = (widget.deposit['amount'] ?? 0.0).toDouble();
+      if (memberId != null && memberId.isNotEmpty) {
+        ref.read(notificationProvider.notifier).addNotificationToMember(
+          memberId: memberId,
+          notification: NotificationModel.now(
+            title: 'เงินฝากถูกปฏิเสธ',
+            message: 'รายการฝากเงินจำนวน ${currencyFormat.format(amount)} ถูกปฏิเสธ${reasonController.text.isNotEmpty ? ": ${reasonController.text}" : ""}',
+            type: NotificationType.error,
+          ),
+        );
+      }
       
       if (mounted) {
         Navigator.pop(context, true); // Return true to refresh list

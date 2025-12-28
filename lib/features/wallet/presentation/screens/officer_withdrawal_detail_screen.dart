@@ -52,6 +52,27 @@ class _OfficerWithdrawalDetailScreenState extends ConsumerState<OfficerWithdrawa
       ref.invalidate(totalDepositBalanceAsyncProvider);
       ref.invalidate(depositTransactionsAsyncProvider(accountId));
       
+      // Add notification for member (Step 3)
+      final memberId = widget.withdrawal['memberid'] as String?;
+      final amount = widget.withdrawal['amount'];
+      double amountValue = 0.0;
+      if (amount is num) {
+        amountValue = amount.toDouble();
+      } else if (amount is String) {
+        amountValue = double.tryParse(amount) ?? 0.0;
+      }
+      
+      if (memberId != null && memberId.isNotEmpty) {
+        ref.read(notificationProvider.notifier).addNotificationToMember(
+          memberId: memberId,
+          notification: NotificationModel.now(
+            title: 'เงินถอนได้รับการอนุมัติ',
+            message: 'รายการถอนเงินจำนวน ${currencyFormat.format(amountValue)} ได้รับการอนุมัติและโอนเงินให้คุณเรียบร้อยแล้ว',
+            type: NotificationType.success,
+          ),
+        );
+      }
+      
       if (mounted) {
         Navigator.pop(context, true); 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('อนุมัติเรียบร้อยแล้ว')));
@@ -108,6 +129,27 @@ class _OfficerWithdrawalDetailScreenState extends ConsumerState<OfficerWithdrawa
       ref.invalidate(depositAccountsAsyncProvider);
       ref.invalidate(totalDepositBalanceAsyncProvider);
       ref.invalidate(depositTransactionsAsyncProvider(accountId));
+      
+      // Add notification for member (Step 3)
+      final memberId = widget.withdrawal['memberid'] as String?;
+      final amount = widget.withdrawal['amount'];
+      double amountValue = 0.0;
+      if (amount is num) {
+        amountValue = amount.toDouble();
+      } else if (amount is String) {
+        amountValue = double.tryParse(amount) ?? 0.0;
+      }
+      
+      if (memberId != null && memberId.isNotEmpty) {
+        ref.read(notificationProvider.notifier).addNotificationToMember(
+          memberId: memberId,
+          notification: NotificationModel.now(
+            title: 'เงินถอนถูกปฏิเสธ',
+            message: 'รายการถอนเงินจำนวน ${currencyFormat.format(amountValue)} ถูกปฏิเสธและคืนเงินเข้าบัญชีแล้ว${reasonController.text.isNotEmpty ? ": ${reasonController.text}" : ""}',
+            type: NotificationType.error,
+          ),
+        );
+      }
       
       if (mounted) {
         Navigator.pop(context, true); 
