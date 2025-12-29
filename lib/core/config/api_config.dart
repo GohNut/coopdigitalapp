@@ -22,7 +22,7 @@ class ApiConfig {
   static String get baseUrl {
     switch (_currentEnvironment) {
       case ApiEnvironment.dev:
-        return 'http://192.168.1.4:8080/api/v1'; 
+        return 'http://192.168.2.70:8080/api/v1'; 
       case ApiEnvironment.staging:
         return 'https://member.rspcoop.com/api/v1'; 
       case ApiEnvironment.uat:

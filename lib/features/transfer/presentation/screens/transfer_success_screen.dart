@@ -2,24 +2,71 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/financial_refresh_provider.dart';
+import '../../../payment/services/slip_service.dart';
 
-class TransferSuccessScreen extends ConsumerWidget {
+class TransferSuccessScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
 
   const TransferSuccessScreen({super.key, required this.args});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final amount = args['amount'] as double;
-    final targetName = args['target_name'] as String;
-    final txnId = args['transaction_id'] as String;
-    final timestamp = DateTime.parse(args['timestamp'] as String);
-    final note = args['note'] as String?;
-    final repeatText = args['repeat_text'] as String? ?? 'ทำรายการอีกครั้ง';
-    final repeatRoute = args['repeat_route'] as String? ?? '/home';
+  ConsumerState<TransferSuccessScreen> createState() => _TransferSuccessScreenState();
+}
+
+class _TransferSuccessScreenState extends ConsumerState<TransferSuccessScreen> {
+  bool _isSaving = false;
+  bool _hasSaved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-save slip if slip_info is present
+    if (widget.args['slip_info'] != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleAutoSave();
+      });
+    }
+  }
+
+  Future<void> _handleAutoSave() async {
+    if (_hasSaved) return;
+    
+    setState(() {
+      _isSaving = true;
+    });
+
+    final success = await SlipService.saveSlipToGallery(context, widget.args['slip_info']);
+    
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+        _hasSaved = success;
+      });
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('บันทึกสลิปลงอัลบั้มรูปแล้ว'),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = widget.args['amount'] as double;
+    final targetName = widget.args['target_name'] as String;
+    final txnId = widget.args['transaction_id'] as String;
+    final timestamp = DateTime.parse(widget.args['timestamp'] as String);
+    final note = widget.args['note'] as String?;
+    final repeatText = widget.args['repeat_text'] as String? ?? 'ทำรายการอีกครั้ง';
+    final repeatRoute = widget.args['repeat_route'] as String? ?? '/home';
+    final hasSlipInfo = widget.args['slip_info'] != null;
 
     return PopScope(
       canPop: false,
@@ -71,7 +118,7 @@ class TransferSuccessScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          const Expanded(child: Text('สหกรณ์ออมทรัพย์...')),
+                          const Expanded(child: Text('สหกรณ์ รสพ.', style: TextStyle(fontWeight: FontWeight.bold))),
                         ],
                       ),
                     ),
@@ -79,7 +126,7 @@ class TransferSuccessScreen extends ConsumerWidget {
                        padding: const EdgeInsets.all(24),
                        child: Column(
                          children: [
-                           _buildDetailRow('จาก', args['from_name'] as String? ?? 'Wallet ของคุณ'),
+                           _buildDetailRow('จาก', widget.args['from_name'] as String? ?? 'Wallet ของคุณ'),
                            const SizedBox(height: 16),
                            _buildDetailRow('ไปยัง', targetName),
                            const SizedBox(height: 16),
@@ -92,7 +139,7 @@ class TransferSuccessScreen extends ConsumerWidget {
                              children: [
                                const Text('จำนวนเงิน'),
                                Text(
-                                 '${NumberFormat('#,##0.00').format(amount)}',
+                                 NumberFormat('#,##0.00').format(amount),
                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
                                  overflow: TextOverflow.ellipsis,
                                ),
@@ -107,11 +154,34 @@ class TransferSuccessScreen extends ConsumerWidget {
                                  children: [
                                    const Icon(Icons.edit_note, size: 16, color: AppColors.textSecondary),
                                    const SizedBox(width: 8),
-                                   Text(note, style: const TextStyle(color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
+                                   Expanded(child: Text(note, style: const TextStyle(color: AppColors.textSecondary), overflow: TextOverflow.ellipsis)),
                                  ],
                                ),
                              )
-                           ]
+                           ],
+                           
+                           // Saving Status
+                           if (hasSlipInfo) ...[
+                             const SizedBox(height: 24),
+                             if (_isSaving)
+                               const Row(
+                                 mainAxisAlignment: MainAxisAlignment.center,
+                                 children: [
+                                   SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                                   SizedBox(width: 8),
+                                   Text('กำลังบันทึกสลิป...', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                                 ],
+                               )
+                             else if (_hasSaved)
+                               const Row(
+                                 mainAxisAlignment: MainAxisAlignment.center,
+                                 children: [
+                                   Icon(Icons.check_circle, color: AppColors.success, size: 16),
+                                   SizedBox(width: 8),
+                                   Text('บันทึกสลิปลงอัลบั้มแล้ว', style: TextStyle(color: AppColors.success, fontSize: 13)),
+                                 ],
+                               )
+                           ],
                          ],
                        ),
                     ),
@@ -125,7 +195,7 @@ class TransferSuccessScreen extends ConsumerWidget {
                     child: ElevatedButton(
                       onPressed: () async {
                         await ref.read(financialRefreshProvider.notifier).refreshAll();
-                        if (context.mounted) context.go(repeatRoute);
+                        if (mounted) context.go(repeatRoute);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -141,7 +211,7 @@ class TransferSuccessScreen extends ConsumerWidget {
                     child: OutlinedButton(
                       onPressed: () async {
                         await ref.read(financialRefreshProvider.notifier).refreshAll();
-                        if (context.mounted) context.go('/home');
+                        if (mounted) context.go('/home');
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,

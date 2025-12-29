@@ -38,6 +38,31 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    function call_native_download(xurl) {
+      console.log('event>call_native_download');
+      try {
+        console.log('event>andriod');
+        if (typeof NativeFunction !== 'undefined' && NativeFunction.downloadImageUrl) {
+          NativeFunction.downloadImageUrl(xurl);
+        }
+      } catch (e) {
+        console.error('Error in Android bridge:', e);
+      } finally {
+        console.log('event>ios');
+        try {
+          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iOSNative) {
+            window.webkit.messageHandlers.iOSNative.postMessage({
+              method: "downloadImageUrl",
+              message: xurl
+            });
+          }
+        } catch (e) {
+          console.error('Error in iOS bridge:', e);
+        }
+      }
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

@@ -77,7 +77,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'กรุณากรอกข้อมูลเพื่อทำการสมัครสมาชิกสหกรณ์ออมทรัพย์',
+                        'กรุณากรอกข้อมูลเพื่อทำการสมัครสมาชิกสหกรณ์ รสพ.',
                         style: TextStyle(color: Colors.blue.shade900),
                       ),
                     ),

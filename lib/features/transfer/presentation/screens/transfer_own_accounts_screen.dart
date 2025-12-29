@@ -217,16 +217,39 @@ class _TransferOwnAccountsScreenState extends ConsumerState<TransferOwnAccountsS
           orElse: () => _emptyAccount(),
         );
 
+        final transactionId = 'TRF-OWN-${DateTime.now().millisecondsSinceEpoch}';
+        final now = DateTime.now();
+
+        // Create slip_info for auto-saving
+        final slipInfo = {
+          'transaction_ref': transactionId,
+          'transaction_date': now.toUtc().toIso8601String(), // Ensure UTC format with Z
+          'amount': amount,
+          'sender': {
+            'name': sourceAccount.accountName,
+            'account_no_masked': _maskAccountNumber(sourceAccount.accountNumber),
+            'bank_name': 'Coop Saving',
+          },
+          'receiver': {
+            'name': destAccount.accountName,
+            'account_no_masked': _maskAccountNumber(destAccount.accountNumber),
+            'bank_name': 'Coop Saving',
+            'bank_code': 'COOP',
+          },
+          'qr_payload': 'https://member.rspcoop.com/verify?ref=$transactionId',
+        };
+
         // Go to Success Screen
         context.go('/transfer/success', extra: {
-          'transaction_id': 'TRF-OWN-${DateTime.now().millisecondsSinceEpoch}',
+          'transaction_id': transactionId,
           'amount': amount,
           'from_name': '${sourceAccount.accountName}\n${sourceAccount.accountNumber}',
           'target_name': '${destAccount.accountName}\n${destAccount.accountNumber}',
           'note': _noteController.text,
-          'timestamp': DateTime.now().toIso8601String(),
+          'timestamp': now.toIso8601String(),
           'repeat_text': 'โอนเงินอีกครั้ง',
           'repeat_route': '/transfer/own',
+          'slip_info': slipInfo,
         });
       }
     } catch (e) {
@@ -239,6 +262,13 @@ class _TransferOwnAccountsScreenState extends ConsumerState<TransferOwnAccountsS
         }
       }
     }
+  }
+
+  String _maskAccountNumber(String accountNumber) {
+    if (accountNumber.length < 7) {
+      return accountNumber;
+    }
+    return '${accountNumber.substring(0, 3)}-xxx-${accountNumber.substring(accountNumber.length - 4)}';
   }
 
   @override
