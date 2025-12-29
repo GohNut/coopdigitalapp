@@ -200,16 +200,34 @@ class _TransferInputScreenState extends ConsumerState<TransferInputScreen> {
           orElse: () => _emptyAccount(),
         );
         
+        final now = DateTime.now();
+        final txnId = 'TRF-${now.millisecondsSinceEpoch}';
+        
         // Go to Success Screen
         context.go('/transfer/success', extra: {
-          'transaction_id': 'TRF-${DateTime.now().millisecondsSinceEpoch}',
+          'transaction_id': txnId,
           'amount': amount,
           'from_name': '${sourceAccount.accountName}\n${sourceAccount.accountNumber}',
           'target_name': widget.account['accountname'],
           'note': _noteController.text,
-          'timestamp': DateTime.now().toIso8601String(),
+          'timestamp': now.toIso8601String(),
           'repeat_text': 'โอนเงินอีกครั้ง',
           'repeat_route': '/transfer',
+          'slip_info': {
+            'transaction_ref': txnId,
+            'transaction_date': now.toIso8601String(),
+            'amount': amount,
+            'sender': {
+              'name': sourceAccount.accountName,
+              'account_no_masked': sourceAccount.accountNumber,
+              'bank_name': 'Coop Saving',
+            },
+            'receiver': {
+              'name': widget.account['accountname'],
+              'account_no_masked': widget.account['accountnumber'],
+              'bank_name': 'Coop Saving',
+            },
+          }
         });
       }
     } catch (e) {

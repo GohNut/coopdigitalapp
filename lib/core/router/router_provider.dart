@@ -424,7 +424,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'success',
-                builder: (context, state) => const BuyShareSuccessScreen(),
+                builder: (context, state) {
+                   final args = state.extra as Map<String, dynamic>? ?? {};
+                   return BuyShareSuccessScreen(args: args);
+                },
               ),
             ],
           ),

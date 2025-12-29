@@ -141,13 +141,31 @@ class _LoanPaymentScreenState extends ConsumerState<LoanPaymentScreen> {
       ref.invalidate(loanAccountBalanceAsyncProvider);
 
       if (mounted) {
+        final now = DateTime.now();
+        final txnId = 'LP-${now.millisecondsSinceEpoch}';
+        
         context.push('/loan/payment/success', extra: {
           'applicationId': widget.applicationId,
           'amount': _totalAmount,
           'paymentMethod': _paymentMethod,
           'paymentType': _paymentType,
           'installmentNo': _nextInstallmentNo,
-          'timestamp': DateTime.now().toIso8601String(),
+          'timestamp': now.toIso8601String(),
+          'slip_info': {
+            'transaction_ref': txnId,
+            'transaction_date': now.toIso8601String(),
+            'amount': _totalAmount,
+            'sender': {
+              'name': _sourceAccount?['accountname'] ?? 'บัญชีสวัสดิการ',
+              'account_no_masked': _sourceAccount?['accountnumber'] ?? '-',
+              'bank_name': 'Coop Saving',
+            },
+            'receiver': {
+              'name': 'ชำระหนี้สินเชื่อ (${_loan?.loanDetails.productName})',
+              'account_no_masked': widget.applicationId,
+              'bank_name': 'Coop Loan',
+            },
+          }
         });
       }
     } catch (e) {

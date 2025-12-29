@@ -143,16 +143,33 @@ class PaymentActionNotifier extends AsyncNotifier<void> {
             description: 'โอนเงินให้ $merchantName',
           );
           
+          final txnId = response['transaction_id'] ?? 'PAY-${DateTime.now().millisecondsSinceEpoch}';
+          final now = DateTime.now();
+          
           final result = {
-            'transaction_id': response['transaction_id'] ?? 'PAY-${DateTime.now().millisecondsSinceEpoch}',
+            'transaction_id': txnId,
             'status': 'SUCCESS',
             'amount': amount,
             'source_type': source.type.name,
             'source_name': source.sourceName,
             'merchant_id': merchantId,
             'merchant_name': merchantName,
-            'timestamp': DateTime.now().toIso8601String(),
-            'slip_info': response['slip_info'], 
+            'timestamp': now.toIso8601String(),
+            'slip_info': response['slip_info'] ?? {
+              'transaction_ref': txnId,
+              'transaction_date': now.toIso8601String(),
+              'amount': amount,
+              'sender': {
+                'name': source.sourceName,
+                'account_no_masked': source.accountNumber ?? '-',
+                'bank_name': 'Coop Saving',
+              },
+              'receiver': {
+                'name': merchantName,
+                'account_no_masked': merchantId,
+                'bank_name': 'Coop Saving',
+              },
+            }, 
           };
 
           // Refresh deposit providers
@@ -192,15 +209,33 @@ class PaymentActionNotifier extends AsyncNotifier<void> {
         );
       }
 
+      final txnId = 'PAY-${DateTime.now().millisecondsSinceEpoch}';
+      final now = DateTime.now();
+
       final result = {
-        'transaction_id': 'PAY-${DateTime.now().millisecondsSinceEpoch}',
+        'transaction_id': txnId,
         'status': 'SUCCESS',
         'amount': amount,
         'source_type': source.type.name,
         'source_name': source.sourceName,
         'merchant_id': merchantId,
         'merchant_name': merchantName,
-        'timestamp': DateTime.now().toIso8601String(),
+        'timestamp': now.toIso8601String(),
+        'slip_info': {
+          'transaction_ref': txnId,
+          'transaction_date': now.toIso8601String(),
+          'amount': amount,
+          'sender': {
+            'name': source.sourceName,
+            'account_no_masked': source.accountNumber ?? '-',
+            'bank_name': 'Coop Saving',
+          },
+          'receiver': {
+            'name': merchantName,
+            'account_no_masked': merchantId,
+            'bank_name': source.type == PaymentSourceType.loan ? 'Coop Loan' : 'Coop Merchant',
+          },
+        }
       };
 
       state = const AsyncData(null);

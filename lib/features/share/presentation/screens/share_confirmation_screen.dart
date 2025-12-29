@@ -82,8 +82,31 @@ class _ShareConfirmationScreenState extends ConsumerState<ShareConfirmationScree
       ref.invalidate(totalDepositBalanceAsyncProvider);
 
       if (mounted) {
-         // Go to Step 4: Success
-         context.go('/share/buy/success');
+         final now = DateTime.now();
+         final txnRef = 'SH-${now.millisecondsSinceEpoch}';
+         
+         // Go to Success Screen with full details for Slips
+         context.go('/share/buy/success', extra: {
+           'amount': netTotal,
+           'units': units,
+           'timestamp': now.toIso8601String(),
+           'transaction_id': txnRef,
+           'slip_info': {
+             'transaction_ref': txnRef,
+             'transaction_date': now.toIso8601String(),
+             'amount': netTotal,
+             'sender': {
+               'name': 'Wallet ของคุณ',
+               'account_no_masked': '',
+               'bank_name': 'Coop Wallet',
+             },
+             'receiver': {
+               'name': 'สหกรณ์ (ซื้อหุ้นเพิ่มเติม)',
+               'account_no_masked': 'ระบบหุ้นสมาชิก',
+               'bank_name': 'Coop Share',
+             },
+           }
+         });
       }
     } catch (e) {
       if (mounted) {

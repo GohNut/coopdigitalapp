@@ -5,22 +5,70 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/financial_refresh_provider.dart';
+import '../../../payment/services/slip_service.dart';
 
-class LoanPaymentSuccessScreen extends ConsumerWidget {
+class LoanPaymentSuccessScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
 
   const LoanPaymentSuccessScreen({super.key, required this.args});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoanPaymentSuccessScreen> createState() => _LoanPaymentSuccessScreenState();
+}
+
+class _LoanPaymentSuccessScreenState extends ConsumerState<LoanPaymentSuccessScreen> {
+  bool _isSaving = false;
+  bool _hasSaved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-save slip if slip_info is present
+    if (widget.args['slip_info'] != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleAutoSave();
+      });
+    }
+  }
+
+  Future<void> _handleAutoSave() async {
+    if (_hasSaved) return;
+    
+    setState(() {
+      _isSaving = true;
+    });
+
+    final success = await SlipService.saveSlipToGallery(context, widget.args['slip_info']);
+    
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+        _hasSaved = success;
+      });
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('บันทึกสลิปลงอัลบั้มรูปแล้ว'),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currencyFormat = NumberFormat.currency(symbol: '฿', decimalDigits: 0);
     final dateFormat = DateFormat('dd MMM yyyy HH:mm', 'th');
     
-    final amount = args['amount'] as double;
-    final timestamp = DateTime.parse(args['timestamp']);
-    final paymentType = args['paymentType'] as String;
-    final installmentNo = args['installmentNo'] as int;
-    final paymentId = 'PAY-${DateTime.now().millisecondsSinceEpoch}';
+    final amount = widget.args['amount'] as double;
+    final timestamp = DateTime.parse(widget.args['timestamp']);
+    final paymentType = widget.args['paymentType'] as String;
+    final installmentNo = widget.args['installmentNo'] as int;
+    final paymentId = widget.args['transaction_id'] ?? 'PAY-${DateTime.now().millisecondsSinceEpoch}';
+    final hasSlipInfo = widget.args['slip_info'] != null;
 
     String paymentTypeText;
     switch (paymentType) {
@@ -138,6 +186,35 @@ class LoanPaymentSuccessScreen extends ConsumerWidget {
                 ),
 
                 const SizedBox(height: 32),
+                
+                // Slip Saving Status
+                if (hasSlipInfo) ...[
+                  if (_isSaving)
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(width: 8),
+                        Text('กำลังบันทึกสลิป...', style: TextStyle(color: AppColors.textSecondary)),
+                      ],
+                    )
+                  else if (_hasSaved)
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                        SizedBox(width: 8),
+                        Text('บันทึกสลิปลงอัลบั้มแล้ว', style: TextStyle(color: AppColors.success)),
+                      ],
+                    )
+                  else
+                    TextButton.icon(
+                      onPressed: _handleAutoSave,
+                      icon: const Icon(Icons.save_alt),
+                      label: const Text('บันทึกสลิปลงเครื่อง'),
+                    ),
+                  const SizedBox(height: 32),
+                ],
 
                 // Buttons
                 Row(
@@ -146,7 +223,7 @@ class LoanPaymentSuccessScreen extends ConsumerWidget {
                       child: ElevatedButton(
                         onPressed: () async {
                           await ref.read(financialRefreshProvider.notifier).refreshAll();
-                          if (context.mounted) context.go('/loan');
+                          if (mounted) context.go('/loan');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
@@ -162,7 +239,7 @@ class LoanPaymentSuccessScreen extends ConsumerWidget {
                       child: OutlinedButton(
                         onPressed: () async {
                           await ref.read(financialRefreshProvider.notifier).refreshAll();
-                          if (context.mounted) context.go('/home');
+                          if (mounted) context.go('/home');
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
