@@ -35,7 +35,7 @@ class QrSaveService {
 
           final payload = {
             'name': account.accountName,
-            'account_no_masked': account.accountNumberMasked,
+            'account_no_masked': account.maskedAccountNumber,
             'qr_payload': "coop://pay?account_id=${account.id}&name=${Uri.encodeComponent(account.accountName)}${amount != null && amount.isNotEmpty ? '&amount=${amount.replaceAll(',', '')}' : ''}",
             'amount': double.tryParse(amount?.replaceAll(',', '') ?? '') ?? 0,
           };
