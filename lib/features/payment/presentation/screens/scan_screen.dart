@@ -92,6 +92,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     controller.dispose();
     _tabController.dispose();
     _amountController.dispose();
+    // Cleanup server-side temporary QR if any
+    QrSaveService.deleteLastGeneratedQr();
     super.dispose();
   }
 
@@ -340,10 +342,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                             }
                           }
                           
-                          // Refresh data before closing
-                          ref.invalidate(depositAccountsAsyncProvider);
-                          ref.invalidate(totalDepositExcludingLoanAsyncProvider);
-                          ref.invalidate(loanAccountBalanceAsyncProvider);
+                          // Cleanup server-side temporary QR if any
+                          await QrSaveService.deleteLastGeneratedQr();
+                          
                           context.go('/home');
                         },
                       ),
