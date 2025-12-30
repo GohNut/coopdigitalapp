@@ -11,43 +11,20 @@ class ImageSaveService {
   static Future<bool> saveImageFromUrl(String url, {String? filename}) async {
     try {
       if (kIsWeb) {
-        // For Flutter Web, use the Native Bridge JS function provided by the main app
         debugPrint('ImageSaveService: Calling native bridge for URL: $url');
         await NativeBridgeService.callNativeDownload(url);
         return true;
       } else {
-        // For Flutter Mobile, download bytes and save via Gal
+        // For Mobile, we can still use our Native Bridge (Method Channel)
+        // by first downloading the bytes or passing the URL if the bridge supports it.
+        // But our bridge currently expects Data URL/Base64.
+        // So let's download bytes first.
         debugPrint('ImageSaveService: Downloading image for mobile: $url');
-        
-        // 1. Check permissions
-        final hasAccess = await Gal.hasAccess();
-        if (!hasAccess) {
-          final granted = await Gal.requestAccess();
-          if (!granted) {
-            debugPrint('ImageSaveService: Permission denied');
-            return false;
-          }
-        }
-
-        // 2. Fetch image bytes
         final response = await http.get(Uri.parse(url));
         if (response.statusCode == 200) {
-          final Uint8List bytes = response.bodyBytes;
-          
-          // 3. Save to gallery
-          final name = filename ?? DateTime.now().millisecondsSinceEpoch.toString();
-          await Gal.putImageBytes(
-            bytes,
-            name: name,
-            album: 'Coop',
-          );
-          
-          debugPrint('ImageSaveService: Image saved successfully to gallery');
-          return true;
-        } else {
-          debugPrint('ImageSaveService: Failed to download image. Status: ${response.statusCode}');
-          return false;
+          return await saveImageFromBytes(response.bodyBytes, filename ?? 'image.png');
         }
+        return false;
       }
     } catch (e) {
       debugPrint('ImageSaveService error: $e');
@@ -56,35 +33,16 @@ class ImageSaveService {
   }
 
   /// Saves an image from Uint8List bytes.
-  /// On Mobile: Saves directly to the gallery.
-  /// On Web: Converts to Data URL (Base64) and calls the native bridge.
+  /// Uses the unified NativeBridgeService (Method Channel on Mobile, JS Bridge on Web).
   static Future<bool> saveImageFromBytes(Uint8List bytes, String filename) async {
     try {
-      if (kIsWeb) {
-        // Convert bytes to base64 Data URL for the bridge
-        final String base64Data = base64Encode(bytes);
-        final String dataUrl = 'data:image/png;base64,$base64Data'; // Assuming PNG for slips/QR
-        
-        debugPrint('ImageSaveService: Calling native bridge with Data URL (length: ${dataUrl.length})');
-        await NativeBridgeService.callNativeDownload(dataUrl);
-        return true;
-      } else {
-        // Check/Request permission
-        final hasPermission = await Gal.hasAccess();
-        if (!hasPermission) {
-          final granted = await Gal.requestAccess();
-          if (!granted) return false;
-        }
-
-        // Save image directly
-        await Gal.putImageBytes(
-          bytes,
-          name: filename.replaceAll('.png', '').replaceAll('.jpg', ''),
-          album: "Coop",
-        );
-        
-        return true;
-      }
+      // Convert bytes to base64 Data URL for the bridge
+      final String base64Data = base64Encode(bytes);
+      final String dataUrl = 'data:image/png;base64,$base64Data';
+      
+      debugPrint('ImageSaveService: Saving image via NativeBridge (length: ${dataUrl.length})');
+      await NativeBridgeService.callNativeDownload(dataUrl);
+      return true;
     } catch (e) {
       debugPrint('ImageSaveService (bytes) error: $e');
       return false;

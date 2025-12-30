@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -32,37 +33,58 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png" />
 
   <title>coop_digital_app</title>
   <link rel="manifest" href="manifest.json">
 </head>
+
 <body>
   <script>
     function call_native_download(xurl) {
-      console.log('event>call_native_download');
+      console.log('JSBridge: call_native_download called');
+
+      // 1. Try Android Native Bridge
       try {
-        console.log('event>andriod');
         if (typeof NativeFunction !== 'undefined' && NativeFunction.downloadImageUrl) {
+          console.log('JSBridge: Calling Android NativeFunction...');
           NativeFunction.downloadImageUrl(xurl);
+          return;
         }
       } catch (e) {
-        console.error('Error in Android bridge:', e);
-      } finally {
-        console.log('event>ios');
-        try {
-          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iOSNative) {
-            window.webkit.messageHandlers.iOSNative.postMessage({
-              method: "downloadImageUrl",
-              message: xurl
-            });
-          }
-        } catch (e) {
-          console.error('Error in iOS bridge:', e);
+        console.error('JSBridge: Error in Android bridge:', e);
+      }
+
+      // 2. Try iOS Native Bridge
+      try {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iOSNative) {
+          console.log('JSBridge: Calling iOS messageHandler...');
+          window.webkit.messageHandlers.iOSNative.postMessage({
+            method: "downloadImageUrl",
+            message: xurl
+          });
+          return;
         }
+      } catch (e) {
+        console.error('JSBridge: Error in iOS bridge:', e);
+      }
+
+      // 3. Fallback: Browser Download (for Chrome/Safari)
+      console.log('JSBridge: No native bridge found, falling back to browser download');
+      try {
+        const link = document.createElement('a');
+        link.href = xurl;
+        link.download = 'coop_image_' + new Date().getTime() + '.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        console.log('JSBridge: Browser download triggered');
+      } catch (e) {
+        console.error('JSBridge: Browser download failed:', e);
       }
     }
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>

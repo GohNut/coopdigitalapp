@@ -9,16 +9,28 @@ abstract class NativeBridgeService {
   /// On Web: Uses JavaScript bridge
   /// On Android/iOS Mobile: Uses Method Channel  
   static Future<void> callNativeDownload(String url) async {
+    debugPrint('NativeBridgeService: callNativeDownload triggered');
+    debugPrint('NativeBridgeService: kIsWeb = $kIsWeb, URL length = ${url.length}');
+    
     if (kIsWeb) {
-      // For Web, use existing JavaScript bridge
+      debugPrint('NativeBridgeService: Running in BROWSER/WEB mode');
       await bridge.callNativeDownload(url);
     } else {
-      // For Mobile (Android/iOS), use Method Channel
+      debugPrint('NativeBridgeService: Running in MOBILE/NATIVE mode');
       try {
-        await platform.invokeMethod('downloadImage', {'dataUrl': url});
-        debugPrint('NativeBridgeService: Image download requested via Method Channel');
+        debugPrint('NativeBridgeService: Attempting MethodChannel checkStatus...');
+        final String status = await platform.invokeMethod('checkStatus');
+        debugPrint('NativeBridgeService: Connection Status = $status');
+        
+        debugPrint('NativeBridgeService: Calling downloadImage...');
+        final result = await platform.invokeMethod('downloadImage', {'dataUrl': url});
+        debugPrint('NativeBridgeService: SUCCESS! Result = $result');
       } on PlatformException catch (e) {
-        debugPrint('NativeBridgeService: Failed to download image: ${e.message}');
+        debugPrint('NativeBridgeService: FAILED with PlatformException:');
+        debugPrint('  - Code: ${e.code}');
+        debugPrint('  - Message: ${e.message}');
+      } catch (e) {
+        debugPrint('NativeBridgeService: UNEXPECTED Error: $e');
       }
     }
   }
