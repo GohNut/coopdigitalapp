@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/kyc_required_dialog.dart';
+import '../../../auth/domain/user_role.dart';
 
 class QuickActionsGrid extends StatelessWidget {
   const QuickActionsGrid({super.key});
@@ -26,25 +28,40 @@ class QuickActionsGrid extends StatelessWidget {
               context,
               LucideIcons.arrowDownToLine,
               'ฝาก',
-              () => context.push('/wallet/topup'),
+              () => _handleAction(context, '/wallet/topup'),
             ),
             _buildActionItem(
               context,
               LucideIcons.arrowUpFromLine,
               'ถอน',
-              () => context.push('/wallet/withdraw'),
+              () => _handleAction(context, '/wallet/withdraw'),
             ),
             _buildActionItem(
               context, 
               LucideIcons.arrowRightLeft, 
               'โอน', 
-              () => context.push('/transfer'),
+              () => _handleAction(context, '/transfer'),
             ),
-            _buildActionItem(context, LucideIcons.scanLine, 'จ่าย/รับ', () => context.push('/payment/source')),
+            _buildActionItem(
+              context,
+              LucideIcons.scanLine,
+              'จ่าย/รับ',
+              () => _handleAction(context, '/payment/source'),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _handleAction(BuildContext context, String route) async {
+    if (CurrentUser.kycStatus != 'verified' && CurrentUser.kycStatus != 'approved') {
+      await showKYCRequiredDialog(context);
+      return;
+    }
+    if (context.mounted) {
+      context.push(route);
+    }
   }
 
   Widget _buildActionItem(

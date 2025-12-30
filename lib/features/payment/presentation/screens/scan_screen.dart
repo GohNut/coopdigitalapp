@@ -41,7 +41,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   String? _selectedReceiveAccountId;
   final TextEditingController _amountController = TextEditingController();
   bool _showReceiveQr = false;
-  final GlobalKey _qrKey = GlobalKey();
   double? _initialBalance; // Track initial balance to detect received payments
 
   @override
@@ -164,38 +163,30 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     return url;
   }
 
-  Future<void> _saveQrImage() async {
+  Future<void> _saveQrImage(DepositAccount account) async {
     if (_isSavingQrImage) return;
     
     setState(() => _isSavingQrImage = true);
     
     try {
-      // Find the RenderRepaintBoundary
-      RenderRepaintBoundary boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      
-      // Capture the image
-      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final pngBytes = byteData!.buffer.asUint8List();
-      
-      // Save to Coop album using QrSaveService
-      final success = await QrSaveService.saveQrToGallery(
-        pngBytes,
-        'receive_qr_${DateTime.now().millisecondsSinceEpoch}.png',
+      // Use the unified QrSaveService that mirrors SlipService logic
+      final success = await QrSaveService.saveReceiveQrToGallery(
+        account,
+        _amountController.text,
       );
       
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('บันทึกรูป QR ลงอัลบั้ม Coop แล้ว'),
+              content: Text('บันทึกรูป QR ลงอัลบั้มรูปแล้ว'),
               backgroundColor: AppColors.success,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('ไม่สามารถบันทึกรูปได้ กรุณาอนุญาตสิทธิ์การเข้าถึงอัลบั้ม'),
+              content: Text('ไม่สามารถบันทึกรูปได้ กรุณาตรวจสอบสิทธิ์การเข้าถึงอัลบั้ม'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -500,10 +491,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       data: (accounts) {
         if (accounts.isEmpty) return const Center(child: Text('ไม่พบบัญชีเงินฝาก'));
         
-        // Initialize state without setState during build if possible, 
-        // but since we need it for the dropdown value, we ensure it's set.
-        // To avoid "setState during build", we can use WidgetsBinding or just 
-        // ensure we don't trigger a rebuild from here.
         _selectedReceiveAccountId ??= accounts.first.id;
         
         final selectedAccount = accounts.firstWhere(
@@ -537,7 +524,6 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                       setState(() { 
                         _selectedReceiveAccountId = val; 
                         _showReceiveQr = false;
-                        // Update initial balance when account changes
                         final accounts = accountsAsync.value!;
                         final account = accounts.firstWhere(
                           (a) => a.id == val,
@@ -581,81 +567,77 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 Center(
                   child: Column(
                     children: [
-                      RepaintBoundary(
-                        key: _qrKey,
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'สแกนเพื่อจ่ายเงิน',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: 200,
+                              height: 200,
+                              child: PrettyQrView.data(
+                                data: _generateReceiveQrData(selectedAccount),
+                                decoration: const PrettyQrDecoration(
+                                  shape: PrettyQrSmoothSymbol(
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              selectedAccount.accountName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              'เลขที่บัญชี: ${selectedAccount.accountNumber}',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            if (_amountController.text.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'ยอดเงิน: ${_amountController.text} บาท',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
                               ),
                             ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Header for printed QR
-                              Text(
-                                'สแกนเพื่อจ่ายเงิน',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: 200,
-                                height: 200,
-                                child: PrettyQrView.data(
-                                  data: _generateReceiveQrData(selectedAccount),
-                                  decoration: const PrettyQrDecoration(
-                                    shape: PrettyQrSmoothSymbol(
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                selectedAccount.accountName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              Text(
-                                'เลขที่บัญชี: ${selectedAccount.accountNumber}',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              if (_amountController.text.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    'ยอดเงิน: ${_amountController.text} บาท',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -663,7 +645,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: _isSavingQrImage ? null : _saveQrImage,
+                              onPressed: _isSavingQrImage ? null : () => _saveQrImage(selectedAccount),
                               icon: _isSavingQrImage
                                   ? const SizedBox(
                                       width: 20,

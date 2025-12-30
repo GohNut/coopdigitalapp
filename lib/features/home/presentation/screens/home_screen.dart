@@ -4,6 +4,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/financial_refresh_provider.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
+import '../../../auth/domain/user_role.dart';
+import '../../../../services/dynamic_deposit_api.dart';
 import '../providers/profile_image_provider.dart';
 import '../widgets/home_header.dart';
 import '../widgets/quick_actions_grid.dart';
@@ -42,14 +44,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     
     // Trigger wallet card to refresh loan and share data
     _walletCardKey.currentState?.refreshAllData();
+    
+    // Refresh member data (including KYC status)
+    _refreshMemberData();
+  }
+
+  Future<void> _refreshMemberData() async {
+    try {
+      // Fetch latest member data from backend
+      final memberData = await DynamicDepositApiService.getMember(CurrentUser.id);
+      
+      if (memberData != null && mounted) {
+        // Update KYC status if it has changed
+        final newKycStatus = memberData['kyc_status'];
+        if (newKycStatus != null && newKycStatus != CurrentUser.kycStatus) {
+          print('🔄 KYC Status updated: ${CurrentUser.kycStatus} → $newKycStatus');
+          await CurrentUser.setUser(
+            newName: CurrentUser.name,
+            newId: CurrentUser.id,
+            newRole: CurrentUser.role,
+            newIsMember: CurrentUser.isMember,
+            newKycStatus: newKycStatus,
+            newPin: CurrentUser.pin,
+            newProfileImageUrl: CurrentUser.profileImageUrl,
+            newMemberNumber: CurrentUser.memberNumber,
+          );
+          
+          // Force rebuild to reflect KYC status changes
+          if (mounted) {
+            setState(() {});
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ Failed to refresh member data: $e');
+      // Don't show error to user as this is a background refresh
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          _refreshAllData();
+          // Wait a bit for the refresh to complete
+          await Future.delayed(const Duration(milliseconds: 500));
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh even when content fits
+          child: Column(
           children: [
             Column(
               children: [
@@ -86,6 +131,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

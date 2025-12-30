@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../../../../core/widgets/kyc_required_dialog.dart';
+import '../../../auth/domain/user_role.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/deposit_providers.dart';
 import '../../domain/deposit_account.dart';
@@ -257,7 +259,7 @@ class _DepositAccountDetailScreenState extends ConsumerState<DepositAccountDetai
               icon: LucideIcons.arrowDownLeft,
               label: 'ฝากเงิน',
               color: AppColors.success,
-              onTap: () => context.push('/wallet/topup'),
+              onTap: () => _handleAction(context, '/wallet/topup'),
             ),
           ),
           const SizedBox(width: 16),
@@ -266,12 +268,22 @@ class _DepositAccountDetailScreenState extends ConsumerState<DepositAccountDetai
               icon: LucideIcons.arrowUpRight,
               label: 'ถอนเงิน',
               color: AppColors.primary,
-              onTap: () => context.push('/wallet/withdraw'),
+              onTap: () => _handleAction(context, '/wallet/withdraw'),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleAction(BuildContext context, String route) async {
+    if (CurrentUser.kycStatus != 'verified' && CurrentUser.kycStatus != 'approved') {
+      await showKYCRequiredDialog(context);
+      return;
+    }
+    if (context.mounted) {
+      context.push(route);
+    }
   }
 
   Widget _buildMonthSelector(BuildContext context) {

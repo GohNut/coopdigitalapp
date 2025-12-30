@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/kyc_required_dialog.dart';
+import '../../../auth/domain/user_role.dart';
 import '../../../deposit/data/deposit_providers.dart';
 import '../../../deposit/domain/deposit_account.dart';
 
@@ -48,7 +50,15 @@ class AccountBookScreen extends ConsumerWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _AddAccountCard(
-                      onTap: () => context.push('/deposit/create'),
+                    onTap: () async {
+                      if (CurrentUser.kycStatus != 'verified' && CurrentUser.kycStatus != 'approved') {
+                        await showKYCRequiredDialog(context);
+                        return;
+                      }
+                      if (context.mounted) {
+                        context.push('/deposit/create');
+                      }
+                    },
                     ),
                   );
                 }
