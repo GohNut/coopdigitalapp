@@ -194,7 +194,6 @@ class HomeHeader extends ConsumerWidget {
               // Logout Logic
               ref.invalidate(depositAccountsAsyncProvider);
               ref.invalidate(totalDepositBalanceAsyncProvider);
-              ref.read(tokenProvider.notifier).clearToken(); 
               
               // Reset notification state locally without deleting from DB
               ref.invalidate(notificationProvider);
