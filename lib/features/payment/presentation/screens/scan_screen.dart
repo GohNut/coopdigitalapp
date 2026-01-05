@@ -20,6 +20,7 @@ import '../../data/payment_providers.dart';
 import '../../domain/payment_service.dart';
 import '../../domain/payment_source_model.dart';
 import '../../services/qr_save_service.dart';
+import '../../../../core/services/image_save_error.dart';
 import '../../../notification/domain/notification_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import 'package:intl/intl.dart';
@@ -171,37 +172,39 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     setState(() => _isSavingQrImage = true);
     
     try {
-      // Use the unified QrSaveService that mirrors SlipService logic
-      final success = await QrSaveService.saveReceiveQrToGallery(
-        account,
-        _amountController.text,
-      );
+      await QrSaveService.saveReceiveQrToGallery(account, _amountController.text);
       
       if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('บันทึกรูป QR ลงอัลบั้มรูปแล้ว'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไม่สามารถบันทึกรูปได้ กรุณาตรวจสอบสิทธิ์การเข้าถึงอัลบั้ม'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('บันทึกรูป QR ลงอัลบั้มรูปแล้ว'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } on ImageSaveException catch (e) {
+      if (mounted) {
+        final shouldRetry = await showImageSaveErrorDialog(context, e);
+        if (shouldRetry == true) {
+          // User wants to retry - call this method recursively
+          if (mounted) {
+            setState(() => _isSavingQrImage = false);
+            await _saveQrImage(account);
+            return;
+          }
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          ),
+        final shouldRetry = await showImageSaveErrorDialog(
+          context,
+          ImageSaveException(ImageSaveError.unknownError, e.toString()),
         );
+        if (shouldRetry == true && mounted) {
+          setState(() => _isSavingQrImage = false);
+          await _saveQrImage(account);
+          return;
+        }
       }
     } finally {
       if (mounted) setState(() => _isSavingQrImage = false);

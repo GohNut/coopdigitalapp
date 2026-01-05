@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:screenshot/screenshot.dart';
@@ -27,96 +26,86 @@ class QrSaveService {
   }
 
   /// Saves receive QR code to the gallery (or downloads it via bridge on web)
-  static Future<bool> saveReceiveQrToGallery(DepositAccount account, String? amount) async {
-    try {
-      if (kIsWeb) {
-        debugPrint('QrSaveService: Requesting server-side QR generation (Receive)...');
-        try {
-          // Cleanup previous if exists
-          await deleteLastGeneratedQr();
+  /// 
+  /// Throws [ImageSaveException] if saving fails.
+  static Future<void> saveReceiveQrToGallery(DepositAccount account, String? amount) async {
+    if (kIsWeb) {
+      debugPrint('QrSaveService: Requesting server-side QR generation (Receive)...');
+      // Cleanup previous if exists
+      await deleteLastGeneratedQr();
 
-          final payload = {
-            'name': account.accountName,
-            'account_no_masked': account.maskedAccountNumber,
-            'qr_payload': "coop://pay?account_id=${account.id}&name=${Uri.encodeComponent(account.accountName)}${amount != null && amount.isNotEmpty ? '&amount=${amount.replaceAll(',', '')}' : ''}",
-            'amount': double.tryParse(amount?.replaceAll(',', '') ?? '') ?? 0,
-            'title': 'QR รับเงิน',
-          };
+      final payload = {
+        'name': account.accountName,
+        'account_no_masked': account.maskedAccountNumber,
+        'qr_payload': "coop://pay?account_id=${account.id}&name=${Uri.encodeComponent(account.accountName)}${amount != null && amount.isNotEmpty ? '&amount=${amount.replaceAll(',', '')}' : ''}",
+        'amount': double.tryParse(amount?.replaceAll(',', '') ?? '') ?? 0,
+        'title': 'QR รับเงิน',
+      };
 
-          final response = await http.post(
-            Uri.parse('${ApiConfig.baseUrl}/qr/generate'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(payload),
-          );
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/qr/generate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
 
-          if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
-            final String? qrUrl = data['url'];
-            if (qrUrl != null) {
-              _lastGeneratedUrl = qrUrl;
-              debugPrint('QrSaveService: Server generated URL: $qrUrl');
-              return await ImageSaveService.saveImageFromUrl(qrUrl);
-            }
-          }
-          debugPrint('QrSaveService: Server generation failed, falling back to local capture');
-        } catch (e) {
-          debugPrint('QrSaveService: Server error: $e');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final String? qrUrl = data['url'];
+        if (qrUrl != null) {
+          _lastGeneratedUrl = qrUrl;
+          debugPrint('QrSaveService: Server generated URL: $qrUrl');
+          await ImageSaveService.saveImageFromUrl(qrUrl);
+          return;
         }
       }
-
-      final Uint8List imageBytes = await _captureQr(account, amount);
-      final String filename = "qr_receive_${account.accountNumber}_${DateTime.now().millisecondsSinceEpoch}.png";
-      
-      return await ImageSaveService.saveImageFromBytes(imageBytes, filename);
-    } catch (e) {
-      debugPrint('Error saving QR: $e');
-      return false;
+      debugPrint('QrSaveService: Server generation failed, falling back to local capture');
     }
+
+    // Fallback: Capture locally
+    final Uint8List imageBytes = await _captureQr(account, amount);
+    final String filename = "qr_receive_${account.accountNumber}_${DateTime.now().millisecondsSinceEpoch}.png";
+    
+    await ImageSaveService.saveImageFromBytes(imageBytes, filename);
   }
 
   /// Saves Top-up QR code (Coop QR) to the gallery
-  static Future<bool> saveTopUpQrToGallery(double amount, String qrData) async {
-    try {
-      if (kIsWeb) {
-        debugPrint('QrSaveService: Requesting server-side QR generation (TopUp)...');
-        try {
-          // Cleanup previous topup if exists
-          await deleteLastGeneratedTopUpQr();
+  /// 
+  /// Throws [ImageSaveException] if saving fails.
+  static Future<void> saveTopUpQrToGallery(double amount, String qrData) async {
+    if (kIsWeb) {
+      debugPrint('QrSaveService: Requesting server-side QR generation (TopUp)...');
+      // Cleanup previous topup if exists
+      await deleteLastGeneratedTopUpQr();
 
-          final payload = {
-            'name': PromptPayQrGenerator.coopAccountName,
-            'account_no_masked': "เลขที่บัญชี: ${PromptPayQrGenerator.coopAccountNumber}",
-            'qr_payload': qrData,
-            'amount': amount,
-            'title': 'QR ฝากเงิน',
-          };
+      final payload = {
+        'name': PromptPayQrGenerator.coopAccountName,
+        'account_no_masked': "เลขที่บัญชี: ${PromptPayQrGenerator.coopAccountNumber}",
+        'qr_payload': qrData,
+        'amount': amount,
+        'title': 'QR ฝากเงิน',
+      };
 
-          final response = await http.post(
-            Uri.parse('${ApiConfig.baseUrl}/qr/generate'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(payload),
-          );
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/qr/generate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
 
-          if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
-            final String? qrUrl = data['url'];
-            if (qrUrl != null) {
-              _lastGeneratedTopUpUrl = qrUrl;
-              debugPrint('QrSaveService: Server generated TopUp URL: $qrUrl');
-              return await ImageSaveService.saveImageFromUrl(qrUrl);
-            }
-          }
-        } catch (e) {
-          debugPrint('QrSaveService: Server error (TopUp): $e');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final String? qrUrl = data['url'];
+        if (qrUrl != null) {
+          _lastGeneratedTopUpUrl = qrUrl;
+          debugPrint('QrSaveService: Server generated TopUp URL: $qrUrl');
+          await ImageSaveService.saveImageFromUrl(qrUrl);
+          return;
         }
       }
-
-      // No local capture fallback for TopUp yet, but could be added if needed
-      return false;
-    } catch (e) {
-      debugPrint('Error saving TopUp QR: $e');
-      return false;
+      throw Exception('Server QR generation failed');
     }
+
+    // No local capture fallback for TopUp yet
+    throw UnsupportedError('TopUp QR cannot be saved on mobile without server');
   }
 
   /// Deletes the last generated QR from the server
@@ -154,12 +143,9 @@ class QrSaveService {
   }
 
   /// Saves QR code image bytes to the gallery (legacy/utility method)
-  static Future<bool> saveQrToGallery(Uint8List imageBytes, String filename) async {
-    try {
-      return await ImageSaveService.saveImageFromBytes(imageBytes, filename);
-    } catch (e) {
-      debugPrint('Error saving QR bytes: $e');
-      return false;
-    }
+  /// 
+  /// Throws [ImageSaveException] if saving fails.
+  static Future<void> saveQrToGallery(Uint8List imageBytes, String filename) async {
+    await ImageSaveService.saveImageFromBytes(imageBytes, filename);
   }
 }

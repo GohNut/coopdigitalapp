@@ -23,6 +23,7 @@ import '../../../notification/presentation/providers/notification_provider.dart'
 import '../../../../core/utils/notification_helper.dart';
 import '../../../auth/domain/user_role.dart';
 import '../../../payment/services/qr_save_service.dart';
+import '../../../../core/services/image_save_error.dart';
 
 
 
@@ -86,22 +87,16 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
     
     try {
       if (kIsWeb) {
-        // Use QrSaveService for server-side QR generation on Web
         final qrData = PromptPayQrGenerator.generate(
           amount: (widget.params['amount'] as num).toDouble(),
         );
-        final success = await QrSaveService.saveTopUpQrToGallery(
+        await QrSaveService.saveTopUpQrToGallery(
           (widget.params['amount'] as num).toDouble(),
           qrData,
         );
-        
-        if (!success) throw Exception('Failed to save QR via server');
       } else {
         // Mobile: Use existing RPB capture logic
-        // Find the RenderRepaintBoundary
         RenderRepaintBoundary boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-        
-        // Capture the image
         ui.Image image = await boundary.toImage(pixelRatio: 3.0);
         ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
         Uint8List pngBytes = byteData!.buffer.asUint8List();
@@ -122,14 +117,28 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
           ),
         );
       }
+    } on ImageSaveException catch (e) {
+      if (mounted) {
+        final shouldRetry = await showImageSaveErrorDialog(context, e);
+        if (shouldRetry == true) {
+          if (mounted) {
+            setState(() => _isSavingImage = false);
+            await _saveImage();
+            return;
+          }
+        }
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          ),
+        final shouldRetry = await showImageSaveErrorDialog(
+          context,
+          ImageSaveException(ImageSaveError.unknownError, e.toString()),
         );
+        if (shouldRetry == true && mounted) {
+          setState(() => _isSavingImage = false);
+          await _saveImage();
+          return;
+        }
       }
     } finally {
       if (mounted) setState(() => _isSavingImage = false);

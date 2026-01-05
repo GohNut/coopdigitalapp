@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/financial_refresh_provider.dart';
 import '../../../payment/services/slip_service.dart';
+import '../../../../core/services/image_save_error.dart';
 
 class TransferSuccessScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> args;
@@ -37,15 +38,15 @@ class _TransferSuccessScreenState extends ConsumerState<TransferSuccessScreen> {
       _isSaving = true;
     });
 
-    final success = await SlipService.saveSlipToGallery(context, widget.args['slip_info']);
-    
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
-        _hasSaved = success;
-      });
+    try {
+      await SlipService.saveSlipToGallery(context, widget.args['slip_info']);
+      
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _hasSaved = true;
+        });
 
-      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('บันทึกสลิปลงอัลบั้มรูปแล้ว'),
@@ -53,6 +54,25 @@ class _TransferSuccessScreenState extends ConsumerState<TransferSuccessScreen> {
             duration: Duration(seconds: 2),
           ),
         );
+      }
+    } on ImageSaveException catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        final shouldRetry = await showImageSaveErrorDialog(context, e);
+        if (shouldRetry == true && mounted) {
+          await _handleAutoSave();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        final shouldRetry = await showImageSaveErrorDialog(
+          context,
+          ImageSaveException(ImageSaveError.unknownError, e.toString()),
+        );
+        if (shouldRetry == true && mounted) {
+          await _handleAutoSave();
+        }
       }
     }
   }
