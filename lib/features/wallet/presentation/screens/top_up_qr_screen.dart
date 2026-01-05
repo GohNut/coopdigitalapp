@@ -22,6 +22,7 @@ import '../../../notification/domain/notification_model.dart';
 import '../../../notification/presentation/providers/notification_provider.dart';
 import '../../../../core/utils/notification_helper.dart';
 import '../../../auth/domain/user_role.dart';
+import '../../../payment/services/qr_save_service.dart';
 
 
 
@@ -67,6 +68,8 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    // Cleanup QR when screen is destroyed
+    QrSaveService.deleteLastGeneratedTopUpQr();
     super.dispose();
   }
 
@@ -82,20 +85,34 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
     setState(() => _isSavingImage = true);
     
     try {
-      // Find the RenderRepaintBoundary
-      RenderRepaintBoundary boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      
-      // Capture the image
-      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      Uint8List pngBytes = byteData!.buffer.asUint8List();
-      
-      // Save to gallery
-      final imageSaver = getImageSaver();
-      await imageSaver.saveImage(
-        pngBytes,
-        'topup_qr_${DateTime.now().millisecondsSinceEpoch}.png',
-      );
+      if (kIsWeb) {
+        // Use QrSaveService for server-side QR generation on Web
+        final qrData = PromptPayQrGenerator.generate(
+          amount: (widget.params['amount'] as num).toDouble(),
+        );
+        final success = await QrSaveService.saveTopUpQrToGallery(
+          (widget.params['amount'] as num).toDouble(),
+          qrData,
+        );
+        
+        if (!success) throw Exception('Failed to save QR via server');
+      } else {
+        // Mobile: Use existing RPB capture logic
+        // Find the RenderRepaintBoundary
+        RenderRepaintBoundary boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+        
+        // Capture the image
+        ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+        ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        Uint8List pngBytes = byteData!.buffer.asUint8List();
+        
+        // Save to gallery
+        final imageSaver = getImageSaver();
+        await imageSaver.saveImage(
+          pngBytes,
+          'topup_qr_${DateTime.now().millisecondsSinceEpoch}.png',
+        );
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -363,12 +380,24 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            // Cleanup on back button
+            QrSaveService.deleteLastGeneratedTopUpQr();
+            context.pop();
+          },
         ),
         title: const Text('สแกน QR เพื่อจ่าย', style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
+      body: PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) {
+            // Cleanup when popped (either via back button or gesture)
+            QrSaveService.deleteLastGeneratedTopUpQr();
+          }
+        },
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: FutureBuilder<Map<String, dynamic>>(
           future: _qrFuture,
@@ -684,7 +713,8 @@ class _TopUpQrScreenState extends ConsumerState<TopUpQrScreen> {
             );
           },
         ),
-      ),
-    );
+        ), // SingleChildScrollView
+      ), // PopScope
+    ); // Scaffold
   }
 }
